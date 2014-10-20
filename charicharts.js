@@ -33,8 +33,6 @@ Charicharts.chart.prototype.init = function() {
   var yscale = scales[1];
 
   // Draw axes
-  
-
 };
 
 /**
@@ -226,9 +224,9 @@ function p_scale(opts) {
    * Returns linear domain from 0 to max data value.
    */
   function getLinearAllDomain() {
-    return d3.extent(opts.data, function(d) {
+    return [0, d3.max(opts.data, function(d) {
       return d.value;
-    });
+    })];
   }
 
   /**

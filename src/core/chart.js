@@ -26,8 +26,6 @@ Charicharts.chart.prototype.init = function() {
   var yscale = scales[1];
 
   // Draw axes
-  
-
 };
 
 /**
