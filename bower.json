@@ -19,7 +19,8 @@
     ".git",
     ".gitignore",
     "package.json",
-    "src"
+    "src",
+    "Gruntfile.js"
   ],
   "dependencies": {
   }
