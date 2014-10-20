@@ -19,7 +19,7 @@
     ".git",
     ".gitignore",
     "package.json",
-    "src",
+    "src"
   ],
   "dependencies": {
   }
