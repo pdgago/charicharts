@@ -8,7 +8,7 @@
   "description": "D3-based charts",
   "main": "charicharts.js",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "ignore": [
     "**/.*",
     "node_modules",

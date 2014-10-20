@@ -1,19 +1,20 @@
 {
+  "nonew": false,
+  "undef": false,
+  "latedef": false,
+  "unused": false,
+  "camelcase": false,
+  "strict": false,
+
   "bitwise": true,
-  "camelcase": true,
   "curly": true,
   "eqeqeq": true,
   "forin": true,
   "immed": true,
   "indent": 2,
-  "latedef": true,
   "newcap": true,
   "noarg": true,
-  "nonew": false,
   "quotmark": "single",
-  "undef": true,
-  "unused": true,
-  "strict": true,
   "trailing": true,
   "smarttabs": true,
   "expr": true,
@@ -22,17 +23,5 @@
   "sub": true,
 
   "browser": true,
-  "jquery": true,
-  "node": true,
-
-  "predef": [
-    "define",
-    "describe",
-    "it",
-    "before",
-    "after",
-    "beforeEach",
-    "Charicharts",
-    "_"
-  ]
+  "node": true
 }

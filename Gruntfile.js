@@ -52,8 +52,8 @@ module.exports = function(grunt) {
       dist: {
         src: [
           'src/start.js',
-          'src/core/events.js',
-          'src/core/pie.js',
+          'src/core/*.js',
+          'src/parts/*.js',
           'src/end.js'
         ],
         dest: 'charicharts.js'

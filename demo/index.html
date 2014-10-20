@@ -5,18 +5,25 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
   <script src="http://d3js.org/d3.v3.js"></script>
   <script src="charicharts.js"></script>
+
+  <style type="text/css">
+    #pie {
+      height: 500px;
+      width: 500px;
+      background: #ddd;
+    }
+  </style>
+
 </head>
 <body>
 
-  <div id="graph"></div>
+  <div id="pie"></div>
 
   <script type="text/javascript">
-    var mychart = new Charicharts.pie({
-      height: 200
+    var pie = new Charicharts.pie({
+      target: document.getElementById('pie'),
+      data: [{value:500, color: 'red'}, {value: 1000, color:'green'}, {value: 400, color:'yellow'}, {value: 300, color: 'pink'}],
     });
-
-
-    console.log(mychart);
   </script>
 
 </body>

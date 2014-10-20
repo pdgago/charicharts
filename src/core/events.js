@@ -1,6 +1,9 @@
-Charicharts.Events = (function(context) {
-  'use strict';
-
+/**
+ * Creates a events module for the supplied context.
+ * 
+ * @param {Context} context
+ */
+Charicharts.Events = function(context) {
   // Check for 'c_' cache for unit testing
   var cache = context.c_ || {};
 
@@ -30,9 +33,7 @@ Charicharts.Events = (function(context) {
    *                             published array as ordered arguments.
    */
   var on = function(topic, callback) {
-    if (!cache[topic]) {
-      cache[topic] = [];
-    }
+    cache[topic] || (cache[topic] = []);
     cache[topic].push(callback);
     return [topic, callback]; // Array
   };
@@ -61,5 +62,4 @@ Charicharts.Events = (function(context) {
     on: on,
     unbind: unbind
   };
-
-})(this);
+};
