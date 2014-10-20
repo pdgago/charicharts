@@ -1,0 +1,2 @@
+charicharts.pie = function() {
+};
