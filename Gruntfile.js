@@ -65,6 +65,13 @@ module.exports = function(grunt) {
           'charicharts.min.js': ['charicharts.js']
         }
       }
+    },
+
+    copy: {
+      demo: {
+        src: 'charicharts.js',
+        dest: 'demo/'
+      }
     }
 
   });
@@ -72,7 +79,8 @@ module.exports = function(grunt) {
   grunt.registerTask('build', [
     'concurrent:dist',
     'concat',
-    'uglify'
+    'uglify',
+    'copy:demo'
   ]);
 
 

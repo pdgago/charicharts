@@ -2,5 +2,5 @@
   if (typeof define === "function" && define.amd) define(charicharts);
   else if (typeof module === "object" && module.exports) module.exports = charicharts;
   this.charicharts = charicharts;
-}(window);
+}.call(window);
 /* jshint ignore:end */
