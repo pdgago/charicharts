@@ -17,6 +17,5 @@
     "tests"
   ],
   "dependencies": {
-    "d3": "~3.4.13"
   }
 }

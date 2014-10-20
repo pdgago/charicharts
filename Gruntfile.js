@@ -44,7 +44,7 @@ module.exports = function(grunt) {
       },
       scripts: {
         files: '<%= jshint.files %>',
-        tasks: ['jshint']
+        tasks: ['jshint', 'build']
       }
     },
 
@@ -52,6 +52,7 @@ module.exports = function(grunt) {
       dist: {
         src: [
           'src/start.js',
+          'src/core/events.js',
           'src/core/pie.js',
           'src/end.js'
         ],

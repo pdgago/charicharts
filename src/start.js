@@ -1,5 +1,5 @@
 /* jshint ignore:start */
-!function(window) {
+!function(context) {
   'use strict';
-  var charicharts = {version: "3.4.13"};
+  var Charicharts = {version: "3.4.13"};
 /* jshint ignore:end */

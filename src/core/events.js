@@ -1,8 +1,3 @@
-/* jshint ignore:start */
-!function(context) {
-  'use strict';
-  var Charicharts = {version: "3.4.13"};
-/* jshint ignore:end */
 Charicharts.Events = (function(context) {
   'use strict';
 
@@ -68,18 +63,3 @@ Charicharts.Events = (function(context) {
   };
 
 })(this);
-Charicharts.pie = function(options) {
-  'use strict';
-  this._options = _.extend(options, this.constructor.defaults);
-  return this;
-};
-
-Charicharts.pie.defaults = {
-  innerRadius: 22
-};
-/* jshint ignore:start */
-  if (typeof define === "function" && define.amd) define(Charicharts);
-  else if (typeof module === "object" && module.exports) module.exports = Charicharts;
-  this.Charicharts = Charicharts;
-}.call(window);
-/* jshint ignore:end */
