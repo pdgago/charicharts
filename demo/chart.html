@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Charicharts Demo</title>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
+  <script src="http://d3js.org/d3.v3.js"></script>
+  <script src="charicharts.js"></script>
+
+  <style type="text/css">
+    #chart {
+      height: 500px;
+      width: 500px;
+    }
+  </style>
+
+</head>
+<body>
+
+  <div id="chart"></div>
+
+  <script type="text/javascript">
+    window.onload = function() {
+      var data = _.map(_.range(24), function(hour) {
+        var date = new Date();
+        date.setHours(hour, 0, 0);
+        return {
+          value: _.random(200, 1000),
+          datetime: date
+        }
+      });
+
+      var chart = new Charicharts.chart({
+        target: document.getElementById('chart'),
+        data: data
+      });
+    };
+  </script>
+
+</body>
+</html>

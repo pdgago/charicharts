@@ -4,7 +4,7 @@
  * @param  {Integer} width
  * @param  {Integer} height
  */
-function h_getTransform(width, height) {
+function h_getTranslate(width, height) {
   return 'translate(' + width + ',' + height + ')';
 }
 
@@ -18,8 +18,10 @@ function h_parseOptions(opts) {
   opts.margin = _.object(['top', 'right', 'bottom', 'left'],
     opts.margin.split(',').map(Number));
 
-  opts.width = opts.target.offsetWidth - opts.margin.left - opts.margin.right;
-  opts.height = opts.target.offsetHeight - opts.margin.top - opts.margin.bottom;
+  opts.fullWidth = opts.target.offsetWidth;
+  opts.fullHeight = opts.target.offsetHeight;
+  opts.width = opts.fullWidth - opts.margin.left - opts.margin.right;
+  opts.height = opts.fullHeight - opts.margin.top - opts.margin.bottom;
 
   return opts;
 }

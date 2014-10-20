@@ -10,18 +10,15 @@ Charicharts.pie = function pie(options) {
  */
 Charicharts.pie.prototype.init = function() {
   var opts = this._options;
-
-  var width = opts.width + opts.margin.left + opts.margin.right;
-  var height = opts.height + opts.margin.top + opts.margin.bottom;
-  var radius = Math.min(opts.width, opts.height) / 2;
+  var radius = Math.min(opts.fullWidth, opts.fullHeight) / 2;
 
   var svg = d3.select(opts.target)
     .append('svg')
-      .attr('width', width)
-      .attr('height', height)
+      .attr('width', opts.fullWidth)
+      .attr('height', opts.fullHeight)
     .append('g')
-      .attr('class', 'g-main')
-      .attr('transform', h_getTransform(width/2, height/2));
+      .attr('class', SVG_GROUP_CLASS)
+      .attr('transform', h_getTranslate(opts.fullWidth/2, opts.fullHeight/2));
 
   svg.append('svg:circle')
     .attr('class', 'outer-circle')
@@ -34,7 +31,7 @@ Charicharts.pie.prototype.init = function() {
     .value(function(d) {return d.value || 100 / opts.data.length;});
 
   var arc = d3.svg.arc()
-    .innerRadius((radius * 0.90) - (opts.width * opts.innerRadius))
+    .innerRadius((radius * 0.90) - (opts.fullWidth * opts.innerRadius))
     .outerRadius(radius * 0.90);
 
   svg.selectAll('path')
