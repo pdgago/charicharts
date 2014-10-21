@@ -118,7 +118,8 @@ Charicharts.chart.defaults = {
     fit: false,
     display: true,
     orient: 'left',
-    tickFormat: function(d) {
+    tickFormat: function(d, i) {
+      if (!i) {return;}
       return d;
     }
   }
