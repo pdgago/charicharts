@@ -116,7 +116,7 @@ Charicharts.chart.defaults = {
   yaxis: {
     scale: 'linear',
     fit: false,
-    display: true,
+    display: false,
     orient: 'left',
     tickFormat: function(d) {
       return d;
@@ -239,7 +239,7 @@ Charicharts.pie.prototype.init = function() {
     .attr('r', radius);
 
   var pieLayout = d3.layout.pie()
-    .value(function(d) {return d.value || 100 / opts.data.length;});
+    .value(function(d) {return d.value;});
 
   var arc = d3.svg.arc()
     .innerRadius((radius * 0.90) - (opts.fullWidth * opts.innerRadius))
@@ -499,6 +499,14 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
     svg.selectAll('.extent,.resize').remove();
 
     brush.on('brush', onBrush);
+
+
+    // quickfix: add to event loop so its call event is set.
+    setTimeout(function() {
+      slider
+        .call(brush.extent([new Date(), new Date()]))
+        .call(brush.event);
+    }, 0);
 
     /**
      * Triggered when the user mouseover or clicks on

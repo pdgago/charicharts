@@ -35,6 +35,14 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
 
     brush.on('brush', onBrush);
 
+
+    // quickfix: add to event loop so its call event is set.
+    setTimeout(function() {
+      slider
+        .call(brush.extent([new Date(), new Date()]))
+        .call(brush.event);
+    }, 0);
+
     /**
      * Triggered when the user mouseover or clicks on
      * the slider brush.

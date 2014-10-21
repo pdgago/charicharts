@@ -82,7 +82,7 @@ Charicharts.chart.defaults = {
   yaxis: {
     scale: 'linear',
     fit: false,
-    display: true,
+    display: false,
     orient: 'left',
     tickFormat: function(d) {
       return d;
