@@ -45,7 +45,7 @@
           var date = new Date();
           date.setHours(hour, 0, 0);
           return {
-            value: _.random(200, 1000),
+            value: _.random(400, 1000),
             datetime: date
           }
         });
@@ -53,26 +53,26 @@
 
       var chart = new Charicharts.chart({
         target: document.getElementById('chart'),
+        margin: '0,0,50,0',
         trail: true,
         data: [{
           id: 'wins',
           type: 'line',
           values: getData(),
           interpolation: 'step',
-          color: '#ddd',
+          color: 'orange',
         },{
           id: 'losses',
           type: 'line',
           values: getData(),
-          interpolation: 'basis',
-          color: '#555'
+          interpolation: 'cardinal',
+          color: 'red'
         },{
           id: 'losses',
           type: 'bar',
           values: getData(),
-          color: 'purple'
-        }],
-        margin: '0,0,50,0'
+          color: '#ddd'
+        }].reverse()
       });
 
       chart.on('moveTrail', function(a) {

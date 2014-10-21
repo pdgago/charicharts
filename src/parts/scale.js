@@ -35,7 +35,7 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      */
     function getLinearAllDomain() {
       return [0, d3.max(valuesArr, function(d) {
-        return d.value;
+        return Number(d.value);
       })];
     }
 
