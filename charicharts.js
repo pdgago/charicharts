@@ -7,9 +7,10 @@
 var SVG_GROUP_CLASS = 'g-main';
 Charicharts.chart = function chart(options) {
   this._options = h_parseOptions(_.extend({}, this.constructor.defaults, options));
-  _.extend(this, Charicharts.Events(this));
+  this._vars = _.extend({}, this._options, Charicharts.Events(this));
+  this.inject = generateInjector(this._vars);
   this.init();
-  return this;
+  return _.pick(this._vars, 'on');
 };
 
 /**
@@ -17,7 +18,6 @@ Charicharts.chart = function chart(options) {
  */
 Charicharts.chart.prototype.init = function() {
   var opts = this._options;
-  var inject = generateInjector(this);
 
   // Draw svg
   var svg = d3.select(opts.target)
@@ -28,61 +28,41 @@ Charicharts.chart.prototype.init = function() {
       .attr('class', SVG_GROUP_CLASS)
       .attr('transform', h_getTranslate(opts.margin.left, opts.margin.top));
 
-  this.svg = svg;
+  this._vars.svg = svg;
 
   // Set scales
-  var scales = p_scale(_.pick(opts, 'width', 'height', 'xaxis', 'yaxis', 'data'));
+  var scales = this.inject(p_scale);
   var xscale = scales[0];
   var yscale = scales[1];
 
-  this.scales = scales;
-  this.xscale = xscale;
-  this.yscale = yscale;
-  this.width = this._options.width;
-  this.height = this._options.height;
+  this._vars.scales = scales;
+  this._vars.xscale = xscale;
+  this._vars.yscale = yscale;
+  this._vars.width = this._options.width;
+  this._vars.height = this._options.height;
 
   // Set axes
   var xaxis, yaxis;
   if (opts.xaxis.display) {
-    xaxis = p_axes_getX(xscale,
-      _.pick(opts.xaxis, 'orient', 'tickFormat'));
+    xaxis = this.inject(p_axes_getX)
+      .drawAxis();
   }
 
   if (opts.yaxis.display) {
-    yaxis = p_axes_getY(yscale,
-      _.extend(_.pick(opts.yaxis, 'orient', 'tickFormat'), {width: opts.width}));
+    yaxis = this.inject(p_axes_getY)
+      .drawAxis();
   }
 
-  // Draw axis
-  if (xaxis) {
-    svg.append('g')
-      .attr('class', 'xaxis')
-      .attr('transform', h_getTranslate(0, opts.height))
-      .call(xaxis)
-      .selectAll('text')
-        .style('text-anchor', 'middle');
-  }
-
-  if (yaxis) {
-    svg.append('g')
-      .attr('class', 'yaxis')
-      .attr('transform', h_getTranslate(0, 0))
-      .call(yaxis)
-      .selectAll('text')
-        .attr('x', 0)
-        .style('text-anchor', 'start');
-  }
-
-  _.each(opts.data, function(serie) {
+  _.each(opts.data, _.bind(function(serie) {
     if (serie.type === 'line') {
-      inject(p_line).drawLine(serie);
+      this.inject(p_line).drawLine(serie);
     } else if (serie.type === 'bar') {
-      inject(p_bar).drawBar(serie);
+      this.inject(p_bar).drawBar(serie);
     }
-  });
+  }, this));
 
   if (opts.trail) {
-    inject(p_trail);
+    this.inject(p_trail);
   }
 
   svg.selectAll('.domain').remove();
@@ -284,39 +264,56 @@ Charicharts.pie.defaults = {
   margin: '0,0,0,0'
 };
 /**
- * Get xaxis
+ * Get xaxis.
  * 
- * @param  {Object} xscale D3 scale
- * @param  {Object} opts   Axis options
- *   orient - axis ticks orientation
- *   tickFormat - Function
- *   width - svg width
  * @return {d3.svg.axis}
  */
-function p_axes_getX(xscale, opts) {
-  return d3.svg.axis()
-    .scale(xscale)
-    .orient(opts.orient)
-    .tickFormat(opts.tickFormat);
-}
+var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
+  function(xscale, xaxis, svg, height) {
+    var axis = d3.svg.axis()
+      .scale(xscale)
+      .orient(xaxis.orient)
+      .tickFormat(xaxis.tickFormat);
+
+    axis.drawAxis = function() {
+      svg.append('g')
+        .attr('class', 'xaxis')
+        .attr('transform', h_getTranslate(0, height))
+        .call(axis)
+        .selectAll('text')
+          .style('text-anchor', 'middle');
+
+      return axis;
+    };
+
+    return axis;
+}];
 
 /**
- * Get xaxis
+ * Get yaxis.
  * 
- * @param  {Object} xscale D3 scale
- * @param  {Object} opts   Axis options
- *   orient - axis ticks orientation
- *   tickFormat - Function
- *   width - svg width
  * @return {d3.svg.axis}
  */
-function p_axes_getY(yscale, opts) {
-  return d3.svg.axis()
-    .scale(yscale)
-    .orient(opts.orient)
-    .tickSize(-opts.width)
-    .tickFormat(opts.tickFormat);
-}
+var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
+  function(yscale, yaxis, width, svg) {
+    var axis = d3.svg.axis()
+      .scale(yscale)
+      .orient(yaxis.orient)
+      .tickSize(-width)
+      .tickFormat(yaxis.tickFormat);
+
+    axis.drawAxis = function() {
+      svg.append('g')
+        .attr('class', 'yaxis')
+        .attr('transform', h_getTranslate(0, 0))
+        .call(axis)
+        .selectAll('text')
+          .attr('x', 0)
+          .style('text-anchor', 'start');
+    };
+
+    return axis;
+}];
 /**
  * Get d3 path generator Function for bars.
  * 
@@ -388,83 +385,84 @@ var p_line = ['scales', 'svg', function p_line(scales, svg) {
  *   data - series data. used to set the domains
  * @return {Array} Returns [x,y] scales
  */
-function p_scale(opts) {
+var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
+  function(data, xaxis, yaxis, width, height) {
 
-  var d3Scales = {
-    'time': d3.time.scale,
-    'ordinal': d3.scale.ordinal,
-    'linear': d3.scale.linear
-  };
+    var d3Scales = {
+      'time': d3.time.scale,
+      'ordinal': d3.scale.ordinal,
+      'linear': d3.scale.linear
+    };
 
-  var valuesArr = _.flatten(_.map(opts.data,
-    function(d) {
-      return d.values;
-    }));
+    var valuesArr = _.flatten(_.map(data,
+      function(d) {
+        return d.values;
+      }));
 
-  /**
-   * Returns time domain from opts.data.
-   */
-  function getTimeDomain() {
-    return d3.extent(valuesArr, function(d) {
-      return d.datetime;
-    });
-  }
-  
-  /**
-   * Returns linear domain from 0 to max data value.
-   */
-  function getLinearAllDomain() {
-    return [0, d3.max(valuesArr, function(d) {
-      return d.value;
-    })];
-  }
-
-  /**
-   * Returns linear domain from min/max data values.
-   */
-  function getLinearFitDomain() {
-    return d3.extent(valuesArr, function(d) {
-      return d.value;
-    });
-  }
-
-  /**
-   * Get the domain for the supplied scale type.
-   * 
-   * @param  {String}  scale
-   * @param  {Boolean} fit    Fit domain to min/max values
-   * @return {Object}  domain D3 domain
-   */
-  function getDomain(scale, fit) {
-    if (scale === 'time') {
-      return getTimeDomain();
+    /**
+     * Returns time domain from data.
+     */
+    function getTimeDomain() {
+      return d3.extent(valuesArr, function(d) {
+        return d.datetime;
+      });
+    }
+    
+    /**
+     * Returns linear domain from 0 to max data value.
+     */
+    function getLinearAllDomain() {
+      return [0, d3.max(valuesArr, function(d) {
+        return d.value;
+      })];
     }
 
-    if (fit) {
-      return getLinearFitDomain();
-    } else {
-      return getLinearAllDomain();
+    /**
+     * Returns linear domain from min/max data values.
+     */
+    function getLinearFitDomain() {
+      return d3.extent(valuesArr, function(d) {
+        return d.value;
+      });
     }
-  }
 
-  function getXScale() {
-    var domain = getDomain(opts.xaxis.scale, opts.xaxis.fit);
+    /**
+     * Get the domain for the supplied scale type.
+     * 
+     * @param  {String}  scale
+     * @param  {Boolean} fit    Fit domain to min/max values
+     * @return {Object}  domain D3 domain
+     */
+    function getDomain(scale, fit) {
+      if (scale === 'time') {
+        return getTimeDomain();
+      }
 
-    return d3Scales[opts.xaxis.scale]()
-      .domain(domain)
-      .range([0, opts.width]);
-  }
+      if (fit) {
+        return getLinearFitDomain();
+      } else {
+        return getLinearAllDomain();
+      }
+    }
 
-  function getYScale() {
-    var domain = getDomain(opts.yaxis.scale, opts.yaxis.fit);
+    function getXScale() {
+      var domain = getDomain(xaxis.scale, xaxis.fit);
 
-    return d3Scales[opts.yaxis.scale]()
-      .domain(domain)
-      .range([opts.height, 0]);
-  }
+      return d3Scales[xaxis.scale]()
+        .domain(domain)
+        .range([0, width]);
+    }
 
-  return [getXScale(), getYScale()];
-}
+    function getYScale() {
+      var domain = getDomain(yaxis.scale, yaxis.fit);
+
+      return d3Scales[yaxis.scale]()
+        .domain(domain)
+        .range([height, 0]);
+    }
+
+    return [getXScale(), getYScale()];
+}];
 /**
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.

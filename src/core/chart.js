@@ -1,8 +1,9 @@
 Charicharts.chart = function chart(options) {
   this._options = h_parseOptions(_.extend({}, this.constructor.defaults, options));
-  _.extend(this, Charicharts.Events(this));
+  this._vars = _.extend({}, this._options, Charicharts.Events(this));
+  this.inject = generateInjector(this._vars);
   this.init();
-  return this;
+  return _.pick(this._vars, 'on');
 };
 
 /**
@@ -10,7 +11,6 @@ Charicharts.chart = function chart(options) {
  */
 Charicharts.chart.prototype.init = function() {
   var opts = this._options;
-  var inject = generateInjector(this);
 
   // Draw svg
   var svg = d3.select(opts.target)
@@ -21,61 +21,41 @@ Charicharts.chart.prototype.init = function() {
       .attr('class', SVG_GROUP_CLASS)
       .attr('transform', h_getTranslate(opts.margin.left, opts.margin.top));
 
-  this.svg = svg;
+  this._vars.svg = svg;
 
   // Set scales
-  var scales = p_scale(_.pick(opts, 'width', 'height', 'xaxis', 'yaxis', 'data'));
+  var scales = this.inject(p_scale);
   var xscale = scales[0];
   var yscale = scales[1];
 
-  this.scales = scales;
-  this.xscale = xscale;
-  this.yscale = yscale;
-  this.width = this._options.width;
-  this.height = this._options.height;
+  this._vars.scales = scales;
+  this._vars.xscale = xscale;
+  this._vars.yscale = yscale;
+  this._vars.width = this._options.width;
+  this._vars.height = this._options.height;
 
   // Set axes
   var xaxis, yaxis;
   if (opts.xaxis.display) {
-    xaxis = p_axes_getX(xscale,
-      _.pick(opts.xaxis, 'orient', 'tickFormat'));
+    xaxis = this.inject(p_axes_getX)
+      .drawAxis();
   }
 
   if (opts.yaxis.display) {
-    yaxis = p_axes_getY(yscale,
-      _.extend(_.pick(opts.yaxis, 'orient', 'tickFormat'), {width: opts.width}));
+    yaxis = this.inject(p_axes_getY)
+      .drawAxis();
   }
 
-  // Draw axis
-  if (xaxis) {
-    svg.append('g')
-      .attr('class', 'xaxis')
-      .attr('transform', h_getTranslate(0, opts.height))
-      .call(xaxis)
-      .selectAll('text')
-        .style('text-anchor', 'middle');
-  }
-
-  if (yaxis) {
-    svg.append('g')
-      .attr('class', 'yaxis')
-      .attr('transform', h_getTranslate(0, 0))
-      .call(yaxis)
-      .selectAll('text')
-        .attr('x', 0)
-        .style('text-anchor', 'start');
-  }
-
-  _.each(opts.data, function(serie) {
+  _.each(opts.data, _.bind(function(serie) {
     if (serie.type === 'line') {
-      inject(p_line).drawLine(serie);
+      this.inject(p_line).drawLine(serie);
     } else if (serie.type === 'bar') {
-      inject(p_bar).drawBar(serie);
+      this.inject(p_bar).drawBar(serie);
     }
-  });
+  }, this));
 
   if (opts.trail) {
-    inject(p_trail);
+    this.inject(p_trail);
   }
 
   svg.selectAll('.domain').remove();
