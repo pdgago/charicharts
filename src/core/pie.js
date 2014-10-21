@@ -28,6 +28,7 @@ Charicharts.pie.prototype.init = function() {
     .attr('r', radius);
 
   var pieLayout = d3.layout.pie()
+    .sort(null)
     .value(function(d) {return d.value;});
 
   var arc = d3.svg.arc()
