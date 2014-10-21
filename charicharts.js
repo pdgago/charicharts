@@ -6,7 +6,7 @@
 // Class of the svg first-child gro
 var SVG_GROUP_CLASS = 'g-main';
 Charicharts.chart = function chart(options) {
-  this._options = h_parseOptions(_.extend(options, this.constructor.defaults));
+  this._options = h_parseOptions(_.extend({}, this.constructor.defaults, options));
   _.extend(this, Charicharts.Events(this));
   this.init();
   return this;
@@ -17,6 +17,7 @@ Charicharts.chart = function chart(options) {
  */
 Charicharts.chart.prototype.init = function() {
   var opts = this._options;
+  var inject = generateInjector(this);
 
   // Draw svg
   var svg = d3.select(opts.target)
@@ -27,12 +28,64 @@ Charicharts.chart.prototype.init = function() {
       .attr('class', SVG_GROUP_CLASS)
       .attr('transform', h_getTranslate(opts.margin.left, opts.margin.top));
 
+  this.svg = svg;
+
   // Set scales
   var scales = p_scale(_.pick(opts, 'width', 'height', 'xaxis', 'yaxis', 'data'));
   var xscale = scales[0];
   var yscale = scales[1];
 
-  // Draw axes
+  this.scales = scales;
+  this.xscale = xscale;
+  this.yscale = yscale;
+  this.width = this._options.width;
+  this.height = this._options.height;
+
+  // Set axes
+  var xaxis, yaxis;
+  if (opts.xaxis.display) {
+    xaxis = p_axes_getX(xscale,
+      _.pick(opts.xaxis, 'orient', 'tickFormat'));
+  }
+
+  if (opts.yaxis.display) {
+    yaxis = p_axes_getY(yscale,
+      _.extend(_.pick(opts.yaxis, 'orient', 'tickFormat'), {width: opts.width}));
+  }
+
+  // Draw axis
+  if (xaxis) {
+    svg.append('g')
+      .attr('class', 'xaxis')
+      .attr('transform', h_getTranslate(0, opts.height))
+      .call(xaxis)
+      .selectAll('text')
+        .style('text-anchor', 'middle');
+  }
+
+  if (yaxis) {
+    svg.append('g')
+      .attr('class', 'yaxis')
+      .attr('transform', h_getTranslate(0, 0))
+      .call(yaxis)
+      .selectAll('text')
+        .attr('x', 0)
+        .style('text-anchor', 'start');
+  }
+
+  _.each(opts.data, function(serie) {
+    if (serie.type === 'line') {
+      inject(p_line).drawLine(serie);
+    } else if (serie.type === 'bar') {
+      inject(p_bar).drawBar(serie);
+    }
+  });
+
+  if (opts.trail) {
+    inject(p_trail);
+  }
+
+  svg.selectAll('.domain').remove();
 };
 
 /**
@@ -40,13 +93,27 @@ Charicharts.chart.prototype.init = function() {
  */
 Charicharts.chart.defaults = {
   margin: '0,0,0,0',
+  trail: false,
   xaxis: {
     scale: 'time',
-    fit: false
+    fit: false,
+    orient: 'bottom',
+    display: true,
+    tickFormat: function(d) {
+      if (d instanceof Date) {
+        return d.getHours();
+      }
+      return d;
+    }    
   },
   yaxis: {
     scale: 'linear',
-    fit: false
+    fit: false,
+    display: true,
+    orient: 'left',
+    tickFormat: function(d) {
+      return d;
+    }
   }
 };
 /**
@@ -141,6 +208,27 @@ function h_parseOptions(opts) {
 
   return opts;
 }
+/**
+ * Generate a injector to the given context.
+ *
+ * When calling a function using inject(), that function
+ * will be able to ask for context variables.
+ *
+ * Injectors are specially build for the charichart parts, because they
+ * need access to many variables. This makes the code cleaner and more
+ * testeable.
+ *
+ * @param  {Ojbect} ctx Context
+ */
+var generateInjector = function(ctx) {
+  return function inject(args) {
+    var func = args[args.length-1];
+    args = args.slice(0, args.length-1).map(function(a) {
+      return ctx[a];
+    });
+    return func.apply(ctx, args);
+  };
+};
 Charicharts.pie = function pie(options) {
   this._options = h_parseOptions(_.extend(options, this.constructor.defaults));
   _.extend(this, Charicharts.Events(this));
@@ -196,6 +284,102 @@ Charicharts.pie.defaults = {
   margin: '0,0,0,0'
 };
 /**
+ * Get xaxis
+ * 
+ * @param  {Object} xscale D3 scale
+ * @param  {Object} opts   Axis options
+ *   orient - axis ticks orientation
+ *   tickFormat - Function
+ *   width - svg width
+ * @return {d3.svg.axis}
+ */
+function p_axes_getX(xscale, opts) {
+  return d3.svg.axis()
+    .scale(xscale)
+    .orient(opts.orient)
+    .tickFormat(opts.tickFormat);
+}
+
+/**
+ * Get xaxis
+ * 
+ * @param  {Object} xscale D3 scale
+ * @param  {Object} opts   Axis options
+ *   orient - axis ticks orientation
+ *   tickFormat - Function
+ *   width - svg width
+ * @return {d3.svg.axis}
+ */
+function p_axes_getY(yscale, opts) {
+  return d3.svg.axis()
+    .scale(yscale)
+    .orient(opts.orient)
+    .tickSize(-opts.width)
+    .tickFormat(opts.tickFormat);
+}
+/**
+ * Get d3 path generator Function for bars.
+ * 
+ * @param  {Array}    scales [x,y] scales
+ * @return {Function}        D3 line path generator
+ */
+var p_bar = ['scales', 'svg', 'height', function(scales, svg, height) {
+
+  /**
+   * Draw a bar for the given serie.
+   */
+  function drawBar(serie) {
+    svg.append('g')
+      .attr('class', 'bar')
+      .selectAll('rect')
+      .data(serie.values)
+    .enter().append('rect')
+      .attr('x', function(d) {return scales[0](d.datetime);})
+      .attr('y', function(d) {return scales[1](d.value);})
+      .attr('width', 10)
+      .attr('fill', function() {return serie.color;})
+      .attr('height', function(d) {return height - scales[1](d.value);});
+  }
+
+  return {
+    drawBar: drawBar
+  };
+}];
+/**
+ * Get d3 path generator Function for lines.
+ * 
+ * The returned function will take our data and generate the
+ * necessary SVG path commands.
+ * 
+ * @param  {Array}    scales [x,y] scales
+ * @return {Function}        D3 line path generator
+ */
+var p_line = ['scales', 'svg', function p_line(scales, svg) {
+    var line = d3.svg.line()
+      .x(function(d) {
+        return scales[0](d.datetime);
+      })
+      .y(function(d) {
+        return scales[1](d.value);
+      });
+
+    /**
+     * Draw a line for the given serie
+     */
+    function drawLine(serie) {
+      svg.append('path')
+        .attr('id', serie.id)
+        .attr('class', 'line')
+        .attr('transform', 'translate(0, 0)')
+        .attr('stroke', serie.color)
+        .attr('d', line.interpolate(serie.interpolation)(serie.values));
+    }
+
+    return {
+      drawLine: drawLine
+    };
+}];
+/**
  * Set x/y scales from the supplied options.
  * 
  * @param  {Object} opts
@@ -208,14 +392,20 @@ function p_scale(opts) {
 
   var d3Scales = {
     'time': d3.time.scale,
+    'ordinal': d3.scale.ordinal,
     'linear': d3.scale.linear
   };
+
+  var valuesArr = _.flatten(_.map(opts.data,
+    function(d) {
+      return d.values;
+    }));
 
   /**
    * Returns time domain from opts.data.
    */
   function getTimeDomain() {
-    return d3.extent(opts.data, function(d) {
+    return d3.extent(valuesArr, function(d) {
       return d.datetime;
     });
   }
@@ -224,7 +414,7 @@ function p_scale(opts) {
    * Returns linear domain from 0 to max data value.
    */
   function getLinearAllDomain() {
-    return [0, d3.max(opts.data, function(d) {
+    return [0, d3.max(valuesArr, function(d) {
       return d.value;
     })];
   }
@@ -233,7 +423,7 @@ function p_scale(opts) {
    * Returns linear domain from min/max data values.
    */
   function getLinearFitDomain() {
-    return d3.extent(opts.data, function(d) {
+    return d3.extent(valuesArr, function(d) {
       return d.value;
     });
   }
@@ -275,6 +465,93 @@ function p_scale(opts) {
 
   return [getXScale(), getYScale()];
 }
+/**
+ * Add an trail to the supplied svg and trigger events
+ * when the user moves it.
+ */
+var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
+  function(svg, trigger, height, width, xscale) {
+
+    var currentDate;
+
+    var trail = svg.append('g')
+      .attr('class', 'trail');
+
+    var trailLine = trail.append('svg:line')
+      .attr('class', 'trail-line')
+      .attr('x1', 0)
+      .attr('x2', 0)
+      .attr('y1', 0)
+      .attr('y2', height);
+
+    var brush = d3.svg.brush()
+      .x(xscale)
+      .extent([0, 0]);
+
+    var slider = svg.append('g')
+      .attr('transform', h_getTranslate(0,0))
+      .attr('class', 'trail-slider')
+      .call(brush);
+
+    slider.select('.background')
+      .attr('height', height)
+      .attr('width', width)
+      .style('cursor', 'pointer');
+
+    svg.selectAll('.extent,.resize').remove();
+
+    brush.on('brush', onBrush);
+
+    /**
+     * Triggered when the user mouseover or clicks on
+     * the slider brush.
+     */
+    function onBrush() {
+      var xdomain = xscale.domain();
+      var date;
+
+      if (d3.event.sourceEvent) {
+        date = xscale.invert(d3.mouse(this)[0]);
+      } else {
+        date = brush.extent()[0];
+      }
+
+      if (Date.parse(date) > Date.parse(xdomain[1])) {
+        date = xdomain[1];
+      }
+
+      if (Date.parse(date) < Date.parse(xdomain[0])) {
+        date = xdomain[0];
+      }
+
+      if ((date.getMinutes()) >= -30) {
+        date.setHours(date.getHours());
+      }
+
+      date.setMinutes(0, 0);
+
+      if (Date.parse(currentDate) === Date.parse(date)) {
+        return;
+      }
+
+      currentDate = date;
+      var xtrail = Math.round(xscale(date)) - 1;
+
+      moveTrail(xtrail);
+      trigger('moveTrail', [date]);
+    }
+
+    /**
+     * Move the trail to the given x position.
+     * 
+     * @param  {integer} x
+     */
+    function moveTrail(x) {
+      trailLine
+        .attr('x1', x)
+        .attr('x2', x);
+    }
+}];
 /* jshint ignore:start */
   if (typeof define === "function" && define.amd) define(Charicharts);
   else if (typeof module === "object" && module.exports) module.exports = Charicharts;

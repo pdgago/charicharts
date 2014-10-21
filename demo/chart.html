@@ -7,9 +7,28 @@
   <script src="charicharts.js"></script>
 
   <style type="text/css">
+    body {
+      font-family: 'Helvetica', sans-serif;
+      font-size: 13px;
+    }
+
     #chart {
       height: 500px;
       width: 500px;
+    }
+
+    .line {
+      fill: transparent;
+      stroke-width: 2px;
+    }
+
+    .trail-line {
+      stroke: red;
+      stroke-width: 1px;
+    }
+
+    text {
+      fill: #777;
     }
   </style>
 
@@ -20,18 +39,44 @@
 
   <script type="text/javascript">
     window.onload = function() {
-      var data = _.map(_.range(24), function(hour) {
-        var date = new Date();
-        date.setHours(hour, 0, 0);
-        return {
-          value: _.random(200, 1000),
-          datetime: date
-        }
-      });
+
+      var getData = function () {
+        return _.map(_.range(24), function(hour) {
+          var date = new Date();
+          date.setHours(hour, 0, 0);
+          return {
+            value: _.random(200, 1000),
+            datetime: date
+          }
+        });
+      }
 
       var chart = new Charicharts.chart({
         target: document.getElementById('chart'),
-        data: data
+        trail: true,
+        data: [{
+          id: 'wins',
+          type: 'line',
+          values: getData(),
+          interpolation: 'step',
+          color: '#ddd',
+        },{
+          id: 'losses',
+          type: 'line',
+          values: getData(),
+          interpolation: 'basis',
+          color: '#555'
+        },{
+          id: 'losses',
+          type: 'bar',
+          values: getData(),
+          color: 'purple'
+        }],
+        margin: '0,0,50,0'
+      });
+
+      chart.on('moveTrail', function(a) {
+        console.log(a);
       });
     };
   </script>

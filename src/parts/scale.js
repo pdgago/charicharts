@@ -11,14 +11,20 @@ function p_scale(opts) {
 
   var d3Scales = {
     'time': d3.time.scale,
+    'ordinal': d3.scale.ordinal,
     'linear': d3.scale.linear
   };
+
+  var valuesArr = _.flatten(_.map(opts.data,
+    function(d) {
+      return d.values;
+    }));
 
   /**
    * Returns time domain from opts.data.
    */
   function getTimeDomain() {
-    return d3.extent(opts.data, function(d) {
+    return d3.extent(valuesArr, function(d) {
       return d.datetime;
     });
   }
@@ -27,7 +33,7 @@ function p_scale(opts) {
    * Returns linear domain from 0 to max data value.
    */
   function getLinearAllDomain() {
-    return [0, d3.max(opts.data, function(d) {
+    return [0, d3.max(valuesArr, function(d) {
       return d.value;
     })];
   }
@@ -36,7 +42,7 @@ function p_scale(opts) {
    * Returns linear domain from min/max data values.
    */
   function getLinearFitDomain() {
-    return d3.extent(opts.data, function(d) {
+    return d3.extent(valuesArr, function(d) {
       return d.value;
     });
   }
