@@ -124,7 +124,7 @@ Charicharts.Chart = function chart(options) {
   this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis || {});
   this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis || {});
   this._vars = _.extend({}, this._options, Charicharts.Events(this));
-  this.inject = generateInjector(this._vars);
+  this.load = generateInjector(this._vars);
   this.init();
   return _.pick(this._vars, 'on');
 };
@@ -134,9 +134,11 @@ Charicharts.Chart = function chart(options) {
  */
 Charicharts.Chart.prototype.init = function() {
   var opts = this._options;
+  var xaxis, yaxis;
 
   // Draw svg
-  var svg = d3.select(opts.target)
+  // Main chart wrapper under the given target.
+  this._vars.svg = d3.select(opts.target)
     .append('svg')
       .attr('width', opts.fullWidth)
       .attr('height', opts.fullHeight)
@@ -144,46 +146,46 @@ Charicharts.Chart.prototype.init = function() {
       .attr('class', SVG_GROUP_CLASS)
       .attr('transform', h_getTranslate(opts.margin.left, opts.margin.top));
 
-  this._vars.svg = svg;
-
-  // Set scales
-  var scales = this.inject(p_scale);
-  var xscale = scales[0];
-  var yscale = scales[1];
-
-  this._vars.scales = scales;
-  this._vars.xscale = xscale;
-  this._vars.yscale = yscale;
-  this._vars.width = this._options.width;
-  this._vars.height = this._options.height;
-
-  // Set axes
-  var xaxis, yaxis;
+  // Scales
+  // X scale and axis (optional)
   if (opts.xaxis.enabled) {
-    xaxis = this.inject(p_axes_getX)
-      .drawAxis();
+    this._vars.xscale = this.load(p_scale).getXScale();
+    this._vars.xaxis = this.load(p_axes_getX).drawAxis();
   }
 
+  // Y scale and axis (optional)
   if (opts.yaxis.enabled) {
-    yaxis = this.inject(p_axes_getY)
-      .drawAxis();
+    this._vars.yscale = this.load(p_scale).getYScale();
+    this._vars.yaxis = this.load(p_axes_getY).drawAxis();
   }
 
+  // Draw series.
+  // Series supported:
+  //   line - simple line with interpolation
+  //   bar - simple bar
+  //   stacked-bar - desglosed bars (with more than one value for every x point)
   _.each(opts.data, _.bind(function(serie) {
     if (serie.type === 'line') {
-      this.inject(p_line).drawLine(serie);
+      this.load(p_line).drawLine(serie);
     } else if (serie.type === 'bar') {
-      this.inject(p_bar).drawBar(serie);
+      this.load(p_bar).drawBar(serie);
     } else if (serie.type === 'stacked-bar') {
-      this.inject(p_stacked_bar).drawBar(serie);
+      this.load(p_stacked_bar).drawBar(serie);
     }
   }, this));
 
+  // Draw trail (optional)
+  // Add a trail line to the chart and trigger a 'moveTrail'
+  // event when the user moves the trail.
+  // 
+  // Requirements:
+  //   - xscale
   if (opts.trail && opts.xaxis.enabled) {
-    this.inject(p_trail);
+    this.load(p_trail);
   }
 
-  svg.selectAll('.domain').remove();
+  // Remove unused stuff (d3 add this automatically)
+  this._vars.svg.selectAll('.domain').remove();
 };
 
 /**
@@ -333,31 +335,28 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
 }];
 /**
  * Get d3 path generator Function for bars.
- * 
- * @param  {Array}    scales [x,y] scales
- * @return {Function}        D3 line path generator
  */
-var p_bar = ['scales', 'svg', 'height', function(scales, svg, height) {
+var p_bar = ['svg', 'xscale', 'yscale', 'height',
+  function(svg, xscale, yscale, height) {
+    /**
+     * Draw a bar for the given serie.
+     */
+    function drawBar(serie) {
+      svg.append('g')
+        .attr('class', 'bar')
+        .selectAll('rect')
+        .data(serie.values)
+      .enter().append('rect')
+        .attr('x', function(d) {return xscale(d.datetime);})
+        .attr('y', function(d) {return yscale(d.value);})
+        .attr('width', 10)
+        .attr('fill', function() {return serie.color;})
+        .attr('height', function(d) {return height - yscale(d.value);});
+    }
 
-  /**
-   * Draw a bar for the given serie.
-   */
-  function drawBar(serie) {
-    svg.append('g')
-      .attr('class', 'bar')
-      .selectAll('rect')
-      .data(serie.values)
-    .enter().append('rect')
-      .attr('x', function(d) {return scales[0](d.datetime);})
-      .attr('y', function(d) {return scales[1](d.value);})
-      .attr('width', 10)
-      .attr('fill', function() {return serie.color;})
-      .attr('height', function(d) {return height - scales[1](d.value);});
-  }
-
-  return {
-    drawBar: drawBar
-  };
+    return {
+      drawBar: drawBar
+    };
 }];
 /**
  * Get d3 path generator Function for lines.
@@ -368,13 +367,14 @@ var p_bar = ['scales', 'svg', 'height', function(scales, svg, height) {
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
-var p_line = ['scales', 'svg', function p_line(scales, svg) {
+var p_line = ['svg', 'xscale', 'yscale',
+  function(svg, xscale, yscale) {
     var line = d3.svg.line()
       .x(function(d) {
-        return scales[0](d.datetime);
+        return xscale(d.datetime);
       })
       .y(function(d) {
-        return scales[1](d.value);
+        return yscale(d.value);
       });
 
     /**
@@ -478,7 +478,10 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
         .range([height, 0]);
     }
 
-    return [getXScale(), getYScale()];
+    return {
+      getXScale: getXScale,
+      getYScale: getYScale
+    };
 }];
 /**
  * Get d3 path generator Function for bars.

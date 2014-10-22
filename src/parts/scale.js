@@ -83,5 +83,8 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
         .range([height, 0]);
     }
 
-    return [getXScale(), getYScale()];
+    return {
+      getXScale: getXScale,
+      getYScale: getYScale
+    };
 }];

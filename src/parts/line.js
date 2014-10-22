@@ -7,13 +7,14 @@
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
-var p_line = ['scales', 'svg', function p_line(scales, svg) {
+var p_line = ['svg', 'xscale', 'yscale',
+  function(svg, xscale, yscale) {
     var line = d3.svg.line()
       .x(function(d) {
-        return scales[0](d.datetime);
+        return xscale(d.datetime);
       })
       .y(function(d) {
-        return scales[1](d.value);
+        return yscale(d.value);
       });
 
     /**
