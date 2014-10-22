@@ -226,7 +226,7 @@ Charicharts.Chart.defaults = {
   }
 };
 Charicharts.Pie = function pie(options) {
-  this._options = h_parseOptions(_.extend(options, Charicharts.Pie.defaults));
+  this._options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
   _.extend(this, Charicharts.Events(this));
   this.init();
   return this;
@@ -259,7 +259,7 @@ Charicharts.Pie.prototype.init = function() {
     .value(function(d) {return d.value;});
 
   var arc = d3.svg.arc()
-    .innerRadius((radius * 0.90) - (opts.fullWidth * opts.innerRadius))
+    .innerRadius((radius * 0.90) - ((radius * 0.90) * (opts.innerRadius)))
     .outerRadius(radius * 0.90);
 
   svg.selectAll('path')
