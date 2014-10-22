@@ -11,9 +11,11 @@ var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
       .tickFormat(xaxis.tickFormat);
 
     axis.drawAxis = function() {
+      var translateY = xaxis.orient === 'bottom' ? height : 0;
+
       svg.append('g')
         .attr('class', 'xaxis')
-        .attr('transform', h_getTranslate(0, height))
+        .attr('transform',h_getTranslate(0, translateY))
         .call(axis)
         .selectAll('text')
           .style('text-anchor', 'middle');
@@ -43,8 +45,13 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
         .attr('transform', h_getTranslate(0, 0))
         .call(axis)
         .selectAll('text')
-          .attr('x', 0)
-          .style('text-anchor', 'start');
+          .attr('x', yaxis.textPaddingRight)
+          .attr('y', yaxis.textMarginTop)
+          .style('text-anchor', yaxis.textAnchor);
+
+      svg.select('.yaxis')
+        .selectAll('line')
+          .attr('x1', yaxis.textPaddingRight);
     };
 
     return axis;

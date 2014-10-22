@@ -1,5 +1,8 @@
 Charicharts.chart = function chart(options) {
+  // todo => use a deep extend to do this
   this._options = h_parseOptions(_.extend({}, this.constructor.defaults, options));
+  this._options.xaxis = _.extend({}, this.constructor.defaults.xaxis, options.xaxis || {});
+  this._options.yaxis = _.extend({}, this.constructor.defaults.yaxis, options.yaxis || {});
   this._vars = _.extend({}, this._options, Charicharts.Events(this));
   this.inject = generateInjector(this._vars);
   this.init();
@@ -84,6 +87,9 @@ Charicharts.chart.defaults = {
     fit: false,
     display: true,
     orient: 'left',
+    textAnchor: 'end',
+    textPaddingRight: 0,
+    textMarginTop: 0,
     tickFormat: function(d, i) {
       if (!i) {return;}
       return d;

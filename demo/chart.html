@@ -30,6 +30,17 @@
     text {
       fill: #777;
     }
+
+    .yaxis line {
+      stroke: #ccc;
+      shape-rendering: crispEdges;
+      stroke-dasharray: 10, 4;
+    }
+
+    .yaxis .tick:first-child line {
+      stroke-dasharray: none;
+      stroke: #ccc;
+    }
   </style>
 
 </head>
@@ -53,8 +64,14 @@
 
       var chart = new Charicharts.chart({
         target: document.getElementById('chart'),
-        margin: '0,0,50,0',
+        margin: '0,0,50,35',
         trail: true,
+        yaxis: {
+          fit: false,
+          textAnchor: 'start',
+          textPaddingRight: -35,
+          textMarginTop: -10
+        },
         data: [{
           id: 'wins',
           type: 'line',
