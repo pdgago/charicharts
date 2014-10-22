@@ -23,7 +23,8 @@
     }
 
     .trail-line {
-      stroke: red;
+      stroke: black;
+      shape-rendering: crispEdges;
       stroke-width: 1px;
     }
 
@@ -62,7 +63,7 @@
         });
       }
 
-      var chart = new Charicharts.chart({
+      var options = {
         target: document.getElementById('chart'),
         margin: '0,0,50,35',
         trail: true,
@@ -90,10 +91,13 @@
           values: getData(),
           color: '#ddd'
         }].reverse()
-      });
+      };
 
-      chart.on('moveTrail', function(a) {
-        console.log(a);
+      var chart = new Charicharts.Chart(options);
+      console.log(options);
+
+      chart.on('moveTrail', function(xvalue) {
+        console.log(xvalue);
       });
     };
   </script>

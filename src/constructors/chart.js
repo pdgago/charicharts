@@ -1,8 +1,8 @@
-Charicharts.chart = function chart(options) {
+Charicharts.Chart = function chart(options) {
   // todo => use a deep extend to do this
-  this._options = h_parseOptions(_.extend({}, this.constructor.defaults, options));
-  this._options.xaxis = _.extend({}, this.constructor.defaults.xaxis, options.xaxis || {});
-  this._options.yaxis = _.extend({}, this.constructor.defaults.yaxis, options.yaxis || {});
+  this._options = h_parseOptions(_.extend({}, Charicharts.Chart.defaults, options));
+  this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis || {});
+  this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis || {});
   this._vars = _.extend({}, this._options, Charicharts.Events(this));
   this.inject = generateInjector(this._vars);
   this.init();
@@ -12,7 +12,7 @@ Charicharts.chart = function chart(options) {
 /**
  * Generate a chart by setting all it parts.
  */
-Charicharts.chart.prototype.init = function() {
+Charicharts.Chart.prototype.init = function() {
   var opts = this._options;
 
   // Draw svg
@@ -39,12 +39,12 @@ Charicharts.chart.prototype.init = function() {
 
   // Set axes
   var xaxis, yaxis;
-  if (opts.xaxis.display) {
+  if (opts.xaxis.enabled) {
     xaxis = this.inject(p_axes_getX)
       .drawAxis();
   }
 
-  if (opts.yaxis.display) {
+  if (opts.yaxis.enabled) {
     yaxis = this.inject(p_axes_getY)
       .drawAxis();
   }
@@ -54,10 +54,12 @@ Charicharts.chart.prototype.init = function() {
       this.inject(p_line).drawLine(serie);
     } else if (serie.type === 'bar') {
       this.inject(p_bar).drawBar(serie);
+    } else if (serie.type === 'stacked-bar') {
+      this.inject(p_stacked_bar).drawBar(serie);
     }
   }, this));
 
-  if (opts.trail) {
+  if (opts.trail && opts.xaxis.enabled) {
     this.inject(p_trail);
   }
 
@@ -67,14 +69,14 @@ Charicharts.chart.prototype.init = function() {
 /**
  * Defaults Chart options.
  */
-Charicharts.chart.defaults = {
+Charicharts.Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
   xaxis: {
     scale: 'time',
     fit: false,
     orient: 'bottom',
-    display: true,
+    enabled: true,
     tickFormat: function(d) {
       if (d instanceof Date) {
         return d.getHours();
@@ -85,7 +87,7 @@ Charicharts.chart.defaults = {
   yaxis: {
     scale: 'linear',
     fit: false,
-    display: true,
+    enabled: true,
     orient: 'left',
     textAnchor: 'end',
     textPaddingRight: 0,

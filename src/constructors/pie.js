@@ -1,5 +1,5 @@
-Charicharts.pie = function pie(options) {
-  this._options = h_parseOptions(_.extend(options, this.constructor.defaults));
+Charicharts.Pie = function pie(options) {
+  this._options = h_parseOptions(_.extend(options, Charicharts.Pie.defaults));
   _.extend(this, Charicharts.Events(this));
   this.init();
   return this;
@@ -8,7 +8,7 @@ Charicharts.pie = function pie(options) {
 /**
  * Generate a pie by setting all it parts.
  */
-Charicharts.pie.prototype.init = function() {
+Charicharts.Pie.prototype.init = function() {
   var opts = this._options;
   var radius = Math.min(opts.fullWidth, opts.fullHeight) / 2;
 
@@ -49,7 +49,7 @@ Charicharts.pie.prototype.init = function() {
  * Defaults pie options as static object.
  * @type {Object}
  */
-Charicharts.pie.defaults = {
+Charicharts.Pie.defaults = {
   innerRadius: 0.22,
   margin: '0,0,0,0'
 };

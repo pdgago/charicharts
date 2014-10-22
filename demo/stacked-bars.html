@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Charicharts Demo</title>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
+  <script src="http://d3js.org/d3.v3.js"></script>
+  <script src="charicharts.js"></script>
+
+  <style type="text/css">
+    body {
+      font-family: 'Helvetica', sans-serif;
+      font-size: 13px;
+    }
+
+    #chart {
+      height: 500px;
+      width: 500px;
+    }
+
+    .line {
+      fill: transparent;
+      stroke-width: 2px;
+    }
+
+    .trail-line {
+      stroke: black;
+      shape-rendering: crispEdges;
+      stroke-width: 1px !important; 
+    }
+
+    text {
+      fill: #777;
+    }
+
+    .yaxis line {
+      stroke: #ccc;
+      shape-rendering: crispEdges;
+      stroke-dasharray: 10, 4;
+    }
+
+    .yaxis .tick:first-child line {
+      stroke-dasharray: none;
+      stroke: #ccc;
+    }
+  </style>
+
+</head>
+<body>
+
+  <div id="chart"></div>
+
+  <script type="text/javascript">
+    window.onload = function() {
+
+      var esiosData = JSON.parse('[{"type":"stacked-bar","values":[{"id":779,"slug":"precio-medio-horario-mercado-diario-comercializadores-ultimo-recurso","name":"Precio medio horario mercado diario comercializadores ultimo recurso","color":"#CF4B34","value":4.13},{"id":780,"slug":"precio-medio-horario-restricciones-pbf-comercializadores-ultimo-recurso","name":"Precio medio horario restricciones PBF comercializadores ultimo recurso","color":"#2A649C","value":5.75},{"id":781,"slug":"precio-medio-horario-restricciones-tiempo-real-comercializadores-ultimo-recurso","name":"Precio medio horario restricciones tiempo real comercializadores ultimo recurso","color":"#597B00","value":0},{"id":782,"slug":"precio-medio-horario-mercado-intradiario-comercializadores-ultimo-recurso","name":"Precio medio horario mercado intradiario comercializadores ultimo recurso","color":"#F18100","value":0},{"id":783,"slug":"precio-medio-horario-restricciones-intradiario-comercializadores-ultimo-recurso","name":"Precio medio horario restricciones intradiario comercializadores ultimo recurso","color":"#45A0DC","value":0},{"id":784,"slug":"precio-medio-horario-reserva-de-potencia-adicional-a-subir-comercializadores-ultimo-recurso","name":"Precio medio horario reserva de potencia adicional a subir comercializadores ultimo recurso","color":"#CFE191","value":0},{"id":785,"slug":"precio-medio-horario-banda-secundaria-comercializadores-ultimo-recurso","name":"Precio medio horario banda secundaria comercializadores ultimo recurso","color":"#F7C37A","value":1.34},{"id":786,"slug":"precio-medio-horario-desvios-medidos-comercializadores-ultimo-recurso","name":"Precio medio horario desvios medidos comercializadores ultimo recurso","color":"#BAE2F4","value":0.1},{"id":787,"slug":"precio-medio-horario-saldo-de-desvios-comercializadores-ultimo-recurso","name":"Precio medio horario saldo de desvios comercializadores ultimo recurso","color":"#dddddd","value":-0.07},{"id":788,"slug":"precio-medio-horario-pago-de-capacidad-comercializadores-ultimo-recurso","name":"Precio medio horario pago de capacidad comercializadores ultimo recurso","color":"#dddddd","value":2.18},{"id":789,"slug":"precio-medio-horario-saldo-po146-comercializadores-ultimo-recurso","name":"Precio medio horario saldo P.O.14.6 comercializadores ultimo recurso","color":"#dddddd","value":0},{"id":790,"slug":"precio-medio-horario-fallo-nominacion-upg-comercializadores-ultimo-recurso","name":"Precio medio horario fallo nominacion UPG comercializadores ultimo recurso","color":"#dddddd","value":0},{"id":791,"slug":"precio-medio-horario-final-comercializadores-ultimo-recurso","name":"Precio medio horario final comercializadores ultimo recurso","color":"#dddddd","value":19.6},{"id":792,"slug":"precio-medio-horario-mercado-diario-contratacion-libre","name":"Precio medio horario mercado diario contratacion libre","color":"#dddddd","value":4.13},{"id":793,"slug":"precio-medio-horario-restricciones-pbf-contratacion-libre","name":"Precio medio horario restricciones PBF contratacion libre","color":"#dddddd","value":5.75},{"id":794,"slug":"precio-medio-horario-restricciones-tiempo-real-contratacion-libre","name":"Precio medio horario restricciones tiempo real contratacion libre","color":"#dddddd","value":0},{"id":795,"slug":"precio-medio-horario-mercado-intradiario-contratacion-libre","name":"Precio medio horario mercado intradiario contratacion libre","color":"#dddddd","value":0},{"id":796,"slug":"precio-medio-horario-restricciones-intradiario-contratacion-libre","name":"Precio medio horario restricciones intradiario contratacion libre","color":"#dddddd","value":0},{"id":797,"slug":"precio-medio-horario-reserva-de-potencia-adicional-a-subir-contratacion-libre","name":"Precio medio horario reserva de potencia adicional a subir contratacion libre","color":"#dddddd","value":0},{"id":798,"slug":"precio-medio-horario-banda-secundaria-contratacion-libre","name":"Precio medio horario banda secundaria contratacion libre","color":"#dddddd","value":1.34},{"id":799,"slug":"precio-medio-horario-desvios-medidos-contratacion-libre","name":"Precio medio horario desvios medidos contratacion libre","color":"#dddddd","value":0.1},{"id":800,"slug":"precio-medio-horario-saldo-de-desvios-contratacion-libre","name":"Precio medio horario saldo de desvios contratacion libre","color":"#dddddd","value":-0.07},{"id":801,"slug":"precio-medio-horario-pago-de-capacidad-contratacion-libre","name":"Precio medio horario pago de capacidad contratacion libre","color":"#dddddd","value":2.18},{"id":802,"slug":"precio-medio-horario-saldo-po146-contratacion-libre","name":"Precio medio horario saldo P.O.14.6 contratacion libre","color":"#dddddd","value":0},{"id":803,"slug":"precio-medio-horario-fallo-nominacion-upg-contratacion-libre","name":"Precio medio horario fallo nominacion UPG contratacion libre","color":"#dddddd","value":0},{"id":804,"slug":"precio-medio-horario-final-contratacion-libre","name":"Precio medio horario final contratacion libre","color":"#dddddd","value":13.43},{"id":805,"slug":"precio-medio-horario-mercado-diario-consumidores-del-sistema-electrico","name":"Precio medio horario mercado diario consumidores del sistema electrico","color":"#dddddd","value":4.13},{"id":806,"slug":"precio-medio-horario-restricciones-pbf-consumidores-del-sistema-electrico","name":"Precio medio horario restricciones PBF consumidores del sistema electrico","color":"#dddddd","value":5.75},{"id":807,"slug":"precio-medio-horario-restricciones-tiempo-real-consumidores-del-sistema-electrico","name":"Precio medio horario restricciones tiempo real consumidores del sistema electrico","color":"#dddddd","value":0},{"id":808,"slug":"precio-medio-horario-mercado-intradiario-consumidores-del-sistema-electrico","name":"Precio medio horario mercado intradiario consumidores del sistema electrico","color":"#dddddd","value":0},{"id":809,"slug":"precio-medio-horario-restricciones-intradiario-consumidores-del-sistema-electrico","name":"Precio medio horario restricciones intradiario consumidores del sistema electrico","color":"#dddddd","value":0},{"id":810,"slug":"precio-medio-horario-reserva-de-potencia-adicional-a-subir-consumidores-del-sistema-electrico","name":"Precio medio horario reserva de potencia adicional a subir consumidores del sistema electrico","color":"#dddddd","value":0},{"id":811,"slug":"precio-medio-horario-banda-secundaria-consumidores-del-sistema-electrico","name":"Precio medio horario banda secundaria consumidores del sistema electrico","color":"#dddddd","value":1.34},{"id":812,"slug":"precio-medio-horario-desvios-medidos-consumidores-del-sistema-electrico","name":"Precio medio horario desvios medidos consumidores del sistema electrico","color":"#dddddd","value":0.1},{"id":813,"slug":"precio-medio-horario-saldo-de-desvios-consumidores-del-sistema-electrico","name":"Precio medio horario saldo de desvios consumidores del sistema electrico","color":"#dddddd","value":-0.07},{"id":814,"slug":"precio-medio-horario-pago-de-capacidad-consumidores-del-sistema-electrico","name":"Precio medio horario pago de capacidad consumidores del sistema electrico","color":"#dddddd","value":3.41},{"id":815,"slug":"precio-medio-horario-saldo-po146-consumidores-del-sistema-electrico","name":"Precio medio horario saldo P.O.14.6 consumidores del sistema electrico","color":"#dddddd","value":0},{"id":816,"slug":"precio-medio-horario-fallo-nominacion-upg-consumidores-del-sistema-electrico","name":"Precio medio horario fallo nominacion UPG consumidores del sistema electrico","color":"#dddddd","value":0},{"id":817,"slug":"precio-medio-horario-final-consumidores-del-sistema-electrico","name":"Precio medio horario final consumidores del sistema electrico","color":"#dddddd","value":14.66}]}]');
+  
+      // var getData = function () {
+      //   return _.map(_.range(24), function(hour) {
+      //     var date = new Date();
+      //     date.setHours(hour, 0, 0);
+      //     return {
+      //       value: _.random(400, 1000),
+      //       datetime: date
+      //     }
+      //   });
+      // }
+      // 
+      
+      var data = [{
+        type: 'stacked-bar',
+        values: [esiosData[0].values]
+      }];
+
+      var options = {
+        target: document.getElementById('chart'),
+        margin: '0,0,1,0',
+        xaxis: {
+          scale: false,
+          enabled: false
+        },
+        yaxis: {
+          textMarginTop: 0,
+          tickFormat: function() {
+            return '';
+          }
+        },
+        data: data
+      };
+
+      var chart = new Charicharts.Chart(options);
+    };
+  </script>
+
+</body>
+</html>

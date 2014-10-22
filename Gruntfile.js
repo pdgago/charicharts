@@ -55,6 +55,7 @@ module.exports = function(grunt) {
           'src/core/helpers.js',
           'src/core/globals.js',
           'src/core/*.js',
+          'src/constructors/*.js',
           'src/parts/*.js',
           'src/end.js'
         ],
