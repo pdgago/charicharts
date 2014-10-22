@@ -121,6 +121,7 @@ var generateInjector = function(ctx) {
 Charicharts.Chart = function chart(options) {
   // todo => use a deep extend to do this
   this._options = h_parseOptions(_.extend({}, Charicharts.Chart.defaults, options));
+  this._options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series || {});
   this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis || {});
   this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis || {});
   this._vars = _.extend({}, this._options, Charicharts.Events(this));
@@ -194,6 +195,10 @@ Charicharts.Chart.prototype.init = function() {
 Charicharts.Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
+  series: {
+    barWidth: 6,
+    align: 'left'
+  },
   xaxis: {
     scale: 'time',
     fit: false,
@@ -212,7 +217,7 @@ Charicharts.Chart.defaults = {
     enabled: true,
     orient: 'left',
     textAnchor: 'end',
-    textPaddingRight: 0,
+    textPaddingLeft: 0,
     textMarginTop: 0,
     tickFormat: function(d, i) {
       if (!i) {return;}
@@ -308,8 +313,8 @@ var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
  * 
  * @return {d3.svg.axis}
  */
-var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
-  function(yscale, yaxis, width, svg) {
+var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
+  function(yscale, yaxis, width, svg, margin) {
     var axis = d3.svg.axis()
       .scale(yscale)
       .orient(yaxis.orient)
@@ -322,13 +327,14 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
         .attr('transform', h_getTranslate(0, 0))
         .call(axis)
         .selectAll('text')
-          .attr('x', yaxis.textPaddingRight)
+          .attr('x', yaxis.paddingLeft)
           .attr('y', yaxis.textMarginTop)
           .style('text-anchor', yaxis.textAnchor);
 
       svg.select('.yaxis')
         .selectAll('line')
-          .attr('x1', yaxis.textPaddingRight);
+          .attr('x1', yaxis.paddingLeft)
+          .attr('x2', width + (margin.right || 0));
     };
 
     return axis;
@@ -336,8 +342,8 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
 /**
  * Get d3 path generator Function for bars.
  */
-var p_bar = ['svg', 'xscale', 'yscale', 'height',
-  function(svg, xscale, yscale, height) {
+var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
+  function(svg, xscale, yscale, height, series) {
     /**
      * Draw a bar for the given serie.
      */
@@ -347,9 +353,9 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height',
         .selectAll('rect')
         .data(serie.values)
       .enter().append('rect')
-        .attr('x', function(d) {return xscale(d.datetime);})
+        .attr('x', function(d) {return xscale(d.datetime) - series.barWidth/2;})
         .attr('y', function(d) {return yscale(d.value);})
-        .attr('width', 10)
+        .attr('width', series.barWidth)
         .attr('fill', function() {return serie.color;})
         .attr('height', function(d) {return height - yscale(d.value);});
     }
@@ -489,37 +495,49 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
-var p_stacked_bar = ['svg', 'yscale', 'xscale', function(svg, yscale, xscale) {
-  /**
-   * Draw a bar for the given serie.
-   */
-  function drawBar(serie) {
-    var y0 = 0;
+var p_stacked_bar = ['svg', 'yscale', 'xscale', 'trigger', 'series', 'width',
+  function(svg, yscale, xscale, trigger, series, width) {
+    /**
+     * Draw a bar for the given serie.
+     */
+    function drawBar(serie) {
+      var y0 = 0;
 
-    serie.values[0].forEach(function(d) {
-      d.y0 = y0;
-      d.y1 = y0 += Math.max(0, d.value); // negatives to zero
-    });
-
-    var stackedBar = svg.selectAll('stacked-bar')
-        .data(serie.values)
-      .enter().append('g')
-        .attr('transform', function(d) {
-          return h_getTranslate(0, 0); //scales[0](d.value)
+      serie.values.forEach(function(value) {
+        value.forEach(function(d) {
+          d.y0 = y0;
+          d.y1 = y0 += Math.max(0, d.value); // negatives to zero
         });
+      });
 
-    stackedBar.selectAll('rect')
-        .data(function(d) {return d;})
-      .enter().append('rect')
-        .attr('width', 40)
-        .attr('y', function(d) {return yscale(d.y1);})
-        .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
-        .style('fill', function(d) {return d.color;});
-  }
+      var stackedBar = svg.selectAll('stacked-bar')
+          .data(serie.values)
+        .enter().append('g')
+          .attr('transform', function(d) {
+            var x;
+            if (!xscale) {
+              x = (series.align === 'right') ? (width-series.barWidth) : 0;
+            } else {
+              xscale[d.datetime || d.value];
+            }
+            return h_getTranslate(x, 0);
+          });
 
-  return {
-    drawBar: drawBar
-  };
+      stackedBar.selectAll('rect')
+          .data(function(d) {return d;})
+        .enter().append('rect')
+          .attr('width', series.barWidth)
+          .attr('y', function(d) {return yscale(d.y1);})
+          .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
+          .style('fill', function(d) {return d.color;})
+          .on('mouseover', function(d) {
+            trigger('mouseoverStackbar', [d]);
+          });
+    }
+
+    return {
+      drawBar: drawBar
+    };
 }];
 /**
  * Add an trail to the supplied svg and trigger events

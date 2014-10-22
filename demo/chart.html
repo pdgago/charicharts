@@ -22,6 +22,10 @@
       stroke-width: 2px;
     }
 
+    rect {
+      shape-rendering: crispEdges;
+    }
+
     .trail-line {
       stroke: black;
       shape-rendering: crispEdges;
@@ -65,12 +69,12 @@
 
       var options = {
         target: document.getElementById('chart'),
-        margin: '0,0,50,35',
+        margin: '0,50,50,35',
         trail: true,
         yaxis: {
           fit: false,
           textAnchor: 'start',
-          textPaddingRight: -35,
+          paddingLeft: -35,
           textMarginTop: -10
         },
         data: [{

@@ -1,6 +1,7 @@
 Charicharts.Chart = function chart(options) {
   // todo => use a deep extend to do this
   this._options = h_parseOptions(_.extend({}, Charicharts.Chart.defaults, options));
+  this._options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series || {});
   this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis || {});
   this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis || {});
   this._vars = _.extend({}, this._options, Charicharts.Events(this));
@@ -74,6 +75,10 @@ Charicharts.Chart.prototype.init = function() {
 Charicharts.Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
+  series: {
+    barWidth: 6,
+    align: 'left'
+  },
   xaxis: {
     scale: 'time',
     fit: false,
@@ -92,7 +97,7 @@ Charicharts.Chart.defaults = {
     enabled: true,
     orient: 'left',
     textAnchor: 'end',
-    textPaddingRight: 0,
+    textPaddingLeft: 0,
     textMarginTop: 0,
     tickFormat: function(d, i) {
       if (!i) {return;}

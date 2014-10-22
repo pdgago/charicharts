@@ -31,8 +31,8 @@ var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
  * 
  * @return {d3.svg.axis}
  */
-var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
-  function(yscale, yaxis, width, svg) {
+var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
+  function(yscale, yaxis, width, svg, margin) {
     var axis = d3.svg.axis()
       .scale(yscale)
       .orient(yaxis.orient)
@@ -45,13 +45,14 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg',
         .attr('transform', h_getTranslate(0, 0))
         .call(axis)
         .selectAll('text')
-          .attr('x', yaxis.textPaddingRight)
+          .attr('x', yaxis.paddingLeft)
           .attr('y', yaxis.textMarginTop)
           .style('text-anchor', yaxis.textAnchor);
 
       svg.select('.yaxis')
         .selectAll('line')
-          .attr('x1', yaxis.textPaddingRight);
+          .attr('x1', yaxis.paddingLeft)
+          .attr('x2', width + (margin.right || 0));
     };
 
     return axis;

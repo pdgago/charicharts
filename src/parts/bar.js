@@ -1,8 +1,8 @@
 /**
  * Get d3 path generator Function for bars.
  */
-var p_bar = ['svg', 'xscale', 'yscale', 'height',
-  function(svg, xscale, yscale, height) {
+var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
+  function(svg, xscale, yscale, height, series) {
     /**
      * Draw a bar for the given serie.
      */
@@ -12,9 +12,9 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height',
         .selectAll('rect')
         .data(serie.values)
       .enter().append('rect')
-        .attr('x', function(d) {return xscale(d.datetime);})
+        .attr('x', function(d) {return xscale(d.datetime) - series.barWidth/2;})
         .attr('y', function(d) {return yscale(d.value);})
-        .attr('width', 10)
+        .attr('width', series.barWidth)
         .attr('fill', function() {return serie.color;})
         .attr('height', function(d) {return height - yscale(d.value);});
     }
