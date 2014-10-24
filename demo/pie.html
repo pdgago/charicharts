@@ -7,13 +7,29 @@
   <script src="charicharts.js"></script>
 
   <style type="text/css">
+    body,
+    html {
+      height: 100%;
+      width: 100%;
+    }
+
+    body {
+      position: relative;
+    }
+
     #pie {
-      height: 500px;
-      width: 500px;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: auto;
+      height: 300px;
+      width: 300px;
     }
 
     .outer-border {
-      stroke: black;
+      stroke: #999;
     }
   </style>
 
@@ -23,10 +39,23 @@
   <div id="pie"></div>
 
   <script type="text/javascript">
-    var pie = new Charicharts.Pie({
-      target: document.getElementById('pie'),
-      data: [{value:500, color: 'red'}, {value: 1000, color:'green'}, {value: 400, color:'yellow'}, {value: 300, color: 'pink'}],
+    var color = d3.scale.category10();
+
+    var data = _.map(_.range(_.random(6,10)),
+      function(d,i) {
+      return {
+        value: _.random(1, 100),
+        color: color(i)
+      };
     });
+
+    var options = {
+      target: document.getElementById('pie'),
+      data: data
+    };
+
+    var pie = new Charicharts.Pie(options);
+    pie.on('mouseover', function(d) {console.log(d);});
   </script>
 
 </body>
