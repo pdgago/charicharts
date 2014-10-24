@@ -1,9 +1,9 @@
 Charicharts.Chart = function chart(options) {
   // todo => use a deep extend to do this
   this._options = h_parseOptions(_.extend({}, Charicharts.Chart.defaults, options));
-  this._options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series || {});
-  this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis || {});
-  this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis || {});
+  this._options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
+  this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
+  this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
   this._vars = _.extend({}, this._options, Charicharts.Events(this));
   this.load = generateInjector(this._vars);
   this.init();
@@ -19,13 +19,8 @@ Charicharts.Chart.prototype.init = function() {
 
   // Draw svg
   // Main chart wrapper under the given target.
-  this._vars.svg = d3.select(opts.target)
-    .append('svg')
-      .attr('width', opts.fullWidth)
-      .attr('height', opts.fullHeight)
-    .append('g')
-      .attr('class', SVG_GROUP_CLASS)
-      .attr('transform', h_getTranslate(opts.margin.left, opts.margin.top));
+  var svgTranslate = h_getTranslate(opts.margin.left, opts.margin.top);
+  this._vars.svg = this.load(p_svg).draw(svgTranslate);
 
   // Scales
   // X scale and axis (optional)
