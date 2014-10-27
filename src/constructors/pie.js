@@ -164,7 +164,7 @@ Charicharts.Pie.defaults = {
   margin: '0,0,0,0',
   innerRadius: 0.5,
   outerBorder: 0.1,
-  fadeOpacity: 0.2,
+  fadeOpacity: 1,
   innerArrow: false,
   innerArrowSize: 0.6
 };
