@@ -52,6 +52,11 @@
 <body>
 
   <div id="chart"></div>
+  <div>
+    <div class='wins'>Wins</div>
+    <div class='losses'>Losses</div>
+    <div class='gross'>Gross</div>
+  </div>
 
   <script type="text/javascript">
     window.onload = function() {
@@ -90,7 +95,7 @@
           interpolation: 'cardinal',
           color: 'red'
         },{
-          id: 'losses',
+          id: 'gross',
           type: 'bar',
           values: getData(),
           color: '#ddd'
@@ -98,11 +103,20 @@
       };
 
       var chart = new Charicharts.Chart(options);
-      console.log(options);
 
       chart.on('moveTrail', function(xvalue) {
         console.log(xvalue);
       });
+
+      var legends = _.pluck(options.data, 'id');
+
+      legends.forEach(function(name) {
+        document.getElementsByClassName(name)[0]
+          .addEventListener('click', function() {
+            chart.toggleSerie(name);
+          });
+      });
+
     };
   </script>
 

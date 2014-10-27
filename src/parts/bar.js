@@ -8,6 +8,8 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
      */
     function drawBar(serie) {
       svg.append('g')
+        .attr('id', serie.id)
+        .attr('active', 1)
         .attr('class', 'bar')
         .selectAll('rect')
         .data(serie.values)

@@ -164,10 +164,10 @@ Charicharts.Chart = function chart(options) {
   this._options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
   this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
   this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
-  this._vars = _.extend({}, this._options, Charicharts.Events(this));
-  this.load = generateInjector(this._vars);
+  this.$scope = _.extend({}, this._options, Charicharts.Events(this));
+  this.load = generateInjector(this.$scope);
   this.init();
-  return _.pick(this._vars, 'on');
+  return _.pick(this.$scope, 'on', 'toggleSerie');
 };
 
 /**
@@ -180,19 +180,19 @@ Charicharts.Chart.prototype.init = function() {
   // Draw svg
   // Main chart wrapper under the given target.
   var svgTranslate = h_getTranslate(opts.margin.left, opts.margin.top);
-  this._vars.svg = this.load(p_svg).draw(svgTranslate);
+  this.$scope.svg = this.load(p_svg).draw(svgTranslate);
 
   // Scales
   // X scale and axis (optional)
   if (opts.xaxis.enabled) {
-    this._vars.xscale = this.load(p_scale).getXScale();
-    this._vars.xaxis = this.load(p_axes_getX).drawAxis();
+    this.$scope.xscale = this.load(p_scale).getXScale();
+    this.$scope.xaxis = this.load(p_axes_getX).drawAxis();
   }
 
   // Y scale and axis (optional)
   if (opts.yaxis.enabled) {
-    this._vars.yscale = this.load(p_scale).getYScale();
-    this._vars.yaxis = this.load(p_axes_getY).drawAxis();
+    this.$scope.yscale = this.load(p_scale).getYScale();
+    this.$scope.yaxis = this.load(p_axes_getY).drawAxis();
   }
 
   // Draw series.
@@ -221,7 +221,17 @@ Charicharts.Chart.prototype.init = function() {
   }
 
   // Remove unused stuff (d3 add this automatically)
-  this._vars.svg.selectAll('.domain').remove();
+  this.$scope.svg.selectAll('.domain').remove();
+
+  this.$scope.toggleSerie = function(id) {
+    var el = d3.select('#' + id);
+    var active = Number(el.attr('active')) ? 0 : 1;
+    el.attr('active', active);
+
+    el.transition()
+      .duration(200)
+      .style('opacity', el.attr('active'));
+  };
 };
 
 /**
@@ -499,6 +509,8 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
      */
     function drawBar(serie) {
       svg.append('g')
+        .attr('id', serie.id)
+        .attr('active', 1)
         .attr('class', 'bar')
         .selectAll('rect')
         .data(serie.values)
@@ -539,6 +551,7 @@ var p_line = ['svg', 'xscale', 'yscale',
     function drawLine(serie) {
       svg.append('path')
         .attr('id', serie.id)
+        .attr('active', 1)
         .attr('class', 'line')
         .attr('transform', 'translate(0, 0)')
         .attr('stroke', serie.color)

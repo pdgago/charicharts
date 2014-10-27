@@ -23,6 +23,7 @@ var p_line = ['svg', 'xscale', 'yscale',
     function drawLine(serie) {
       svg.append('path')
         .attr('id', serie.id)
+        .attr('active', 1)
         .attr('class', 'line')
         .attr('transform', 'translate(0, 0)')
         .attr('stroke', serie.color)
