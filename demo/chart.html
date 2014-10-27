@@ -53,9 +53,9 @@
 
   <div id="chart"></div>
   <div>
-    <div class='wins'>Wins</div>
-    <div class='losses'>Losses</div>
-    <div class='gross'>Gross</div>
+    <div class='1004'>Wins</div>
+    <div class='1005'>Losses</div>
+    <div class='1006'>Gross</div>
   </div>
 
   <script type="text/javascript">
@@ -83,19 +83,19 @@
           textMarginTop: -10
         },
         data: [{
-          id: 'wins',
+          id: 1004,
           type: 'line',
           values: getData(),
           interpolation: 'step',
           color: 'orange',
         },{
-          id: 'losses',
+          id: 1005,
           type: 'line',
           values: getData(),
           interpolation: 'cardinal',
           color: 'red'
         },{
-          id: 'gross',
+          id: 1006,
           type: 'bar',
           values: getData(),
           color: '#ddd'

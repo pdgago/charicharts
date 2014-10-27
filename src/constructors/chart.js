@@ -63,15 +63,16 @@ Charicharts.Chart.prototype.init = function() {
   // Remove unused stuff (d3 add this automatically)
   this.$scope.svg.selectAll('.domain').remove();
 
-  this.$scope.toggleSerie = function(id) {
-    var el = d3.select('#' + id);
+  this.$scope.toggleSerie = _.bind(function(id) {
+    var el = this.$scope.svg.select('#serie' + id);
+    if (el.empty()) {return;}
     var active = Number(el.attr('active')) ? 0 : 1;
     el.attr('active', active);
 
     el.transition()
       .duration(200)
       .style('opacity', el.attr('active'));
-  };
+  }, this);
 };
 
 /**
