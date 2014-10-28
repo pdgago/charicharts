@@ -76,7 +76,7 @@ function h_getAngle(x, y) {
   if (x >= 0 && y >= 0) {
     angle = referenceAngle;
   } else if (x <= 0 && y >= 0) {
-     angle = referenceAngle + (Math.PI/2);
+    angle = referenceAngle + (Math.PI/2);
   } else if (x <= 0 && y <= 0) {
     angle = referenceAngle + Math.PI;
   } else if (x >= 0 && y <= 0) {

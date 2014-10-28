@@ -143,7 +143,6 @@ Charicharts.Chart.defaults = {
     enabled: true,
     orient: 'left',
     textAnchor: 'end',
-    textPaddingLeft: 0,
     textMarginTop: 0,
     tickFormat: function(d, i) {
       if (!i) {return;}

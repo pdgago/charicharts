@@ -81,7 +81,7 @@ function h_getAngle(x, y) {
   if (x >= 0 && y >= 0) {
     angle = referenceAngle;
   } else if (x <= 0 && y >= 0) {
-     angle = referenceAngle + (Math.PI/2);
+    angle = referenceAngle + (Math.PI/2);
   } else if (x <= 0 && y <= 0) {
     angle = referenceAngle + Math.PI;
   } else if (x >= 0 && y <= 0) {
@@ -101,7 +101,6 @@ if (!String.prototype.format) {
     });
   };
 }
-
 /**
  * Creates a events module for the supplied context.
  * 
@@ -333,7 +332,6 @@ Charicharts.Chart.defaults = {
     enabled: true,
     orient: 'left',
     textAnchor: 'end',
-    textPaddingLeft: 0,
     textMarginTop: 0,
     tickFormat: function(d, i) {
       if (!i) {return;}
@@ -561,13 +559,13 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
         .attr('transform', h_getTranslate(0, 0))
         .call(axis)
         .selectAll('text')
-          .attr('x', yaxis.paddingLeft)
+          .attr('x', -margin.left)
           .attr('y', yaxis.textMarginTop)
           .style('text-anchor', yaxis.textAnchor);
 
       svg.select('.yaxis')
         .selectAll('line')
-          .attr('x1', yaxis.paddingLeft)
+          .attr('x1', -margin.left)
           .attr('x2', width + (margin.right || 0))
           .each(function(d) {
             if (d !== 0) {return;}

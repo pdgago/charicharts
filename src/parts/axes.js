@@ -49,13 +49,13 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
         .attr('transform', h_getTranslate(0, 0))
         .call(axis)
         .selectAll('text')
-          .attr('x', yaxis.paddingLeft)
+          .attr('x', -margin.left)
           .attr('y', yaxis.textMarginTop)
           .style('text-anchor', yaxis.textAnchor);
 
       svg.select('.yaxis')
         .selectAll('line')
-          .attr('x1', yaxis.paddingLeft)
+          .attr('x1', -margin.left)
           .attr('x2', width + (margin.right || 0))
           .each(function(d) {
             if (d !== 0) {return;}
