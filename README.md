@@ -4,7 +4,7 @@
 
 ## Using charicharts
 - Install with [Bower](http://bower.io): `bower install charicharts`
-
+```
                  ."-,.__
                  `.     `.  ,
               .--'  .._,'"-' `.
