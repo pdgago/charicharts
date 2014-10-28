@@ -21,13 +21,17 @@ var p_line = ['svg', 'xscale', 'yscale',
      * Draw a line for the given serie
      */
     function drawLine(serie) {
-      svg.append('path')
+      var path = svg.append('path')
         .attr('id', 'serie' + serie.id)
         .attr('active', 1)
         .attr('class', 'line')
         .attr('transform', 'translate(0, 0)')
         .attr('stroke', serie.color)
         .attr('d', line.interpolate(serie.interpolation)(serie.values));
+
+      path.on('mousemove', function() {
+        console.log('mouse over');
+      });
     }
 
     return {

@@ -1,21 +1,29 @@
 Charicharts.Chart = function chart(options) {
-  // todo => use a deep extend to do this
-  this._options = h_parseOptions(_.extend({}, Charicharts.Chart.defaults, options));
-  this._options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
-  this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
-  this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
+  this._options = this.parseOptions(options);
   this.$scope = _.extend({}, this._options, Charicharts.Events(this));
   this.load = generateInjector(this.$scope);
-  this.init();
-  return _.pick(this.$scope, 'on', 'toggleSerie');
+  this.renderChart();
+
+  /*
+   * Methods which are going to be available
+   * in the chart instance.
+   */
+  var chartMethods = {
+    on: this.$scope.on,
+    toggleSerie: _.bind(this.toggleSerie, this),
+    addSerie: _.bind(this.addSerie, this)
+  };
+
+  return chartMethods;
 };
 
 /**
  * Generate a chart by setting all it parts.
  */
-Charicharts.Chart.prototype.init = function() {
-  var opts = this._options;
-  var xaxis, yaxis;
+Charicharts.Chart.prototype.renderChart = function() {
+  var opts = this._options,
+      that = this,
+      xaxis, yaxis;
 
   // Draw svg
   // Main chart wrapper under the given target.
@@ -36,19 +44,9 @@ Charicharts.Chart.prototype.init = function() {
   }
 
   // Draw series.
-  // Series supported:
-  //   line - simple line with interpolation
-  //   bar - simple bar
-  //   stacked-bar - desglosed bars (with more than one value for every x point)
-  _.each(opts.data, _.bind(function(serie) {
-    if (serie.type === 'line') {
-      this.load(p_line).drawLine(serie);
-    } else if (serie.type === 'bar') {
-      this.load(p_bar).drawBar(serie);
-    } else if (serie.type === 'stacked-bar') {
-      this.load(p_stacked_bar).drawBar(serie);
-    }
-  }, this));
+  _.each(opts.data, function(serie) {
+    that.addSerie(serie);
+  });
 
   // Draw trail (optional)
   // Add a trail line to the chart and trigger a 'moveTrail'
@@ -62,17 +60,58 @@ Charicharts.Chart.prototype.init = function() {
 
   // Remove unused stuff (d3 add this automatically)
   this.$scope.svg.selectAll('.domain').remove();
+};
 
-  this.$scope.toggleSerie = _.bind(function(id) {
-    var el = this.$scope.svg.select('#serie' + id);
-    if (el.empty()) {return;}
-    var active = Number(el.attr('active')) ? 0 : 1;
-    el.attr('active', active);
+/**
+ * Add the supplied serie to the chart.
+ * 
+ * @param {Object} serie
+ */
+Charicharts.Chart.prototype.addSerie = function(serie) {
+  if (serie.type === 'line') {
+    this.load(p_line).drawLine(serie);
+  } else if (serie.type === 'bar') {
+    this.load(p_bar).drawBar(serie);
+  } else if (serie.type === 'stacked-bar') {
+    this.load(p_stacked_bar).drawBar(serie);
+  }
+};
 
-    el.transition()
-      .duration(200)
-      .style('opacity', el.attr('active'));
-  }, this);
+/**
+ * Toggle the supplied serieId.
+ * 
+ * @param  {Integer} serieId
+ */
+Charicharts.Chart.prototype.toggleSerie = function(serieId) {
+  var el = this.$scope.svg.select('#serie' + serieId);
+  if (el.empty()) {return;}
+  var active = Number(el.attr('active')) ? 0 : 1;
+  el.attr('active', active);
+
+  el.transition()
+    .duration(200)
+    .style('opacity', el.attr('active'));
+};
+
+/**
+ * Parse Given Options so it's easier to read them.
+ * 
+ * @param  {Object} options User options
+ * @return {Object} options Parsed options
+ */
+Charicharts.Chart.prototype.parseOptions = function(options) {
+  options = h_deepExtend([{}, Charicharts.Chart.defaults, options],
+    ['series', 'yaxis', 'xaxis']);
+
+  options.margin = _.object(['top', 'right', 'bottom', 'left'],
+    options.margin.split(',').map(Number));
+
+  options.fullWidth = options.target.offsetWidth;
+  options.fullHeight = options.target.offsetHeight;
+  options.width = options.fullWidth - options.margin.left - options.margin.right;
+  options.height = options.fullHeight - options.margin.top - options.margin.bottom;
+
+  return options;
 };
 
 /**
@@ -82,11 +121,12 @@ Charicharts.Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
   series: {
-    barWidth: 6,
+    barWidth: 10,
     align: 'left'
   },
   xaxis: {
     scale: 'time',
+    ticks: false,
     fit: false,
     orient: 'bottom',
     enabled: true,

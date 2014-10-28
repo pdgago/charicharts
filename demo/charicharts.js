@@ -42,6 +42,36 @@ function h_getCentroid(selection) {
   return centroid;
 }
 
+/**
+ * Deep _.extend specified attributes.
+ * 
+ * @param  {Array} objects objects to extend
+ * @param  {Array} attrs   attrs to deep extend
+ * @return {Object}
+ */
+function h_deepExtend(objs, attrs) {
+  var obj = objs[0];
+  var sources = Array.prototype.slice.call(objs, 1);
+
+  function getArrayProp(prop) {
+    return [{}].concat(_.map(sources, function(s) {
+      return s[prop];
+    }));
+  }
+
+  _.each(sources, function(source) {
+    for (var prop in source) {
+      if (_.indexOf(attrs, prop) >= 0) {
+        obj[prop] = _.extend.apply(this, getArrayProp(prop));
+      } else {
+        obj[prop] = source[prop];
+      }
+    }
+  });
+
+  return obj;
+}
+
 function h_getAngle(x, y) {
   var angle, referenceAngle;
   if (x === 0 || y === 0) {return;}
@@ -159,23 +189,31 @@ var generateInjector = function(ctx) {
   };
 };
 Charicharts.Chart = function chart(options) {
-  // todo => use a deep extend to do this
-  this._options = h_parseOptions(_.extend({}, Charicharts.Chart.defaults, options));
-  this._options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
-  this._options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
-  this._options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
+  this._options = this.parseOptions(options);
   this.$scope = _.extend({}, this._options, Charicharts.Events(this));
   this.load = generateInjector(this.$scope);
-  this.init();
-  return _.pick(this.$scope, 'on', 'toggleSerie');
+  this.renderChart();
+
+  /*
+   * Methods which are going to be available
+   * in the chart instance.
+   */
+  var chartMethods = {
+    on: this.$scope.on,
+    toggleSerie: _.bind(this.toggleSerie, this),
+    addSerie: _.bind(this.addSerie, this)
+  };
+
+  return chartMethods;
 };
 
 /**
  * Generate a chart by setting all it parts.
  */
-Charicharts.Chart.prototype.init = function() {
-  var opts = this._options;
-  var xaxis, yaxis;
+Charicharts.Chart.prototype.renderChart = function() {
+  var opts = this._options,
+      that = this,
+      xaxis, yaxis;
 
   // Draw svg
   // Main chart wrapper under the given target.
@@ -196,19 +234,9 @@ Charicharts.Chart.prototype.init = function() {
   }
 
   // Draw series.
-  // Series supported:
-  //   line - simple line with interpolation
-  //   bar - simple bar
-  //   stacked-bar - desglosed bars (with more than one value for every x point)
-  _.each(opts.data, _.bind(function(serie) {
-    if (serie.type === 'line') {
-      this.load(p_line).drawLine(serie);
-    } else if (serie.type === 'bar') {
-      this.load(p_bar).drawBar(serie);
-    } else if (serie.type === 'stacked-bar') {
-      this.load(p_stacked_bar).drawBar(serie);
-    }
-  }, this));
+  _.each(opts.data, function(serie) {
+    that.addSerie(serie);
+  });
 
   // Draw trail (optional)
   // Add a trail line to the chart and trigger a 'moveTrail'
@@ -222,17 +250,58 @@ Charicharts.Chart.prototype.init = function() {
 
   // Remove unused stuff (d3 add this automatically)
   this.$scope.svg.selectAll('.domain').remove();
+};
 
-  this.$scope.toggleSerie = _.bind(function(id) {
-    var el = this.$scope.svg.select('#serie' + id);
-    if (el.empty()) {return;}
-    var active = Number(el.attr('active')) ? 0 : 1;
-    el.attr('active', active);
+/**
+ * Add the supplied serie to the chart.
+ * 
+ * @param {Object} serie
+ */
+Charicharts.Chart.prototype.addSerie = function(serie) {
+  if (serie.type === 'line') {
+    this.load(p_line).drawLine(serie);
+  } else if (serie.type === 'bar') {
+    this.load(p_bar).drawBar(serie);
+  } else if (serie.type === 'stacked-bar') {
+    this.load(p_stacked_bar).drawBar(serie);
+  }
+};
 
-    el.transition()
-      .duration(200)
-      .style('opacity', el.attr('active'));
-  }, this);
+/**
+ * Toggle the supplied serieId.
+ * 
+ * @param  {Integer} serieId
+ */
+Charicharts.Chart.prototype.toggleSerie = function(serieId) {
+  var el = this.$scope.svg.select('#serie' + serieId);
+  if (el.empty()) {return;}
+  var active = Number(el.attr('active')) ? 0 : 1;
+  el.attr('active', active);
+
+  el.transition()
+    .duration(200)
+    .style('opacity', el.attr('active'));
+};
+
+/**
+ * Parse Given Options so it's easier to read them.
+ * 
+ * @param  {Object} options User options
+ * @return {Object} options Parsed options
+ */
+Charicharts.Chart.prototype.parseOptions = function(options) {
+  options = h_deepExtend([{}, Charicharts.Chart.defaults, options],
+    ['series', 'yaxis', 'xaxis']);
+
+  options.margin = _.object(['top', 'right', 'bottom', 'left'],
+    options.margin.split(',').map(Number));
+
+  options.fullWidth = options.target.offsetWidth;
+  options.fullHeight = options.target.offsetHeight;
+  options.width = options.fullWidth - options.margin.left - options.margin.right;
+  options.height = options.fullHeight - options.margin.top - options.margin.bottom;
+
+  return options;
 };
 
 /**
@@ -242,11 +311,12 @@ Charicharts.Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
   series: {
-    barWidth: 6,
+    barWidth: 10,
     align: 'left'
   },
   xaxis: {
     scale: 'time',
+    ticks: false,
     fit: false,
     orient: 'bottom',
     enabled: true,
@@ -278,7 +348,6 @@ Charicharts.Chart.defaults = {
 Charicharts.Pie = function pie(options) {
   // Set options
   this._options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
-  this._options.series = _.extend({}, Charicharts.Pie.defaults.innerArrow, options.innerArrow);
   // Set $scope
   this.$scope = _.extend({}, this._options, Charicharts.Events(this));
   // Generate loader for the scope
@@ -453,12 +522,16 @@ var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
       .orient(xaxis.orient)
       .tickFormat(xaxis.tickFormat);
 
+    if (xaxis.ticks) {
+      axis.ticks.apply(axis, xaxis.ticks);
+    }
+
     axis.drawAxis = function() {
       var translateY = xaxis.orient === 'bottom' ? height : 0;
 
       svg.append('g')
         .attr('class', 'xaxis')
-        .attr('transform',h_getTranslate(0, translateY))
+        .attr('transform', h_getTranslate(0, translateY))
         .call(axis)
         .selectAll('text')
           .style('text-anchor', 'middle');
@@ -495,7 +568,12 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
       svg.select('.yaxis')
         .selectAll('line')
           .attr('x1', yaxis.paddingLeft)
-          .attr('x2', width + (margin.right || 0));
+          .attr('x2', width + (margin.right || 0))
+          .each(function(d) {
+            if (d !== 0) {return;}
+            // add zeroline class
+            d3.select(this).attr('class', 'zeroline');
+          });
     };
 
     return axis;
@@ -516,11 +594,23 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
         .selectAll('rect')
         .data(serie.values)
       .enter().append('rect')
-        .attr('x', function(d) {return xscale(d.datetime) - series.barWidth/2;})
-        .attr('y', function(d) {return yscale(d.value);})
+        .attr('class', function(d) {
+          return d.value < 0 ? 'bar-negative' : 'bar-positive';
+        })
+        .attr('x', function(d) {
+          // TODO: Linear scale support
+          return xscale(d.datetime) - series.barWidth/2;
+        })
+        .attr('y', function(d) {
+          return d.value < 0 ? yscale(0) : yscale(d.value);
+        })
         .attr('width', series.barWidth)
-        .attr('fill', function() {return serie.color;})
-        .attr('height', function(d) {return height - yscale(d.value);});
+        .attr('height', function(d) {
+          return Math.abs(yscale(d.value) - yscale(0));
+        })
+        .attr('fill', function() {
+          return serie.color;
+        });
     }
 
     return {
@@ -550,13 +640,17 @@ var p_line = ['svg', 'xscale', 'yscale',
      * Draw a line for the given serie
      */
     function drawLine(serie) {
-      svg.append('path')
+      var path = svg.append('path')
         .attr('id', 'serie' + serie.id)
         .attr('active', 1)
         .attr('class', 'line')
         .attr('transform', 'translate(0, 0)')
         .attr('stroke', serie.color)
         .attr('d', line.interpolate(serie.interpolation)(serie.values));
+
+      path.on('mousemove', function() {
+        console.log('mouse over');
+      });
     }
 
     return {
@@ -574,6 +668,8 @@ var p_line = ['svg', 'xscale', 'yscale',
  */
 var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
   function(data, xaxis, yaxis, width, height) {
+
+    var scalePadding = 1.05;
 
     var d3Scales = {
       'time': d3.time.scale,
@@ -599,9 +695,20 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      * Returns linear domain from 0 to max data value.
      */
     function getLinearAllDomain() {
-      return [0, d3.max(valuesArr, function(d) {
-        return Number(d.value);
-      })];
+      var extent = d3.extent(valuesArr, function(d) {
+        return Number(d.value) * scalePadding;
+      });
+
+      // Positive scale
+      if (extent[0] >= 0) {
+        return [0, extent[1]];
+      }
+
+      // Negative-Positive scale
+      var absX = Math.abs(extent[0]);
+      var absY = Math.abs(extent[1]);
+      var val = (absX > absY) ? absX : absY;
+      return [-val, val];
     }
 
     /**
@@ -609,7 +716,7 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      */
     function getLinearFitDomain() {
       return d3.extent(valuesArr, function(d) {
-        return d.value;
+        return d.value * scalePadding;
       });
     }
 
@@ -634,7 +741,6 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
 
     function getXScale() {
       var domain = getDomain(xaxis.scale, xaxis.fit);
-
       return d3Scales[xaxis.scale]()
         .domain(domain)
         .range([0, width]);
@@ -645,7 +751,8 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
 
       return d3Scales[yaxis.scale]()
         .domain(domain)
-        .range([height, 0]);
+        .range([height, 0])
+        .nice(); // Extends the domain so that it starts and ends on nice round values.
     }
 
     return {

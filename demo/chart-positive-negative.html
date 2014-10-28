@@ -9,7 +9,7 @@
   <style type="text/css">
     body {
       font-family: 'Helvetica', sans-serif;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     #chart {
@@ -33,18 +33,23 @@
     }
 
     text {
-      fill: #777;
+      fill: #999;
     }
 
     .yaxis line {
-      stroke: #ccc;
+      stroke: #e8e8e8;
       shape-rendering: crispEdges;
       stroke-dasharray: 10, 4;
     }
 
+    .yaxis .zeroline {
+      stroke-dasharray: none;
+      stroke: #aaa;
+    }
+
     .yaxis .tick:first-child line {
       stroke-dasharray: none;
-      stroke: #ccc;
+      stroke: #aaa;
     }
   </style>
 
@@ -52,79 +57,51 @@
 <body>
 
   <div id="chart"></div>
-  <div>
-    <div class='1004'>Wins</div>
-    <div class='1005'>Losses</div>
-    <div class='1006'>Gross</div>
-  </div>
-
-  <div id='add'>Add new serie</div>
 
   <script type="text/javascript">
     window.onload = function() {
 
       var getData = function () {
-        return _.map(_.range(23), function(hour) {
+        return _.map(_.range(12), function(hour) {
           var date = new Date();
-          date.setHours(hour+1, 0, 0, 0);
+          date.setHours(hour + 1, 0, 0, 0);
           return {
-            value: _.random(400, 1000),
+            value: _.random(-1000, 1000),
             datetime: date
           }
         });
       };
 
+      var color = d3.scale.category20();
+
       var options = {
         target: document.getElementById('chart'),
-        margin: '0,10,35,35',
+        margin: '0,15,25,15',
         trail: true,
         yaxis: {
-          fit: false,
-          textAnchor: 'start',
-          paddingLeft: -35,
-          textMarginTop: -10
+          fit: false, // new options fit top bottom
+          paddingLeft: -15
         },
         data: [{
           id: 1004,
-          type: 'line',
-          values: getData(),
-          interpolation: 'step',
-          color: 'orange',
-        },{
-          id: 1005,
-          type: 'line',
-          values: getData(),
-          interpolation: 'cardinal',
-          color: 'red'
-        },{
-          id: 1006,
           type: 'bar',
           values: getData(),
-          color: '#ddd'
-        }].reverse()
+          interpolation: 'step',
+          color: color(2),
+        },{
+          id: 1006,
+          type: 'line',
+          values: getData(),
+          color: color(1)
+        },{
+          id: 1006,
+          type: 'line',
+          values: getData(),
+          color: color(0)
+        }]
       };
 
       var chart = new Charicharts.Chart(options);
-
-      var legends = _.pluck(options.data, 'id');
-
-      legends.forEach(function(name) {
-        document.getElementsByClassName(name)[0]
-          .addEventListener('click', function() {
-            chart.toggleSerie(name);
-          });
-      });
-
-
-      document.getElementById('add')
-        .addEventListener('click', function() {
-          chart.addSerie({
-            id: _.random(0, 3030),
-            type: ['line', 'bar'][_.random(0,1)],
-            values: getData(),
-            color: 'green'
-          })
-        });
     };
   </script>
 

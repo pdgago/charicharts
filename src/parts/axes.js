@@ -10,12 +10,16 @@ var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
       .orient(xaxis.orient)
       .tickFormat(xaxis.tickFormat);
 
+    if (xaxis.ticks) {
+      axis.ticks.apply(axis, xaxis.ticks);
+    }
+
     axis.drawAxis = function() {
       var translateY = xaxis.orient === 'bottom' ? height : 0;
 
       svg.append('g')
         .attr('class', 'xaxis')
-        .attr('transform',h_getTranslate(0, translateY))
+        .attr('transform', h_getTranslate(0, translateY))
         .call(axis)
         .selectAll('text')
           .style('text-anchor', 'middle');
@@ -52,7 +56,12 @@ var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
       svg.select('.yaxis')
         .selectAll('line')
           .attr('x1', yaxis.paddingLeft)
-          .attr('x2', width + (margin.right || 0));
+          .attr('x2', width + (margin.right || 0))
+          .each(function(d) {
+            if (d !== 0) {return;}
+            // add zeroline class
+            d3.select(this).attr('class', 'zeroline');
+          });
     };
 
     return axis;

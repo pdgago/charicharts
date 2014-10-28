@@ -14,11 +14,23 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
         .selectAll('rect')
         .data(serie.values)
       .enter().append('rect')
-        .attr('x', function(d) {return xscale(d.datetime) - series.barWidth/2;})
-        .attr('y', function(d) {return yscale(d.value);})
+        .attr('class', function(d) {
+          return d.value < 0 ? 'bar-negative' : 'bar-positive';
+        })
+        .attr('x', function(d) {
+          // TODO: Linear scale support
+          return xscale(d.datetime) - series.barWidth/2;
+        })
+        .attr('y', function(d) {
+          return d.value < 0 ? yscale(0) : yscale(d.value);
+        })
         .attr('width', series.barWidth)
-        .attr('fill', function() {return serie.color;})
-        .attr('height', function(d) {return height - yscale(d.value);});
+        .attr('height', function(d) {
+          return Math.abs(yscale(d.value) - yscale(0));
+        })
+        .attr('fill', function() {
+          return serie.color;
+        });
     }
 
     return {

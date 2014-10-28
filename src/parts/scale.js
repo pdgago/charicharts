@@ -10,6 +10,8 @@
 var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
   function(data, xaxis, yaxis, width, height) {
 
+    var scalePadding = 1.05;
+
     var d3Scales = {
       'time': d3.time.scale,
       'ordinal': d3.scale.ordinal,
@@ -34,9 +36,20 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      * Returns linear domain from 0 to max data value.
      */
     function getLinearAllDomain() {
-      return [0, d3.max(valuesArr, function(d) {
-        return Number(d.value);
-      })];
+      var extent = d3.extent(valuesArr, function(d) {
+        return Number(d.value) * scalePadding;
+      });
+
+      // Positive scale
+      if (extent[0] >= 0) {
+        return [0, extent[1]];
+      }
+
+      // Negative-Positive scale
+      var absX = Math.abs(extent[0]);
+      var absY = Math.abs(extent[1]);
+      var val = (absX > absY) ? absX : absY;
+      return [-val, val];
     }
 
     /**
@@ -44,7 +57,7 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      */
     function getLinearFitDomain() {
       return d3.extent(valuesArr, function(d) {
-        return d.value;
+        return d.value * scalePadding;
       });
     }
 
@@ -69,7 +82,6 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
 
     function getXScale() {
       var domain = getDomain(xaxis.scale, xaxis.fit);
-
       return d3Scales[xaxis.scale]()
         .domain(domain)
         .range([0, width]);
@@ -80,7 +92,8 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
 
       return d3Scales[yaxis.scale]()
         .domain(domain)
-        .range([height, 0]);
+        .range([height, 0])
+        .nice(); // Extends the domain so that it starts and ends on nice round values.
     }
 
     return {

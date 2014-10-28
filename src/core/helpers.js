@@ -37,6 +37,36 @@ function h_getCentroid(selection) {
   return centroid;
 }
 
+/**
+ * Deep _.extend specified attributes.
+ * 
+ * @param  {Array} objects objects to extend
+ * @param  {Array} attrs   attrs to deep extend
+ * @return {Object}
+ */
+function h_deepExtend(objs, attrs) {
+  var obj = objs[0];
+  var sources = Array.prototype.slice.call(objs, 1);
+
+  function getArrayProp(prop) {
+    return [{}].concat(_.map(sources, function(s) {
+      return s[prop];
+    }));
+  }
+
+  _.each(sources, function(source) {
+    for (var prop in source) {
+      if (_.indexOf(attrs, prop) >= 0) {
+        obj[prop] = _.extend.apply(this, getArrayProp(prop));
+      } else {
+        obj[prop] = source[prop];
+      }
+    }
+  });
+
+  return obj;
+}
+
 function h_getAngle(x, y) {
   var angle, referenceAngle;
   if (x === 0 || y === 0) {return;}

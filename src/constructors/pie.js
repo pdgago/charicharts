@@ -5,7 +5,6 @@
 Charicharts.Pie = function pie(options) {
   // Set options
   this._options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
-  this._options.series = _.extend({}, Charicharts.Pie.defaults.innerArrow, options.innerArrow);
   // Set $scope
   this.$scope = _.extend({}, this._options, Charicharts.Events(this));
   // Generate loader for the scope
