@@ -1,6 +1,6 @@
 # Charicharts
 
-**Charicharts** is a d3-based chart library.
+**Charicharts** is a D3-based chart library.
 
 Install it with [Bower](http://bower.io): `bower install charicharts`
 
