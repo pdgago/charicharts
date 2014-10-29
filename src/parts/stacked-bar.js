@@ -25,7 +25,7 @@ var p_stacked_bar = ['svg', 'yscale', 'xscale', 'trigger', 'series', 'width',
           .attr('transform', function(d) {
             var x;
             if (!xscale) {
-              x = (series.align === 'right') ? (width-series.barWidth) : 0;
+              x = (series.stackedBarAlign === 'right') ? (width-series.barWidth) : 0;
             } else {
               xscale[d.datetime || d.value];
             }

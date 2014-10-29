@@ -43,33 +43,20 @@ function h_getCentroid(selection) {
 }
 
 /**
- * Deep _.extend specified attributes.
- * 
- * @param  {Array} objects objects to extend
- * @param  {Array} attrs   attrs to deep extend
- * @return {Object}
+ * Deep extend function created but jashkenas itself
+ * https://github.com/jashkenas/underscore/issues/88
  */
-function h_deepExtend(objs, attrs) {
-  var obj = objs[0];
-  var sources = Array.prototype.slice.call(objs, 1);
-
-  function getArrayProp(prop) {
-    return [{}].concat(_.map(sources, function(s) {
-      return s[prop];
-    }));
-  }
-
-  _.each(sources, function(source) {
-    for (var prop in source) {
-      if (_.indexOf(attrs, prop) >= 0) {
-        obj[prop] = _.extend.apply(this, getArrayProp(prop));
-      } else {
-        obj[prop] = source[prop];
-      }
+function h_deepExtend(target, source) {
+  for (var key in source) {
+    var original = target[key];
+    var next = source[key];
+    if (original && next && typeof next === 'object') {
+      h_deepExtend(original, next);
+    } else {
+      target[key] = next;
     }
-  });
-
-  return obj;
+  }
+  return target;
 }
 
 function h_getAngle(x, y) {
@@ -190,7 +177,7 @@ var generateInjector = function(ctx) {
 Charicharts.Chart = function chart(options) {
   this._options = this.parseOptions(options);
   this.$scope = _.extend({}, this._options, Charicharts.Events(this));
-  this.load = generateInjector(this.$scope);
+  this.call = generateInjector(this.$scope);
   this.renderChart();
 
   /*
@@ -217,22 +204,16 @@ Charicharts.Chart.prototype.renderChart = function() {
   // Draw svg
   // Main chart wrapper under the given target.
   var svgTranslate = h_getTranslate(opts.margin.left, opts.margin.top);
-  this.$scope.svg = this.load(p_svg).draw(svgTranslate);
+  this.$scope.svg = this.call(p_svg).draw(svgTranslate);
 
-  // Scales
-  // X scale and axis (optional)
-  if (opts.xaxis.enabled) {
-    this.$scope.xscale = this.load(p_scale).getXScale();
-    this.$scope.xaxis = this.load(p_axes_getX).drawAxis();
-  }
+  // Set scales
+  this.$scope.xscale = this.call(p_scale).getXScale();
+  this.$scope.yscale = this.call(p_scale).getYScale();
 
-  // Y scale and axis (optional)
-  if (opts.yaxis.enabled) {
-    this.$scope.yscale = this.load(p_scale).getYScale();
-    this.$scope.yaxis = this.load(p_axes_getY).drawAxis();
-  }
+  // Draw axis
+  this.call(p_axes).drawY();
+  this.call(p_axes).drawX();
 
-  // Draw series.
   _.each(opts.data, function(serie) {
     that.addSerie(serie);
   });
@@ -240,15 +221,9 @@ Charicharts.Chart.prototype.renderChart = function() {
   // Draw trail (optional)
   // Add a trail line to the chart and trigger a 'moveTrail'
   // event when the user moves the trail.
-  // 
-  // Requirements:
-  //   - xscale
-  if (opts.trail && opts.xaxis.enabled) {
-    this.load(p_trail);
+  if (opts.trail) {
+    this.call(p_trail);
   }
-
-  // Remove unused stuff (d3 add this automatically)
-  this.$scope.svg.selectAll('.domain').remove();
 };
 
 /**
@@ -258,11 +233,11 @@ Charicharts.Chart.prototype.renderChart = function() {
  */
 Charicharts.Chart.prototype.addSerie = function(serie) {
   if (serie.type === 'line') {
-    this.load(p_line).drawLine(serie);
+    this.call(p_line).drawLine(serie);
   } else if (serie.type === 'bar') {
-    this.load(p_bar).drawBar(serie);
+    this.call(p_bar).drawBar(serie);
   } else if (serie.type === 'stacked-bar') {
-    this.load(p_stacked_bar).drawBar(serie);
+    this.call(p_stacked_bar).drawBar(serie);
   }
 };
 
@@ -289,11 +264,18 @@ Charicharts.Chart.prototype.toggleSerie = function(serieId) {
  * @return {Object} options Parsed options
  */
 Charicharts.Chart.prototype.parseOptions = function(options) {
-  options = h_deepExtend([{}, Charicharts.Chart.defaults, options],
-    ['series', 'yaxis', 'xaxis']);
+  options = h_deepExtend(_.extend({}, Charicharts.Chart.defaults), options);
 
   options.margin = _.object(['top', 'right', 'bottom', 'left'],
     options.margin.split(',').map(Number));
+
+  /**
+   * Axis labels padding.
+   * TODO: => Do this better.
+   */
+  if (options.yaxis.left.label || options.yaxis.right.label) {
+    options.margin.top += Math.abs(options.yaxis.textMarginTop - 30);
+  }
 
   options.fullWidth = options.target.offsetWidth;
   options.fullHeight = options.target.offsetHeight;
@@ -309,33 +291,49 @@ Charicharts.Chart.prototype.parseOptions = function(options) {
 Charicharts.Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
+  /**
+   * Series options.
+   */
   series: {
-    barWidth: 10,
-    align: 'left'
+    barWidth: 12,
+    stackedBarAlign: 'right'
   },
+  /**
+   * Xaxis Options.
+   */
   xaxis: {
     scale: 'time',
-    ticks: false,
     fit: false,
-    orient: 'bottom',
-    enabled: true,
-    tickFormat: function(d) {
-      if (d instanceof Date) {
-        return d.getHours();
-      }
-      return d;
-    }    
+    ticks: false,
+    top: {
+      enabled: false,
+      label: false,
+      tickFormat: function(d) {return d;}
+    },
+    bottom: {
+      enabled: true,
+      label: false,
+      tickFormat: function(d) {return d.getMonth();}
+    }  
   },
+  /**
+   * Yaxis Options.
+   */
   yaxis: {
     scale: 'linear',
     fit: false,
-    enabled: true,
-    orient: 'left',
-    textAnchor: 'end',
-    textMarginTop: 0,
-    tickFormat: function(d, i) {
-      if (!i) {return;}
-      return d;
+    fullGrid: true,
+    ticksMarginTop: 0,
+    ticks: false,
+    left: {
+      enabled: true,
+      label: false,
+      tickFormat: function(d) {return d;}
+    },
+    right: {
+      enabled: false,
+      label: false,
+      tickFormat: function(d) {return d;}
     }
   }
 };
@@ -508,73 +506,102 @@ Charicharts.Pie.defaults = {
   innerArrow: false,
   innerArrowSize: 0.6
 };
-/**
- * Get xaxis.
- * 
- * @return {d3.svg.axis}
- */
-var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
-  function(xscale, xaxis, svg, height) {
-    var axis = d3.svg.axis()
-      .scale(xscale)
-      .orient(xaxis.orient)
-      .tickFormat(xaxis.tickFormat);
+var p_axes = ['svg', 'xscale','yscale', 'xaxis', 'yaxis', 'width', 'height', 'fullWidth', 'margin',
+  function(svg, xscale, yscale, xaxis, yaxis, width, height, fullWidth, margin) {
+    'use strict';
 
-    if (xaxis.ticks) {
-      axis.ticks.apply(axis, xaxis.ticks);
-    }
+    var getX = function(orient) {
+      var opts = orient === 'bottom' ? xaxis.bottom : xaxis.top;
 
-    axis.drawAxis = function() {
-      var translateY = xaxis.orient === 'bottom' ? height : 0;
+      var axis = d3.svg.axis()
+        .scale(xscale)
+        .orient(orient)
+        .tickFormat(opts.tickFormat);
 
+      // Apply ticks [] if enabled
+      yaxis.ticks && axis.ticks.apply(axis, yaxis.ticks);
+
+      // Draw axis
       svg.append('g')
-        .attr('class', 'xaxis')
-        .attr('transform', h_getTranslate(0, translateY))
+        .attr('class', 'xaxis ' + orient)
+        .attr('transform', h_getTranslate(0, orient === 'bottom' ? height : 0))
         .call(axis)
         .selectAll('text')
           .style('text-anchor', 'middle');
 
-      return axis;
+      svg.select('.xaxis .domain')
+        .attr('d', 'M{0},0V0H{1}V0'.format(-margin.left, fullWidth));
+
+      // Label
+      if (opts.label) {
+        svg.select('.yaxis').append('text')
+          .attr('class', 'label')
+          .attr('transform', h_getTranslate(0, 0))
+          .attr('y', height + margin.bottom - 7)
+          .attr('x', 0 -margin.left)
+          .attr('text-anchor', 'start')
+          .text(opts.label);
+      }
     };
 
-    return axis;
-}];
+    var getY = function(orient) {
+      var opts = orient === 'left' ? yaxis.left : yaxis.right;
 
-/**
- * Get yaxis.
- * 
- * @return {d3.svg.axis}
- */
-var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
-  function(yscale, yaxis, width, svg, margin) {
-    var axis = d3.svg.axis()
-      .scale(yscale)
-      .orient(yaxis.orient)
-      .tickSize(-width)
-      .tickFormat(yaxis.tickFormat);
+      var axis = d3.svg.axis()
+        .scale(yscale)
+        .orient('right')
+        .tickFormat(opts.tickFormat);
 
-    axis.drawAxis = function() {
+      // Apply ticks [] if enabled
+      yaxis.ticks && axis.ticks.apply(axis, yaxis.ticks);
+
+      // Draw axis
       svg.append('g')
-        .attr('class', 'yaxis')
-        .attr('transform', h_getTranslate(0, 0))
+        .attr('class', 'yaxis ' + orient)
+        .attr('transform', h_getTranslate(orient === 'left' ? 0 : width + margin.right, 0))
         .call(axis)
         .selectAll('text')
-          .attr('x', -margin.left)
+          .attr('x', orient === 'left' ? -margin.left : 0)
           .attr('y', yaxis.textMarginTop)
-          .style('text-anchor', yaxis.textAnchor);
+          .style('text-anchor', orient === 'left' ? yaxis.textAnchor : 'end');
 
+      // Grid
       svg.select('.yaxis')
         .selectAll('line')
-          .attr('x1', -margin.left)
-          .attr('x2', width + (margin.right || 0))
+          .attr('x1', yaxis.fullGrid ? -margin.left : 0)
+          .attr('x2', yaxis.fullGrid ? width + margin.right : width)
+          // add zeroline class
           .each(function(d) {
             if (d !== 0) {return;}
-            // add zeroline class
             d3.select(this).attr('class', 'zeroline');
           });
+
+      // Label
+      if (opts.label) {
+        svg.select('.yaxis').append('text')
+          .attr('class', 'label')
+          .attr('transform', h_getTranslate(0, 0))
+          .attr('y', yaxis.textMarginTop - 20)
+          .attr('x', orient === 'left' ? -margin.left : width + margin.right)
+          .attr('text-anchor', orient === 'left' ? 'start' : 'end')
+          .text(opts.label);
+      }
+
+      svg.select('.yaxis .domain').remove();
     };
 
-    return axis;
+    return {
+      drawX: function() {
+        xaxis.bottom.enabled && getX('bottom');
+        xaxis.top.enabled && getX('top');
+      },
+
+      drawY: function() {
+        yaxis.left.enabled && getY('left');
+        yaxis.right.enabled && getY('right');
+      }
+    };
+
 }];
 /**
  * Get d3 path generator Function for bars.
@@ -600,7 +627,7 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
           return xscale(d.datetime) - series.barWidth/2;
         })
         .attr('y', function(d) {
-          return d.value < 0 ? yscale(0) : yscale(d.value);
+          return d.value < 0 ? yscale(0) : yscale(d.value) - 1;
         })
         .attr('width', series.barWidth)
         .attr('height', function(d) {
@@ -785,7 +812,7 @@ var p_stacked_bar = ['svg', 'yscale', 'xscale', 'trigger', 'series', 'width',
           .attr('transform', function(d) {
             var x;
             if (!xscale) {
-              x = (series.align === 'right') ? (width-series.barWidth) : 0;
+              x = (series.stackedBarAlign === 'right') ? (width-series.barWidth) : 0;
             } else {
               xscale[d.datetime || d.value];
             }
@@ -839,8 +866,8 @@ var p_svg = ['fullWidth', 'fullHeight', 'target',
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.
  */
-var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
-  function(svg, trigger, height, width, xscale) {
+var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
+  function(svg, trigger, height, width, xscale, margin) {
 
     var currentDate;
 
@@ -851,7 +878,7 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
       .attr('class', 'trail-line')
       .attr('x1', 0)
       .attr('x2', 0)
-      .attr('y1', 0)
+      .attr('y1', -margin.top + 10) // 10px padding
       .attr('y2', height);
 
     var brush = d3.svg.brush()
@@ -883,6 +910,7 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
     /**
      * Triggered when the user mouseover or clicks on
      * the slider brush.
+     * TODO: => support different date units
      */
     function onBrush() {
       var xdomain = xscale.domain();

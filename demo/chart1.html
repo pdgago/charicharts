@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Charicharts Demo</title>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
+  <script src="http://d3js.org/d3.v3.js"></script>
+  <script src="charicharts.js"></script>
+
+  <style type="text/css">
+    body {
+      font-family: 'Helvetica', sans-serif;
+      font-size: 13px;
+    }
+
+    #chart {
+      height: 500px;
+      width: 500px;
+    }
+
+    .line {
+      fill: transparent;
+      stroke-width: 5px;
+    }
+
+    text {
+      font-size: 12px;
+      fill: #999;
+    }
+
+    rect {
+      shape-rendering: crispEdges;
+    }
+
+    .yaxis line {
+      stroke: #ddd;
+      shape-rendering: crispEdges;
+    }
+
+  </style>
+
+</head>
+<body>
+
+  <div id="chart"></div>
+
+  <script type="text/javascript">
+    window.onload = function() {
+
+      var getData = function () {
+        return _.map(_.range(23), function(hour) {
+          var date = new Date();
+          date.setHours(hour+1, 0, 0, 0);
+          return {
+            value: _.random(500, 2000),
+            datetime: date
+          }
+        });
+      };
+  
+      var color = d3.scale.category10();
+
+      var data = [{
+        id: 1004,
+        type: 'line',
+        values: getData(),
+        interpolation: 'step',
+        color: color(0)
+      }, {
+        id: 1005,
+        type: 'line',
+        values: getData(),
+        interpolation: 'basis',
+        color: color(1)
+      }];
+
+      /**
+       * Charichart Options.
+       */
+      var options = {
+        target: document.getElementById('chart'),
+        margin: '10,0,25,40',
+        data: data,
+        xaxis: {
+          bottom: {
+            enabled: false,
+          }
+        },
+        yaxis: {
+          fullGrid: false,
+          left: {
+            enabled: true
+          }
+        }
+      };
+
+      var chart = new Charicharts.Chart(options);
+    };
+  </script>
+
+</body>
+</html>

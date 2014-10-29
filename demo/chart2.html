@@ -9,7 +9,7 @@
   <style type="text/css">
     body {
       font-family: 'Helvetica', sans-serif;
-      font-size: 12px;
+      font-size: 13px;
     }
 
     #chart {
@@ -19,38 +19,26 @@
 
     .line {
       fill: transparent;
-      stroke-width: 2px;
-    }
-
-    rect {
-      shape-rendering: crispEdges;
-    }
-
-    .trail-line {
-      stroke: black;
-      shape-rendering: crispEdges;
-      stroke-width: 1px;
+      stroke-width: 3px;
     }
 
     text {
       fill: #999;
     }
 
-    .yaxis line {
-      stroke: #e8e8e8;
+    rect {
       shape-rendering: crispEdges;
-      stroke-dasharray: 10, 4;
+    }
+    .trail-line {
+      stroke: black;
+      shape-rendering: crispEdges;
+      stroke-width: 1px;
+    }
+    .yaxis line {
+      stroke: #ddd;
+      shape-rendering: crispEdges;
     }
 
-    .yaxis .zeroline {
-      stroke-dasharray: none;
-      stroke: #aaa;
-    }
-
-    .yaxis .tick:first-child line {
-      stroke-dasharray: none;
-      stroke: #aaa;
-    }
   </style>
 
 </head>
@@ -62,42 +50,53 @@
     window.onload = function() {
 
       var getData = function () {
-        return _.map(_.range(12), function(hour) {
+        return _.map(_.range(23), function(hour) {
           var date = new Date();
-          date.setHours(hour + 1, 0, 0, 0);
+          date.setHours(hour+1, 0, 0, 0);
           return {
-            value: _.random(-1000, 1000),
+            value: _.random(500, 2000),
             datetime: date
           }
         });
       };
+  
+      var color = d3.scale.category10();
 
-      var color = d3.scale.category20();
+      var data = [{
+        id: 1004,
+        type: 'line',
+        values: getData(),
+        color: color(0),
+        interepolation: 'basis'
+      }, {
+        id: 1005,
+        type: 'bar',
+        values: getData(),
+        color: '#ddd'
+      }].reverse();
 
+      /**
+       * Charichart Options.
+       */
       var options = {
         target: document.getElementById('chart'),
-        margin: '0,15,25,15',
+        margin: '10,20,25,50',
+        data: data,
         trail: true,
-        yaxis: {
-          fit: false, // new options fit top bottom
+        xaxis: {
+          bottom: {
+            enabled: true,
+            tickFormat: function(d,i) {
+              return d.getHours();
+            }
+          }
         },
-        data: [{
-          id: 1004,
-          type: 'bar',
-          values: getData(),
-          interpolation: 'step',
-          color: color(2),
-        },{
-          id: 1006,
-          type: 'line',
-          values: getData(),
-          color: color(1)
-        },{
-          id: 1006,
-          type: 'line',
-          values: getData(),
-          color: color(0)
-        }]
+        yaxis: {
+          textMarginTop: -10,
+          left: {
+            enabled: true
+          }
+        }
       };
 
       var chart = new Charicharts.Chart(options);

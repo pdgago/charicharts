@@ -1,7 +1,7 @@
 Charicharts.Chart = function chart(options) {
   this._options = this.parseOptions(options);
   this.$scope = _.extend({}, this._options, Charicharts.Events(this));
-  this.load = generateInjector(this.$scope);
+  this.call = generateInjector(this.$scope);
   this.renderChart();
 
   /*
@@ -28,22 +28,16 @@ Charicharts.Chart.prototype.renderChart = function() {
   // Draw svg
   // Main chart wrapper under the given target.
   var svgTranslate = h_getTranslate(opts.margin.left, opts.margin.top);
-  this.$scope.svg = this.load(p_svg).draw(svgTranslate);
+  this.$scope.svg = this.call(p_svg).draw(svgTranslate);
 
-  // Scales
-  // X scale and axis (optional)
-  if (opts.xaxis.enabled) {
-    this.$scope.xscale = this.load(p_scale).getXScale();
-    this.$scope.xaxis = this.load(p_axes_getX).drawAxis();
-  }
+  // Set scales
+  this.$scope.xscale = this.call(p_scale).getXScale();
+  this.$scope.yscale = this.call(p_scale).getYScale();
 
-  // Y scale and axis (optional)
-  if (opts.yaxis.enabled) {
-    this.$scope.yscale = this.load(p_scale).getYScale();
-    this.$scope.yaxis = this.load(p_axes_getY).drawAxis();
-  }
+  // Draw axis
+  this.call(p_axes).drawY();
+  this.call(p_axes).drawX();
 
-  // Draw series.
   _.each(opts.data, function(serie) {
     that.addSerie(serie);
   });
@@ -51,15 +45,9 @@ Charicharts.Chart.prototype.renderChart = function() {
   // Draw trail (optional)
   // Add a trail line to the chart and trigger a 'moveTrail'
   // event when the user moves the trail.
-  // 
-  // Requirements:
-  //   - xscale
-  if (opts.trail && opts.xaxis.enabled) {
-    this.load(p_trail);
+  if (opts.trail) {
+    this.call(p_trail);
   }
-
-  // Remove unused stuff (d3 add this automatically)
-  this.$scope.svg.selectAll('.domain').remove();
 };
 
 /**
@@ -69,11 +57,11 @@ Charicharts.Chart.prototype.renderChart = function() {
  */
 Charicharts.Chart.prototype.addSerie = function(serie) {
   if (serie.type === 'line') {
-    this.load(p_line).drawLine(serie);
+    this.call(p_line).drawLine(serie);
   } else if (serie.type === 'bar') {
-    this.load(p_bar).drawBar(serie);
+    this.call(p_bar).drawBar(serie);
   } else if (serie.type === 'stacked-bar') {
-    this.load(p_stacked_bar).drawBar(serie);
+    this.call(p_stacked_bar).drawBar(serie);
   }
 };
 
@@ -100,11 +88,18 @@ Charicharts.Chart.prototype.toggleSerie = function(serieId) {
  * @return {Object} options Parsed options
  */
 Charicharts.Chart.prototype.parseOptions = function(options) {
-  options = h_deepExtend([{}, Charicharts.Chart.defaults, options],
-    ['series', 'yaxis', 'xaxis']);
+  options = h_deepExtend(_.extend({}, Charicharts.Chart.defaults), options);
 
   options.margin = _.object(['top', 'right', 'bottom', 'left'],
     options.margin.split(',').map(Number));
+
+  /**
+   * Axis labels padding.
+   * TODO: => Do this better.
+   */
+  if (options.yaxis.left.label || options.yaxis.right.label) {
+    options.margin.top += Math.abs(options.yaxis.textMarginTop - 30);
+  }
 
   options.fullWidth = options.target.offsetWidth;
   options.fullHeight = options.target.offsetHeight;
@@ -120,33 +115,49 @@ Charicharts.Chart.prototype.parseOptions = function(options) {
 Charicharts.Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
+  /**
+   * Series options.
+   */
   series: {
-    barWidth: 10,
-    align: 'left'
+    barWidth: 12,
+    stackedBarAlign: 'right'
   },
+  /**
+   * Xaxis Options.
+   */
   xaxis: {
     scale: 'time',
-    ticks: false,
     fit: false,
-    orient: 'bottom',
-    enabled: true,
-    tickFormat: function(d) {
-      if (d instanceof Date) {
-        return d.getHours();
-      }
-      return d;
-    }    
+    ticks: false,
+    top: {
+      enabled: false,
+      label: false,
+      tickFormat: function(d) {return d;}
+    },
+    bottom: {
+      enabled: true,
+      label: false,
+      tickFormat: function(d) {return d.getMonth();}
+    }  
   },
+  /**
+   * Yaxis Options.
+   */
   yaxis: {
     scale: 'linear',
     fit: false,
-    enabled: true,
-    orient: 'left',
-    textAnchor: 'end',
-    textMarginTop: 0,
-    tickFormat: function(d, i) {
-      if (!i) {return;}
-      return d;
+    fullGrid: true,
+    ticksMarginTop: 0,
+    ticks: false,
+    left: {
+      enabled: true,
+      label: false,
+      tickFormat: function(d) {return d;}
+    },
+    right: {
+      enabled: false,
+      label: false,
+      tickFormat: function(d) {return d;}
     }
   }
 };

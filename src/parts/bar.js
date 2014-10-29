@@ -22,7 +22,7 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
           return xscale(d.datetime) - series.barWidth/2;
         })
         .attr('y', function(d) {
-          return d.value < 0 ? yscale(0) : yscale(d.value);
+          return d.value < 0 ? yscale(0) : yscale(d.value) - 1;
         })
         .attr('width', series.barWidth)
         .attr('height', function(d) {

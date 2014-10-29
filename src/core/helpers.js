@@ -38,33 +38,20 @@ function h_getCentroid(selection) {
 }
 
 /**
- * Deep _.extend specified attributes.
- * 
- * @param  {Array} objects objects to extend
- * @param  {Array} attrs   attrs to deep extend
- * @return {Object}
+ * Deep extend function created but jashkenas itself
+ * https://github.com/jashkenas/underscore/issues/88
  */
-function h_deepExtend(objs, attrs) {
-  var obj = objs[0];
-  var sources = Array.prototype.slice.call(objs, 1);
-
-  function getArrayProp(prop) {
-    return [{}].concat(_.map(sources, function(s) {
-      return s[prop];
-    }));
-  }
-
-  _.each(sources, function(source) {
-    for (var prop in source) {
-      if (_.indexOf(attrs, prop) >= 0) {
-        obj[prop] = _.extend.apply(this, getArrayProp(prop));
-      } else {
-        obj[prop] = source[prop];
-      }
+function h_deepExtend(target, source) {
+  for (var key in source) {
+    var original = target[key];
+    var next = source[key];
+    if (original && next && typeof next === 'object') {
+      h_deepExtend(original, next);
+    } else {
+      target[key] = next;
     }
-  });
-
-  return obj;
+  }
+  return target;
 }
 
 function h_getAngle(x, y) {

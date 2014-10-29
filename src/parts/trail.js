@@ -2,8 +2,8 @@
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.
  */
-var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
-  function(svg, trigger, height, width, xscale) {
+var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
+  function(svg, trigger, height, width, xscale, margin) {
 
     var currentDate;
 
@@ -14,7 +14,7 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
       .attr('class', 'trail-line')
       .attr('x1', 0)
       .attr('x2', 0)
-      .attr('y1', 0)
+      .attr('y1', -margin.top + 10) // 10px padding
       .attr('y2', height);
 
     var brush = d3.svg.brush()
@@ -46,6 +46,7 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale',
     /**
      * Triggered when the user mouseover or clicks on
      * the slider brush.
+     * TODO: => support different date units
      */
     function onBrush() {
       var xdomain = xscale.domain();

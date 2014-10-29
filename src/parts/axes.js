@@ -1,68 +1,97 @@
-/**
- * Get xaxis.
- * 
- * @return {d3.svg.axis}
- */
-var p_axes_getX = ['xscale', 'xaxis', 'svg', 'height',
-  function(xscale, xaxis, svg, height) {
-    var axis = d3.svg.axis()
-      .scale(xscale)
-      .orient(xaxis.orient)
-      .tickFormat(xaxis.tickFormat);
+var p_axes = ['svg', 'xscale','yscale', 'xaxis', 'yaxis', 'width', 'height', 'fullWidth', 'margin',
+  function(svg, xscale, yscale, xaxis, yaxis, width, height, fullWidth, margin) {
+    'use strict';
 
-    if (xaxis.ticks) {
-      axis.ticks.apply(axis, xaxis.ticks);
-    }
+    var getX = function(orient) {
+      var opts = orient === 'bottom' ? xaxis.bottom : xaxis.top;
 
-    axis.drawAxis = function() {
-      var translateY = xaxis.orient === 'bottom' ? height : 0;
+      var axis = d3.svg.axis()
+        .scale(xscale)
+        .orient(orient)
+        .tickFormat(opts.tickFormat);
 
+      // Apply ticks [] if enabled
+      yaxis.ticks && axis.ticks.apply(axis, yaxis.ticks);
+
+      // Draw axis
       svg.append('g')
-        .attr('class', 'xaxis')
-        .attr('transform', h_getTranslate(0, translateY))
+        .attr('class', 'xaxis ' + orient)
+        .attr('transform', h_getTranslate(0, orient === 'bottom' ? height : 0))
         .call(axis)
         .selectAll('text')
           .style('text-anchor', 'middle');
 
-      return axis;
+      svg.select('.xaxis .domain')
+        .attr('d', 'M{0},0V0H{1}V0'.format(-margin.left, fullWidth));
+
+      // Label
+      if (opts.label) {
+        svg.select('.yaxis').append('text')
+          .attr('class', 'label')
+          .attr('transform', h_getTranslate(0, 0))
+          .attr('y', height + margin.bottom - 7)
+          .attr('x', 0 -margin.left)
+          .attr('text-anchor', 'start')
+          .text(opts.label);
+      }
     };
 
-    return axis;
-}];
+    var getY = function(orient) {
+      var opts = orient === 'left' ? yaxis.left : yaxis.right;
 
-/**
- * Get yaxis.
- * 
- * @return {d3.svg.axis}
- */
-var p_axes_getY = ['yscale', 'yaxis', 'width', 'svg', 'margin',
-  function(yscale, yaxis, width, svg, margin) {
-    var axis = d3.svg.axis()
-      .scale(yscale)
-      .orient(yaxis.orient)
-      .tickSize(-width)
-      .tickFormat(yaxis.tickFormat);
+      var axis = d3.svg.axis()
+        .scale(yscale)
+        .orient('right')
+        .tickFormat(opts.tickFormat);
 
-    axis.drawAxis = function() {
+      // Apply ticks [] if enabled
+      yaxis.ticks && axis.ticks.apply(axis, yaxis.ticks);
+
+      // Draw axis
       svg.append('g')
-        .attr('class', 'yaxis')
-        .attr('transform', h_getTranslate(0, 0))
+        .attr('class', 'yaxis ' + orient)
+        .attr('transform', h_getTranslate(orient === 'left' ? 0 : width + margin.right, 0))
         .call(axis)
         .selectAll('text')
-          .attr('x', -margin.left)
+          .attr('x', orient === 'left' ? -margin.left : 0)
           .attr('y', yaxis.textMarginTop)
-          .style('text-anchor', yaxis.textAnchor);
+          .style('text-anchor', orient === 'left' ? yaxis.textAnchor : 'end');
 
+      // Grid
       svg.select('.yaxis')
         .selectAll('line')
-          .attr('x1', -margin.left)
-          .attr('x2', width + (margin.right || 0))
+          .attr('x1', yaxis.fullGrid ? -margin.left : 0)
+          .attr('x2', yaxis.fullGrid ? width + margin.right : width)
+          // add zeroline class
           .each(function(d) {
             if (d !== 0) {return;}
-            // add zeroline class
             d3.select(this).attr('class', 'zeroline');
           });
+
+      // Label
+      if (opts.label) {
+        svg.select('.yaxis').append('text')
+          .attr('class', 'label')
+          .attr('transform', h_getTranslate(0, 0))
+          .attr('y', yaxis.textMarginTop - 20)
+          .attr('x', orient === 'left' ? -margin.left : width + margin.right)
+          .attr('text-anchor', orient === 'left' ? 'start' : 'end')
+          .text(opts.label);
+      }
+
+      svg.select('.yaxis .domain').remove();
     };
 
-    return axis;
+    return {
+      drawX: function() {
+        xaxis.bottom.enabled && getX('bottom');
+        xaxis.top.enabled && getX('top');
+      },
+
+      drawY: function() {
+        yaxis.left.enabled && getY('left');
+        yaxis.right.enabled && getY('right');
+      }
+    };
+
 }];
