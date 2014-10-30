@@ -4,40 +4,52 @@
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
-var p_stacked_bar = ['svg', 'yscale', 'xscale', 'trigger', 'series', 'width',
-  function(svg, yscale, xscale, trigger, series, width) {
+var p_stacked_bar = ['svg', 'xscale', 'trigger', 'series', 'width', 'height',
+  function(svg, xscale, trigger, series, width, height) {
+
     /**
      * Draw a bar for the given serie.
      */
     function drawBar(serie) {
-      var y0 = 0;
+      serie.values.forEach(function(v) {
+        var y0 = 0;
 
-      serie.values.forEach(function(value) {
-        value.forEach(function(d) {
+        v.scrutinized.forEach(function(d) {
           d.y0 = y0;
-          d.y1 = y0 += Math.max(0, d.value); // negatives to zero
+          d.y1 = y0 += d.value;// Math.max(0, d.value); // negatives to zero
         });
+
+        v.total = v.scrutinized[v.scrutinized.length-1].y1;
       });
+
+      // Todo => Find a way to set the scale with totals before
+      var newYScale = d3.scale.linear()
+        .domain([0, d3.max(serie.values, function(d) {return d.total;})])
+        .range([height, 0]);
 
       var stackedBar = svg.selectAll('stacked-bar')
           .data(serie.values)
         .enter().append('g')
           .attr('transform', function(d) {
             var x;
-            if (!xscale) {
-              x = (series.stackedBarAlign === 'right') ? (width-series.barWidth) : 0;
+
+            // Todo => Trick to get a single bar on the right.
+            // It's better to have it under Charichart.Bar.
+            if (series.stackedBarAlign === 'right') {
+              x = width-series.barWidth;
             } else {
-              xscale[d.datetime || d.value];
+              x = xscale(d.datetime);
             }
+
             return h_getTranslate(x, 0);
           });
 
       stackedBar.selectAll('rect')
-          .data(function(d) {return d;})
+          .data(function(d) {return d.scrutinized;})
         .enter().append('rect')
           .attr('width', series.barWidth)
-          .attr('y', function(d) {return yscale(d.y1);})
-          .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
+          .attr('y', function(d) {return newYScale(d.y1);})
+          .attr('height', function(d) {return newYScale(d.y0) - newYScale(d.y1);})
           .style('fill', function(d) {return d.color;})
           .on('mouseover', function(d) {
             trigger('mouseoverStackbar', [d]);

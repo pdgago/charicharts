@@ -57,6 +57,7 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      */
     function getLinearFitDomain() {
       return d3.extent(valuesArr, function(d) {
+        console.log(d);
         return d.value * scalePadding;
       });
     }
