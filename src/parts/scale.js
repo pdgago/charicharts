@@ -37,6 +37,9 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      */
     function getLinearAllDomain() {
       var extent = d3.extent(valuesArr, function(d) {
+        if (d.scrutinized) {
+          return d3.sum(_.pluck(d.scrutinized, 'value')) * scalePadding;
+        }
         return Number(d.value) * scalePadding;
       });
 
@@ -57,6 +60,9 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
      */
     function getLinearFitDomain() {
       return d3.extent(valuesArr, function(d) {
+        if (d.scrutinized) {
+          return d3.sum(_.pluck(d.scrutinized, 'value')) * scalePadding;
+        }
         return d.value * scalePadding;
       });
     }

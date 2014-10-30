@@ -17,6 +17,11 @@
       width: 400px;
       height: 400px;
     }
+
+    .yaxis line {
+      stroke: #e8e8e8;
+      shape-rendering: crispEdges;
+    }
   </style>
 
 </head>
@@ -51,7 +56,7 @@
         // return a serie
         return {
           type: 'stacked-bar',
-          values: _.map(_.range(14), function(d,i) {
+          values: _.map(_.range(12), function(d,i) {
             return getValue(i)
           })
         }
@@ -67,7 +72,7 @@
         stackedBarAlign: 'left'
       },
       yaxis: {
-        fit: true,
+        fit: false,
         left: {
           tickFormat: function() {
             return '';
