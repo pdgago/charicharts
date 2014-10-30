@@ -372,7 +372,7 @@ Charicharts.Chart.defaults = {
     },
     bottom: {
       enabled: true,
-      label: 'sd',
+      label: false,
       tickFormat: function(d) {return d.getMonth();}
     }  
   },
