@@ -136,7 +136,7 @@ Charicharts.Chart.defaults = {
     },
     bottom: {
       enabled: true,
-      label: false,
+      label: 'sd',
       tickFormat: function(d) {return d.getMonth();}
     }  
   },

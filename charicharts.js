@@ -372,7 +372,7 @@ Charicharts.Chart.defaults = {
     },
     bottom: {
       enabled: true,
-      label: false,
+      label: 'sd',
       tickFormat: function(d) {return d.getMonth();}
     }  
   },
@@ -571,7 +571,7 @@ var p_axes = ['svg', 'xscale','yscale', 'xaxis', 'yaxis', 'width', 'height', 'fu
         .tickFormat(opts.tickFormat);
 
       // Apply ticks [] if enabled
-      yaxis.ticks && axis.ticks.apply(axis, yaxis.ticks);
+      xaxis.ticks && axis.ticks.apply(axis, xaxis.ticks);
 
       // Draw axis
       svg.append('g')
@@ -586,10 +586,10 @@ var p_axes = ['svg', 'xscale','yscale', 'xaxis', 'yaxis', 'width', 'height', 'fu
 
       // Label
       if (opts.label) {
-        svg.select('.yaxis').append('text')
+        svg.select('.xaxis').append('text')
           .attr('class', 'label')
           .attr('transform', h_getTranslate(0, 0))
-          .attr('y', height + margin.bottom - 7)
+          .attr('y', margin.bottom - 7)
           .attr('x', 0 -margin.left)
           .attr('text-anchor', 'start')
           .text(opts.label);
