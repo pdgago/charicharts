@@ -17,10 +17,21 @@ var p_svg = ['fullWidth', 'fullHeight', 'target',
         .attr('height', fullHeight)
       .append('g')
         .attr('class', 'g-main')
-        .attr('transform', translate);
+        .attr('transform', translate || h_getTranslate(0, 0));
+  }
+
+  function drawResponsive(translate) {
+    return d3.select(target)
+      .append('svg')
+        .attr('width', '100%')
+        .attr('height', fullHeight)
+      .append('g')
+        .attr('class', 'g-main')
+        .attr('transform', translate || h_getTranslate(0, 0));
   }
 
   return {
+    drawResponsive: drawResponsive,
     draw: draw
   };
   

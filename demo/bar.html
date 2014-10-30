@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Charicharts Demo</title>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
+  <script src="http://d3js.org/d3.v3.js"></script>
+  <script src="charicharts.js"></script>
+
+  <style type="text/css">
+    body,
+    html {
+      height: 100%;
+      width: 100%;
+    }
+
+    #bar {
+      width: 200px;
+      height: 15px;
+    }
+  </style>
+
+</head>
+<body>
+
+  <div id="bar"></div>
+
+  <script type="text/javascript">
+    var color = d3.scale.category10();
+
+    var getData = function () {
+      return _.map(_.range(8), function(d, i) {
+        return {
+          value: _.random(1, 100),
+          color: color(i)
+        }
+      });
+    };
+
+    var options = {
+      target: document.getElementById('bar'),
+      data: getData()
+    };
+
+    var bar = new Charicharts.Bar(options);
+  </script>
+
+</body>
+</html>
