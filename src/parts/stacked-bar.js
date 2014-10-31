@@ -16,7 +16,7 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
 
         v.scrutinized.forEach(function(d) {
           d.y0 = y0;
-          d.y1 = y0 += d.value; // Math.max(0, d.value); // negatives to zero
+          d.y1 = y0 += Math.max(0, d.value); // Math.max(0, d.value); // negatives to zero
         });
 
         v.total = v.scrutinized[v.scrutinized.length-1].y1;
@@ -46,8 +46,8 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
           .attr('y', function(d) {return yscale(d.y1);})
           .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
           .style('fill', function(d) {return d.color;})
-          .on('mouseover', function(d) {
-            trigger('mouseoverStackbar', [d]);
+          .on('mousemove', function(d) {
+            trigger('mouseoverStackbar', [d, d3.mouse(this)]);
           });
     }
 
