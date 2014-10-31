@@ -45,6 +45,7 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
           .attr('width', series.barWidth)
           .attr('y', function(d) {return yscale(d.y1);})
           .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
+          .style('cursor', 'pointer')
           .style('fill', function(d) {return d.color;})
           .on('mousemove', function(d) {
             trigger('mouseoverStackbar', [d, d3.mouse(this)]);

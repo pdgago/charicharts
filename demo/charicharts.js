@@ -42,23 +42,6 @@ function h_getCentroid(selection) {
   return centroid;
 }
 
-/**
- * Deep extend function created but jashkenas itself
- * https://github.com/jashkenas/underscore/issues/88
- */
-function h_deepExtend(target, source) {
-  for (var key in source) {
-    var original = target[key];
-    var next = source[key];
-    if (original && next && typeof next === 'object') {
-      h_deepExtend(original, next);
-    } else {
-      target[key] = next;
-    }
-  }
-  return target;
-}
-
 function h_getAngle(x, y) {
   var angle, referenceAngle;
   if (x === 0 || y === 0) {return;}
@@ -324,7 +307,15 @@ Charicharts.Chart.prototype.toggleSerie = function(serieId) {
  * @return {Object} options Parsed options
  */
 Charicharts.Chart.prototype.parseOptions = function(options) {
-  options = h_deepExtend(_.extend({}, Charicharts.Chart.defaults), options);
+  // TODO => Use deep extend to clone defaults and supplied options.
+  options = _.extend({}, Charicharts.Chart.defaults, options);
+  options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
+  options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
+  options.xaxis.bottom = _.extend({}, Charicharts.Chart.defaults.xaxis.bottom, options.xaxis.bottom);
+  options.xaxis.top = _.extend({}, Charicharts.Chart.defaults.xaxis.top, options.xaxis.top);
+  options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
+  options.yaxis.left = _.extend({}, Charicharts.Chart.defaults.yaxis.left, options.yaxis.left);
+  options.yaxis.right = _.extend({}, Charicharts.Chart.defaults.yaxis.right, options.yaxis.right);
 
   options.margin = _.object(['top', 'right', 'bottom', 'left'],
     options.margin.split(',').map(Number));
@@ -890,6 +881,7 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
           .attr('width', series.barWidth)
           .attr('y', function(d) {return yscale(d.y1);})
           .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
+          .style('cursor', 'pointer')
           .style('fill', function(d) {return d.color;})
           .on('mousemove', function(d) {
             trigger('mouseoverStackbar', [d, d3.mouse(this)]);

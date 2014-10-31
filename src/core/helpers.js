@@ -37,23 +37,6 @@ function h_getCentroid(selection) {
   return centroid;
 }
 
-/**
- * Deep extend function created but jashkenas itself
- * https://github.com/jashkenas/underscore/issues/88
- */
-function h_deepExtend(target, source) {
-  for (var key in source) {
-    var original = target[key];
-    var next = source[key];
-    if (original && next && typeof next === 'object') {
-      h_deepExtend(original, next);
-    } else {
-      target[key] = next;
-    }
-  }
-  return target;
-}
-
 function h_getAngle(x, y) {
   var angle, referenceAngle;
   if (x === 0 || y === 0) {return;}

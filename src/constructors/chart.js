@@ -88,7 +88,15 @@ Charicharts.Chart.prototype.toggleSerie = function(serieId) {
  * @return {Object} options Parsed options
  */
 Charicharts.Chart.prototype.parseOptions = function(options) {
-  options = h_deepExtend(_.extend({}, Charicharts.Chart.defaults), options);
+  // TODO => Use deep extend to clone defaults and supplied options.
+  options = _.extend({}, Charicharts.Chart.defaults, options);
+  options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
+  options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
+  options.xaxis.bottom = _.extend({}, Charicharts.Chart.defaults.xaxis.bottom, options.xaxis.bottom);
+  options.xaxis.top = _.extend({}, Charicharts.Chart.defaults.xaxis.top, options.xaxis.top);
+  options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
+  options.yaxis.left = _.extend({}, Charicharts.Chart.defaults.yaxis.left, options.yaxis.left);
+  options.yaxis.right = _.extend({}, Charicharts.Chart.defaults.yaxis.right, options.yaxis.right);
 
   options.margin = _.object(['top', 'right', 'bottom', 'left'],
     options.margin.split(',').map(Number));
