@@ -836,7 +836,7 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
 }];
 /**
  * Get d3 path generator Function for bars.
- * 
+ *
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
@@ -855,43 +855,66 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
           d.y1 = y0 += Math.max(0, d.value); // Math.max(0, d.value); // negatives to zero
         });
 
-        v.total = v.scrutinized[v.scrutinized.length-1].y1;
+        v.total = v.scrutinized[v.scrutinized.length - 1].y1;
       });
 
       var stackedBar = svg.selectAll('stacked-bar')
-          .data(serie.values)
+        .data(serie.values)
         .enter().append('g')
-          .attr('transform', function(d) {
-            var x;
+        .attr('transform', function(d) {
+          var x;
 
-            // Todo => Trick to get a single bar on the right.
-            // It's better to have it under Charichart.Bar.
-            if (series.stackedBarAlign === 'right') {
-              x = width - series.barWidth;
-            } else {
-              x = xscale(d.datetime);
-            }
+          // Todo => Trick to get a single bar on the right.
+          // It's better to have it under Charichart.Bar.
+          if (series.stackedBarAlign === 'right') {
+            x = width - series.barWidth;
+          } else {
+            x = xscale(d.datetime);
+          }
 
-            return h_getTranslate(x, 0);
-          });
+          return h_getTranslate(x, 0);
+        });
 
-      stackedBar.selectAll('rect')
-          .data(function(d) {return d.scrutinized;})
+      var bars = stackedBar.selectAll('rect')
+        .data(function(d) {
+          return d.scrutinized;
+        })
         .enter().append('rect')
-          .attr('width', series.barWidth)
-          .attr('y', function(d) {return yscale(d.y1);})
-          .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
-          .style('cursor', 'pointer')
-          .style('fill', function(d) {return d.color;})
-          .on('mousemove', function(d) {
-            trigger('mouseoverStackbar', [d, d3.mouse(this)]);
-          });
-    }
+        .attr('width', series.barWidth)
+        .attr('y', function(d) {
+          return yscale(d.y1);
+        })
+        .attr('height', function(d) {
+          return yscale(d.y0) - yscale(d.y1);
+        })
+        .style('cursor', 'pointer')
+        .style('fill', function(d) {
+          return d.color;
+        })
+        .on('mousemove', function(d) {
+          trigger('mouseoverStackbar', [d, d3.mouse(this)]);
+        });
 
-    return {
-      drawBar: drawBar
-    };
-}];
+      function triggerSelect(selection) {
+        console.log(selection);
+        // selection.each(function(d) {
+        //   self.$scope.trigger('mouseover', [d]);
+        // });
+        // var centroid = h_getCentroid(selection);
+        // moveArrow(h_getAngle.apply(this, centroid));
+      }
+
+      setTimeout(function() {
+        triggerSelect(d3.select(bars[0][0]));
+      }, 0);
+
+
+      return {
+        drawBar: drawBar
+      };
+    }
+  }
+];
 /**
  * SVG module.
  */
@@ -942,12 +965,27 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
     var trail = svg.append('g')
       .attr('class', 'trail');
 
+    var markerDef = svg.append('svg:marker')
+      .attr('id', 'trailArrow')
+      .attr('class', 'trail-arrow')
+      .attr('viewBox','0 0 20 20')
+      .attr('refX','15')
+      .attr('refY','11')
+      .attr('markerUnits','strokeWidth')
+      .attr('markerWidth','15')
+      .attr('markerHeight','11')
+      .attr('orient','auto')
+      .append('svg:path')
+        .attr('d','M 0 0 L 20 10 L 0 20 z')
+        .attr('fill', '#777');
+
     var trailLine = trail.append('svg:line')
       .attr('class', 'trail-line')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', -margin.top + 10) // 10px padding
-      .attr('y2', height);
+      .attr('y2', height)
+      .attr('marker-start', 'url(#trailArrow)');
 
     var brush = d3.svg.brush()
       .x(xscale)

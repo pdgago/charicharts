@@ -10,12 +10,27 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
     var trail = svg.append('g')
       .attr('class', 'trail');
 
+    var markerDef = svg.append('svg:marker')
+      .attr('id', 'trailArrow')
+      .attr('class', 'trail-arrow')
+      .attr('viewBox','0 0 20 20')
+      .attr('refX','15')
+      .attr('refY','11')
+      .attr('markerUnits','strokeWidth')
+      .attr('markerWidth','15')
+      .attr('markerHeight','11')
+      .attr('orient','auto')
+      .append('svg:path')
+        .attr('d','M 0 0 L 20 10 L 0 20 z')
+        .attr('fill', '#777');
+
     var trailLine = trail.append('svg:line')
       .attr('class', 'trail-line')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', -margin.top + 10) // 10px padding
-      .attr('y2', height);
+      .attr('y2', height)
+      .attr('marker-start', 'url(#trailArrow)');
 
     var brush = d3.svg.brush()
       .x(xscale)

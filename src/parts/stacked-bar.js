@@ -1,6 +1,6 @@
 /**
  * Get d3 path generator Function for bars.
- * 
+ *
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
@@ -19,40 +19,63 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
           d.y1 = y0 += Math.max(0, d.value); // Math.max(0, d.value); // negatives to zero
         });
 
-        v.total = v.scrutinized[v.scrutinized.length-1].y1;
+        v.total = v.scrutinized[v.scrutinized.length - 1].y1;
       });
 
       var stackedBar = svg.selectAll('stacked-bar')
-          .data(serie.values)
+        .data(serie.values)
         .enter().append('g')
-          .attr('transform', function(d) {
-            var x;
+        .attr('transform', function(d) {
+          var x;
 
-            // Todo => Trick to get a single bar on the right.
-            // It's better to have it under Charichart.Bar.
-            if (series.stackedBarAlign === 'right') {
-              x = width - series.barWidth;
-            } else {
-              x = xscale(d.datetime);
-            }
+          // Todo => Trick to get a single bar on the right.
+          // It's better to have it under Charichart.Bar.
+          if (series.stackedBarAlign === 'right') {
+            x = width - series.barWidth;
+          } else {
+            x = xscale(d.datetime);
+          }
 
-            return h_getTranslate(x, 0);
-          });
+          return h_getTranslate(x, 0);
+        });
 
-      stackedBar.selectAll('rect')
-          .data(function(d) {return d.scrutinized;})
+      var bars = stackedBar.selectAll('rect')
+        .data(function(d) {
+          return d.scrutinized;
+        })
         .enter().append('rect')
-          .attr('width', series.barWidth)
-          .attr('y', function(d) {return yscale(d.y1);})
-          .attr('height', function(d) {return yscale(d.y0) - yscale(d.y1);})
-          .style('cursor', 'pointer')
-          .style('fill', function(d) {return d.color;})
-          .on('mousemove', function(d) {
-            trigger('mouseoverStackbar', [d, d3.mouse(this)]);
-          });
-    }
+        .attr('width', series.barWidth)
+        .attr('y', function(d) {
+          return yscale(d.y1);
+        })
+        .attr('height', function(d) {
+          return yscale(d.y0) - yscale(d.y1);
+        })
+        .style('cursor', 'pointer')
+        .style('fill', function(d) {
+          return d.color;
+        })
+        .on('mousemove', function(d) {
+          trigger('mouseoverStackbar', [d, d3.mouse(this)]);
+        });
 
-    return {
-      drawBar: drawBar
-    };
-}];
+      function triggerSelect(selection) {
+        console.log(selection);
+        // selection.each(function(d) {
+        //   self.$scope.trigger('mouseover', [d]);
+        // });
+        // var centroid = h_getCentroid(selection);
+        // moveArrow(h_getAngle.apply(this, centroid));
+      }
+
+      setTimeout(function() {
+        triggerSelect(d3.select(bars[0][0]));
+      }, 0);
+
+
+      return {
+        drawBar: drawBar
+      };
+    }
+  }
+];
