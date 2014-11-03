@@ -71,11 +71,10 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
       setTimeout(function() {
         triggerSelect(d3.select(bars[0][0]));
       }, 0);
-
-
-      return {
-        drawBar: drawBar
-      };
     }
+
+    return {
+      drawBar: drawBar
+    };
   }
 ];
