@@ -1,8 +1,8 @@
 Charicharts.Bar = function(options) {
-  this._options = h_parseOptions(_.extend({}, Charicharts.Bar.defaults, options));
-  this.$scope = _.extend({}, this._options, Charicharts.Events(this));
+  this.options = h_parseOptions(_.extend({}, Charicharts.Bar.defaults, options));
+  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
   this.call = generateInjector(this.$scope);
-  this[Charicharts.Bar.types[this._options.type]]();
+  this[Charicharts.Bar.types[this.options.type]]();
   return _.pick(this.$scope, 'on');
 };
 
@@ -12,10 +12,10 @@ Charicharts.Bar = function(options) {
 Charicharts.Bar.prototype.renderPercentageBar = function() {
   this.$scope.svg = this.call(p_svg).drawResponsive();
 
-  var total = d3.sum(_.pluck(this._options.data, 'value'));
+  var total = d3.sum(_.pluck(this.options.data, 'value'));
   var x0 = 0;
 
-  var data = _.map(this._options.data,
+  var data = _.map(this.options.data,
     function(d) {
       var v = {
         x0: x0,
@@ -38,7 +38,7 @@ Charicharts.Bar.prototype.renderPercentageBar = function() {
     .attr('width', function(d) {
       return d.x1 + '%';
     })
-    .attr('height', this._options.height)
+    .attr('height', this.options.height)
     .style('fill', function(d) {
       return d.color;
     });

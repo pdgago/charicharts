@@ -3,8 +3,8 @@
  *   mouseover - mouseover over the paths
  */
 Charicharts.Pie = function pie(options) {
-  this._options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
-  this.$scope = _.extend({}, this._options, Charicharts.Events(this));
+  this.options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
+  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
   this.load = generateInjector(this.$scope);
   this.init();
   return _.pick(this.$scope, 'on');
@@ -15,7 +15,7 @@ Charicharts.Pie = function pie(options) {
  */
 Charicharts.Pie.prototype.init = function() {
   var self = this;
-  var opts = this._options;
+  var opts = this.options;
 
   // Pie size
   this.$scope.radius = Math.min(opts.fullWidth, opts.fullHeight) / 2;
@@ -81,7 +81,7 @@ Charicharts.Pie.prototype.init = function() {
 
 Charicharts.Pie.prototype.setInnerArrow = function() {
   var self = this;
-  var opts = this._options;
+  var opts = this.options;
 
   var radius = this.$scope.radius * (1 - opts.outerBorder);
   var arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius));

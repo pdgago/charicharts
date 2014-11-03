@@ -1,28 +1,27 @@
-Charicharts.Chart = function chart(options) {
-  this._options = this.parseOptions(options);
-  this.$scope = _.extend({}, this._options, Charicharts.Events(this));
+/**
+ * Chart constructor.
+ * 
+ * @param {Object} options Chart options
+ */
+Charicharts.Chart = function(options) {
+  this.options = this.parseOptions(options);
+  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
   this.call = generateInjector(this.$scope);
   this.renderChart();
 
-  /*
-   * Methods which are going to be available
-   * in the chart instance.
-   */
-  var chartMethods = {
+  return {
     on: this.$scope.on,
     toggleSerie: _.bind(this.toggleSerie, this),
     addSerie: _.bind(this.addSerie, this)
   };
-
-  return chartMethods;
 };
 
 /**
- * Generate a chart by setting all it parts.
+ * Render the chart by setting/drawing all it parts.
  */
 Charicharts.Chart.prototype.renderChart = function() {
-  var opts = this._options,
-      that = this,
+  var self = this,
+      opts = this.options,
       xaxis, yaxis;
 
   // Draw svg
@@ -39,7 +38,7 @@ Charicharts.Chart.prototype.renderChart = function() {
   this.call(p_axes).drawX();
 
   _.each(opts.data, function(serie) {
-    that.addSerie(serie);
+    self.addSerie(serie);
   });
 
   // Draw trail (optional)
