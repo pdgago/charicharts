@@ -894,17 +894,21 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
           trigger('mouseoverStackbar', [d, d3.mouse(this)]);
         });
 
+      /**
+       * Trigger mouseoverStackbar for the given selection.
+       * TODO => This is probably better on the user side, we could
+       * return bars array, and the user can do anything he wants.
+       * 
+       * @param  {Object} selection d3 selection
+       */
       function triggerSelect(selection) {
-        console.log(selection);
-        // selection.each(function(d) {
-        //   self.$scope.trigger('mouseover', [d]);
-        // });
-        // var centroid = h_getCentroid(selection);
-        // moveArrow(h_getAngle.apply(this, centroid));
+        selection.each(function(d) {
+          trigger('mouseoverStackbar', [d, h_getCentroid(selection)]);
+        });
       }
 
       setTimeout(function() {
-        triggerSelect(d3.select(bars[0][0]));
+        triggerSelect(d3.select(_.last(bars[0])));
       }, 0);
     }
 
