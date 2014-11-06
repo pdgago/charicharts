@@ -117,10 +117,9 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
 
   // Set mouse move Event
   this.$scope.pieces.on('mouseover', function(d) {
+    self.$scope.trigger('mouseover', [d]);
     moveArrow(d);
   });
-
-  var currentCoords;
 
   /**
    * Moves the arrow to the given data object.
@@ -145,6 +144,7 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
   this.$scope.moveArrowTo = function(id) {
     self.$scope.pieces.each(function(d) {
       if (d.data.id !== id) {return;}
+      self.$scope.trigger('mouseover', [d]);
       moveArrow(d);
     });
   };
