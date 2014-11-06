@@ -120,6 +120,13 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
     moveArrow(d);
   });
 
+  var currentCoords;
+
+  /**
+   * Moves the arrow to the given data object.
+   * 
+   * @param  {Object} d d3 data object appended to the arc.
+   */
   function moveArrow(d) {
     var coords = self.$scope.arc.centroid(d),
         angle = h_getAngle(coords[0], coords[1]),
