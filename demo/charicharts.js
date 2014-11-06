@@ -13,6 +13,17 @@ function h_getTranslate(width, height) {
   return 'translate(' + [width, height] + ')';
 }
 
+function h_getCentroid(selection) {
+  // get the DOM element from a D3 selection
+  // you could also use "this" inside .each()
+  var element = selection.node(),
+      // use the native SVG interface to get the bounding box
+      bbox = element.getBBox();
+  var centroid = [bbox.x + bbox.width/2, bbox.y + bbox.height/2];
+  // return the center of the bounding box
+  return centroid;
+}
+
 /**
  * Parse charichart options.
  * 
@@ -708,29 +719,29 @@ var p_line = ['svg', 'xscale', 'yscale', 'data',
         .attr('stroke', serie.color)
         .attr('d', line.interpolate(serie.interpolation)(serie.values));
 
-      var dots = svg.append('g').selectAll('dot')
-        .data(serie.values)
-        .enter().append('circle')
-        .attr('r', 5)
-        .attr('cx', function(d) {return xscale(d.datetime);})
-        .attr('cy', function(d) {return yscale(d.value);})
-        .style('fill', 'rgb(31, 119, 180)')
-        .attr('visibility', 'hidden')
-        .attr('cursor', 'pointer');
+      // var dots = svg.append('g').selectAll('dot')
+      //   .data(serie.values)
+      //   .enter().append('circle')
+      //   .attr('r', 5)
+      //   .attr('cx', function(d) {return xscale(d.datetime);})
+      //   .attr('cy', function(d) {return yscale(d.value);})
+      //   .style('fill', 'rgb(31, 119, 180)')
+      //   .attr('visibility', 'hidden')
+      //   .attr('cursor', 'pointer');
 
       // On mouse over show tooltip
       // puedo appendear a cada linea los circulos, ocultarlos
-      linePath.on('mousemove', function(d) {
-        var mouse = d3.mouse(this);
-        dots
-          .transition()
-          .duration(400)
-          .attr('visibility', 'visible');
-      });
+      // linePath.on('mousemove', function(d) {
+      //   var mouse = d3.mouse(this);
+      //   dots
+      //     .transition()
+      //     .duration(400)
+      //     .attr('visibility', 'visible');
+      // });
 
-      linePath.on('mouseleave', function(d) {
-        dots.attr('visibility', 'hidden');
-      });
+      // linePath.on('mouseleave', function(d) {
+      //   dots.attr('visibility', 'hidden');
+      // });
     }
 
     return {

@@ -8,6 +8,17 @@ function h_getTranslate(width, height) {
   return 'translate(' + [width, height] + ')';
 }
 
+function h_getCentroid(selection) {
+  // get the DOM element from a D3 selection
+  // you could also use "this" inside .each()
+  var element = selection.node(),
+      // use the native SVG interface to get the bounding box
+      bbox = element.getBBox();
+  var centroid = [bbox.x + bbox.width/2, bbox.y + bbox.height/2];
+  // return the center of the bounding box
+  return centroid;
+}
+
 /**
  * Parse charichart options.
  * 
