@@ -5,7 +5,7 @@
  * @param  {Integer} height
  */
 function h_getTranslate(width, height) {
-  return 'translate(' + width + ',' + height + ')';
+  return 'translate(' + [width, height] + ')';
 }
 
 /**
@@ -15,26 +15,17 @@ function h_getTranslate(width, height) {
  * @return {Object}      Parsed options
  */
 function h_parseOptions(opts) {
-  opts.margin = _.object(['top', 'right', 'bottom', 'left'],
-    opts.margin.split(',').map(Number));
+  var o = opts;
 
-  opts.fullWidth = opts.target.offsetWidth;
-  opts.fullHeight = opts.target.offsetHeight;
-  opts.width = opts.fullWidth - opts.margin.left - opts.margin.right;
-  opts.height = opts.fullHeight - opts.margin.top - opts.margin.bottom;
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
 
-  return opts;
-}
+  o.fullWidth = o.target.offsetWidth;
+  o.fullHeight = o.target.offsetHeight;
+  o.width = o.fullWidth - o.margin.left - o.margin.right;
+  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
 
-function h_getCentroid(selection) {
-  // get the DOM element from a D3 selection
-  // you could also use "this" inside .each()
-  var element = selection.node(),
-      // use the native SVG interface to get the bounding box
-      bbox = element.getBBox();
-  var centroid = [bbox.x + bbox.width/2, bbox.y + bbox.height/2];
-  // return the center of the bounding box
-  return centroid;
+  return o;
 }
 
 function h_getAngle(x, y) {

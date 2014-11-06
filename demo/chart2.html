@@ -50,7 +50,7 @@
   <script type="text/javascript">
     window.onload = function() {
 
-      var getData = function () {
+      var getData = function() {
         return _.map(_.range(23), function(hour) {
           var date = new Date();
           date.setHours(hour+1, 0, 0, 0);
@@ -60,7 +60,7 @@
           }
         });
       };
-  
+
       var color = d3.scale.category10();
 
       var data = [{

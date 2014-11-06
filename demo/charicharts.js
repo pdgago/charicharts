@@ -10,7 +10,7 @@
  * @param  {Integer} height
  */
 function h_getTranslate(width, height) {
-  return 'translate(' + width + ',' + height + ')';
+  return 'translate(' + [width, height] + ')';
 }
 
 /**
@@ -20,26 +20,17 @@ function h_getTranslate(width, height) {
  * @return {Object}      Parsed options
  */
 function h_parseOptions(opts) {
-  opts.margin = _.object(['top', 'right', 'bottom', 'left'],
-    opts.margin.split(',').map(Number));
+  var o = opts;
 
-  opts.fullWidth = opts.target.offsetWidth;
-  opts.fullHeight = opts.target.offsetHeight;
-  opts.width = opts.fullWidth - opts.margin.left - opts.margin.right;
-  opts.height = opts.fullHeight - opts.margin.top - opts.margin.bottom;
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
 
-  return opts;
-}
+  o.fullWidth = o.target.offsetWidth;
+  o.fullHeight = o.target.offsetHeight;
+  o.width = o.fullWidth - o.margin.left - o.margin.right;
+  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
 
-function h_getCentroid(selection) {
-  // get the DOM element from a D3 selection
-  // you could also use "this" inside .each()
-  var element = selection.node(),
-      // use the native SVG interface to get the bounding box
-      bbox = element.getBBox();
-  var centroid = [bbox.x + bbox.width/2, bbox.y + bbox.height/2];
-  // return the center of the bounding box
-  return centroid;
+  return o;
 }
 
 function h_getAngle(x, y) {
@@ -391,20 +382,20 @@ Charicharts.Chart.defaults = {
  * Pie events:
  *   mouseover - mouseover over the paths
  */
-Charicharts.Pie = function pie(options) {
+Charicharts.Pie = function(options) {
   this.options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
   this.$scope = _.extend({}, this.options, Charicharts.Events(this));
   this.load = generateInjector(this.$scope);
-  this.init();
+  this.renderPie();
   return _.pick(this.$scope, 'on');
 };
 
 /**
  * Generate a pie by setting all it parts.
  */
-Charicharts.Pie.prototype.init = function() {
-  var self = this;
-  var opts = this.options;
+Charicharts.Pie.prototype.renderPie = function() {
+  var self = this,
+      opts = this.options;
 
   // Pie size
   this.$scope.radius = Math.min(opts.fullWidth, opts.fullHeight) / 2;
@@ -469,12 +460,11 @@ Charicharts.Pie.prototype.init = function() {
 };
 
 Charicharts.Pie.prototype.setInnerArrow = function() {
-  var self = this;
-  var opts = this.options;
-
-  var radius = this.$scope.radius * (1 - opts.outerBorder);
-  var arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius));
-  var diameter = radius * (opts.innerRadius) * 2;
+  var self = this,
+      opts = this.options,
+      radius = this.$scope.radius * (1 - opts.outerBorder),
+      arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius)),
+      diameter = radius * (opts.innerRadius) * 2;
 
   if (diameter < arrowSize) {
     arrowSize = diameter * 0.5;
@@ -506,17 +496,18 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
     .attr('marker-end', 'url(#innerArrow)');
 
   // Set mouse move Event
-  this.$scope.pieces.on('mousemove', function() {
-    var mouse = d3.mouse(this);
-    var angle = h_getAngle(mouse[0], mouse[1]);
-    moveArrow(angle);
+  this.$scope.pieces.on('mouseover', function(d) {
+    moveArrow(d);
   });
 
-  function moveArrow(angle) {
-    var cos = Math.cos(angle);
-    var sin = Math.sin(angle);
-    var x = radius * cos;
-    var y = radius * sin;
+  function moveArrow(d) {
+    var coords = self.$scope.arc.centroid(d),
+        angle = h_getAngle(coords[0], coords[1]),
+        cos = Math.cos(angle),
+        sin = Math.sin(angle),
+        x = radius * cos,
+        y = radius * sin;
+
     if (!x || !y) {return;}
 
     self.$scope.innerArrow
@@ -524,16 +515,11 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
       .attr('y2', y);
   }
 
-  function triggerSelect(selection) {
-    selection.each(function(d) {
-      self.$scope.trigger('mouseover', [d]);
-    });
-    var centroid = h_getCentroid(selection);
-    moveArrow(h_getAngle.apply(this, centroid));
-  }
-
+  // Select automatically first pie piece.
   setTimeout(function() {
-    triggerSelect(d3.select(self.$scope.pieces[0][0]));
+    var d = self.$scope.pieces.data()[0];
+    moveArrow(d);
+    self.$scope.trigger('mouseover', [d]);
   }, 0);
 };
 
@@ -693,8 +679,8 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
-var p_line = ['svg', 'xscale', 'yscale',
-  function(svg, xscale, yscale) {
+var p_line = ['svg', 'xscale', 'yscale', 'data',
+  function(svg, xscale, yscale, data) {
     var line = d3.svg.line()
       .x(function(d) {
         return xscale(d.datetime);
@@ -707,7 +693,7 @@ var p_line = ['svg', 'xscale', 'yscale',
      * Draw a line for the given serie
      */
     function drawLine(serie) {
-      var path = svg.append('path')
+      var linePath = svg.append('path')
         .attr('id', 'serie' + serie.id)
         .attr('active', 1)
         .attr('class', 'line')
@@ -715,8 +701,28 @@ var p_line = ['svg', 'xscale', 'yscale',
         .attr('stroke', serie.color)
         .attr('d', line.interpolate(serie.interpolation)(serie.values));
 
-      path.on('mousemove', function() {
-        console.log('mouse over');
+      var dots = svg.append('g').selectAll('dot')
+        .data(serie.values)
+        .enter().append('circle')
+        .attr('r', 5)
+        .attr('cx', function(d) {return xscale(d.datetime);})
+        .attr('cy', function(d) {return yscale(d.value);})
+        .style('fill', 'rgb(31, 119, 180)')
+        .attr('visibility', 'hidden')
+        .attr('cursor', 'pointer');
+
+      // On mouse over show tooltip
+      // puedo appendear a cada linea los circulos, ocultarlos
+      linePath.on('mousemove', function(d) {
+        var mouse = d3.mouse(this);
+        dots
+          .transition()
+          .duration(400)
+          .attr('visibility', 'visible');
+      });
+
+      linePath.on('mouseleave', function(d) {
+        dots.attr('visibility', 'hidden');
       });
     }
 

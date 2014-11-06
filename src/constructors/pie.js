@@ -2,20 +2,20 @@
  * Pie events:
  *   mouseover - mouseover over the paths
  */
-Charicharts.Pie = function pie(options) {
+Charicharts.Pie = function(options) {
   this.options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
   this.$scope = _.extend({}, this.options, Charicharts.Events(this));
   this.load = generateInjector(this.$scope);
-  this.init();
+  this.renderPie();
   return _.pick(this.$scope, 'on');
 };
 
 /**
  * Generate a pie by setting all it parts.
  */
-Charicharts.Pie.prototype.init = function() {
-  var self = this;
-  var opts = this.options;
+Charicharts.Pie.prototype.renderPie = function() {
+  var self = this,
+      opts = this.options;
 
   // Pie size
   this.$scope.radius = Math.min(opts.fullWidth, opts.fullHeight) / 2;
@@ -80,12 +80,11 @@ Charicharts.Pie.prototype.init = function() {
 };
 
 Charicharts.Pie.prototype.setInnerArrow = function() {
-  var self = this;
-  var opts = this.options;
-
-  var radius = this.$scope.radius * (1 - opts.outerBorder);
-  var arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius));
-  var diameter = radius * (opts.innerRadius) * 2;
+  var self = this,
+      opts = this.options,
+      radius = this.$scope.radius * (1 - opts.outerBorder),
+      arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius)),
+      diameter = radius * (opts.innerRadius) * 2;
 
   if (diameter < arrowSize) {
     arrowSize = diameter * 0.5;
@@ -117,17 +116,18 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
     .attr('marker-end', 'url(#innerArrow)');
 
   // Set mouse move Event
-  this.$scope.pieces.on('mousemove', function() {
-    var mouse = d3.mouse(this);
-    var angle = h_getAngle(mouse[0], mouse[1]);
-    moveArrow(angle);
+  this.$scope.pieces.on('mouseover', function(d) {
+    moveArrow(d);
   });
 
-  function moveArrow(angle) {
-    var cos = Math.cos(angle);
-    var sin = Math.sin(angle);
-    var x = radius * cos;
-    var y = radius * sin;
+  function moveArrow(d) {
+    var coords = self.$scope.arc.centroid(d),
+        angle = h_getAngle(coords[0], coords[1]),
+        cos = Math.cos(angle),
+        sin = Math.sin(angle),
+        x = radius * cos,
+        y = radius * sin;
+
     if (!x || !y) {return;}
 
     self.$scope.innerArrow
@@ -135,16 +135,11 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
       .attr('y2', y);
   }
 
-  function triggerSelect(selection) {
-    selection.each(function(d) {
-      self.$scope.trigger('mouseover', [d]);
-    });
-    var centroid = h_getCentroid(selection);
-    moveArrow(h_getAngle.apply(this, centroid));
-  }
-
+  // Select automatically first pie piece.
   setTimeout(function() {
-    triggerSelect(d3.select(self.$scope.pieces[0][0]));
+    var d = self.$scope.pieces.data()[0];
+    moveArrow(d);
+    self.$scope.trigger('mouseover', [d]);
   }, 0);
 };
 
