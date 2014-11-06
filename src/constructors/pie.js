@@ -7,7 +7,7 @@ Charicharts.Pie = function(options) {
   this.$scope = _.extend({}, this.options, Charicharts.Events(this));
   this.load = generateInjector(this.$scope);
   this.renderPie();
-  return _.pick(this.$scope, 'on');
+  return _.pick(this.$scope, 'on', 'moveArrowTo');
 };
 
 /**
@@ -141,6 +141,13 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
       .attr('x2', x)
       .attr('y2', y);
   }
+
+  this.$scope.moveArrowTo = function(id) {
+    self.$scope.pieces.each(function(d) {
+      if (d.data.id !== id) {return;}
+      moveArrow(d);
+    });
+  };
 
   // Select automatically first pie piece.
   setTimeout(function() {
