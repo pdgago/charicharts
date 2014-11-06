@@ -10,8 +10,6 @@
 var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
   function(data, xaxis, yaxis, width, height) {
 
-    var scalePadding = 1.05;
-
     var d3Scales = {
       'time': d3.time.scale,
       'ordinal': d3.scale.ordinal,
@@ -38,9 +36,9 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
     function getLinearAllDomain() {
       var extent = d3.extent(valuesArr, function(d) {
         if (d.scrutinized) {
-          return d3.sum(_.pluck(d.scrutinized, 'value')) * scalePadding;
+          return d3.sum(_.pluck(d.scrutinized, 'value'));
         }
-        return Number(d.value) * scalePadding;
+        return Number(d.value);
       });
 
       // Positive scale
@@ -61,9 +59,9 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
     function getLinearFitDomain() {
       return d3.extent(valuesArr, function(d) {
         if (d.scrutinized) {
-          return d3.sum(_.pluck(d.scrutinized, 'value')) * scalePadding;
+          return d3.sum(_.pluck(d.scrutinized, 'value'));
         }
-        return d.value * scalePadding;
+        return d.value;
       });
     }
 
