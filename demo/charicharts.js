@@ -24,26 +24,6 @@ function h_getCentroid(selection) {
   return centroid;
 }
 
-/**
- * Parse charichart options.
- * 
- * @param  {Object} opts Options to parse
- * @return {Object}      Parsed options
- */
-function h_parseOptions(opts) {
-  var o = opts;
-
-  o.margin = _.object(['top', 'right', 'bottom', 'left'],
-    o.margin.split(',').map(Number));
-
-  o.fullWidth = o.target.offsetWidth;
-  o.fullHeight = o.target.offsetHeight;
-  o.width = o.fullWidth - o.margin.left - o.margin.right;
-  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
-
-  return o;
-}
-
 function h_getAngle(x, y) {
   var angle, referenceAngle;
   if (x === 0 || y === 0) {return;}
@@ -141,17 +121,17 @@ Charicharts.Events = function(context) {
 /**
  * Generate a injector to the given context.
  *
- * When calling a function using call(), that function
- * will be able to ask for context variables.
+ * When calling a function using the returned function,
+ * that module will be able to ask for context properties.
  *
  * Injectors are specially build for the charichart parts, because they
- * need access to many variables. This makes the code cleaner and more
+ * need access to so many variables. This makes the code cleaner and more
  * testeable.
  *
  * @param  {Ojbect} ctx Context
  */
 var generateInjector = function(ctx) {
-  return function call(args) {
+  return function(args) {
     var func = args[args.length-1];
     args = args.slice(0, args.length-1).map(function(a) {
       return ctx[a];
@@ -159,24 +139,29 @@ var generateInjector = function(ctx) {
     return func.apply(ctx, args);
   };
 };
-Charicharts.Bar = function(options) {
-  this.options = h_parseOptions(_.extend({}, Charicharts.Bar.defaults, options));
-  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
+Charicharts.Bar = Bar;
+
+function Bar(opts) {
+  this._opts = this.parseOpts(opts);
+  _.extend(this, Charicharts.Events(this));
+  this.$scope = _.extend({}, this._opts);
+  this.$scope.trigger = this.trigger;
   this.call = generateInjector(this.$scope);
-  this[Charicharts.Bar.types[this.options.type]]();
-  return _.pick(this.$scope, 'on');
-};
+  var render = this[Bar.types[this._opts.type]];
+  render();
+  return _.omit('$scope', 'call', 'parseOpts', 'render');
+}
 
 /**
  * Renders a percentage bar in the target.
  */
-Charicharts.Bar.prototype.renderPercentageBar = function() {
-  this.$scope.svg = this.call(p_svg).drawResponsive();
+Bar.prototype.renderPercentageBar = function() {
+  this.$scope.svg = this.call(p_svg).draw();
 
-  var total = d3.sum(_.pluck(this.options.data, 'value'));
+  var total = d3.sum(_.pluck(this._opts.data, 'value'));
   var x0 = 0;
 
-  var data = _.map(this.options.data,
+  var data = _.map(this._opts.data,
     function(d) {
       var v = {
         x0: x0,
@@ -199,56 +184,62 @@ Charicharts.Bar.prototype.renderPercentageBar = function() {
     .attr('width', function(d) {
       return d.x1 + '%';
     })
-    .attr('height', this.options.height)
+    .attr('height', this._opts.height)
     .style('fill', function(d) {
       return d.color;
     });
 };
 
+Bar.prototype.renderStackedBar = function() {
+
+};
+
+Bar.prototype.parseOpts = function(opts) {
+  var o = _.extend({}, Bar.defaults, opts);
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
+  o.gmainTranslate = h_getTranslate(0, 0);
+  o.responsive = true;
+  return o;
+};
+
 /**
  * Map bar types with it render methods.
  */
-Charicharts.Bar.types = {
-  percentage: 'renderPercentageBar'
+Bar.types = {
+  percentage: 'renderPercentageBar',
+  stacked: 'renderStackedBar'
 };
 
 /**
- * Defaults bar options.
+ * Defaults bar opts.
  */
-Charicharts.Bar.defaults = {
+Bar.defaults = {
   margin: '0,0,0,0',
   type: 'percentage'
 };
-/**
- * Chart constructor.
- * 
- * @param {Object} options Chart options
- */
-Charicharts.Chart = function(options) {
-  this.options = this.parseOptions(options);
-  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
-  this.call = generateInjector(this.$scope);
-  this.renderChart();
+Charicharts.Chart = Chart;
 
-  return {
-    on: this.$scope.on,
-    toggleSerie: _.bind(this.toggleSerie, this),
-    addSerie: _.bind(this.addSerie, this)
-  };
-};
+function Chart(opts) {
+  this._opts = this.parseOpts(opts);
+  _.extend(this, Charicharts.Events(this));
+  // this.$scope = {};
+  // this.$scope.opts = this._opts;
+  this.$scope = _.extend({}, this._opts);
+  this.$scope.trigger = this.trigger;
+  this.call = generateInjector(this.$scope);
+  this.render();
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
+}
 
 /**
  * Render the chart by setting/drawing all it parts.
  */
-Charicharts.Chart.prototype.renderChart = function() {
-  var self = this,
-      opts = this.options,
-      xaxis, yaxis;
+Chart.prototype.render = function() {
+  var self = this;
 
   // Draw svg
-  // Main chart wrapper under the given target.
-  var svgTranslate = h_getTranslate(opts.margin.left, opts.margin.top);
-  this.$scope.svg = this.call(p_svg).draw(svgTranslate);
+  this.$scope.svg = this.call(p_svg).draw();
 
   // Set scales
   this.$scope.xscale = this.call(p_scale).getXScale();
@@ -258,14 +249,14 @@ Charicharts.Chart.prototype.renderChart = function() {
   this.call(p_axes).drawY();
   this.call(p_axes).drawX();
 
-  _.each(opts.data, function(serie) {
+  _.each(this._opts.data, function(serie) {
     self.addSerie(serie);
   });
 
   // Draw trail (optional)
   // Add a trail line to the chart and trigger a 'moveTrail'
   // event when the user moves the trail.
-  if (opts.trail) {
+  if (this._opts.trail) {
     this.call(p_trail);
   }
 };
@@ -275,13 +266,13 @@ Charicharts.Chart.prototype.renderChart = function() {
  * 
  * @param {Object} serie
  */
-Charicharts.Chart.prototype.addSerie = function(serie) {
+Chart.prototype.addSerie = function(serie) {
   if (serie.type === 'line') {
-    this.call(p_line).drawLine(serie);
+    this.$scope.lines = this.call(p_line).drawLine(serie);
   } else if (serie.type === 'bar') {
-    this.call(p_bar).drawBar(serie);
+    this.$scope.bars = this.call(p_bar).drawBar(serie);
   } else if (serie.type === 'stacked-bar') {
-    this.call(p_stacked_bar).drawBar(serie);
+    this.$scope.stackedBars = this.call(p_stacked_bar).drawBar(serie);
   }
 };
 
@@ -290,7 +281,7 @@ Charicharts.Chart.prototype.addSerie = function(serie) {
  * 
  * @param  {Integer} serieId
  */
-Charicharts.Chart.prototype.toggleSerie = function(serieId) {
+Chart.prototype.toggleSerie = function(serieId) {
   var el = this.$scope.svg.select('#serie' + serieId);
   if (el.empty()) {return;}
   var active = Number(el.attr('active')) ? 0 : 1;
@@ -307,40 +298,42 @@ Charicharts.Chart.prototype.toggleSerie = function(serieId) {
  * @param  {Object} options User options
  * @return {Object} options Parsed options
  */
-Charicharts.Chart.prototype.parseOptions = function(options) {
-  // TODO => Use deep extend to clone defaults and supplied options.
-  options = _.extend({}, Charicharts.Chart.defaults, options);
-  options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
-  options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
-  options.xaxis.bottom = _.extend({}, Charicharts.Chart.defaults.xaxis.bottom, options.xaxis.bottom);
-  options.xaxis.top = _.extend({}, Charicharts.Chart.defaults.xaxis.top, options.xaxis.top);
-  options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
-  options.yaxis.left = _.extend({}, Charicharts.Chart.defaults.yaxis.left, options.yaxis.left);
-  options.yaxis.right = _.extend({}, Charicharts.Chart.defaults.yaxis.right, options.yaxis.right);
+Chart.prototype.parseOpts = function(opts) {
+  var o = _.extend({}, Chart.defaults, opts);
+  
+  // TODO => Use deep extend to clone defaults and supplied opts.
+  o.series = _.extend({}, Chart.defaults.series, o.series);
+  o.xaxis = _.extend({}, Chart.defaults.xaxis, o.xaxis);
+  o.xaxis.bottom = _.extend({}, Chart.defaults.xaxis.bottom, o.xaxis.bottom);
+  o.xaxis.top = _.extend({}, Chart.defaults.xaxis.top, o.xaxis.top);
+  o.yaxis = _.extend({}, Chart.defaults.yaxis, o.yaxis);
+  o.yaxis.left = _.extend({}, Chart.defaults.yaxis.left, o.yaxis.left);
+  o.yaxis.right = _.extend({}, Chart.defaults.yaxis.right, o.yaxis.right);
 
-  options.margin = _.object(['top', 'right', 'bottom', 'left'],
-    options.margin.split(',').map(Number));
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
 
   /**
    * Axis labels padding.
    * TODO: => Do this better.
    */
-  if (options.yaxis.left.label || options.yaxis.right.label) {
-    options.margin.top += Math.abs(options.yaxis.textMarginTop - 30);
+  if (o.yaxis.left.label || o.yaxis.right.label) {
+    o.margin.top += Math.abs(o.yaxis.textMarginTop - 30);
   }
 
-  options.fullWidth = options.target.offsetWidth;
-  options.fullHeight = options.target.offsetHeight;
-  options.width = options.fullWidth - options.margin.left - options.margin.right;
-  options.height = options.fullHeight - options.margin.top - options.margin.bottom;
+  o.fullWidth = o.target.offsetWidth;
+  o.fullHeight = o.target.offsetHeight;
+  o.width = o.fullWidth - o.margin.left - o.margin.right;
+  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+  o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
 
-  return options;
+  return o;
 };
 
 /**
  * Defaults Chart options.
  */
-Charicharts.Chart.defaults = {
+Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
   /**
@@ -389,33 +382,31 @@ Charicharts.Chart.defaults = {
     }
   }
 };
-/**
- * Pie events:
- *   mouseover - mouseover over the paths
- */
-Charicharts.Pie = function(options) {
-  this.options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
-  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
+Charicharts.Pie = Pie;
+
+function Pie(opts) {
+  this._opts = this.parseOpts(opts);
+  _.extend(this, Charicharts.Events(this));
+  this.$scope = _.extend({}, this._opts);
+  this.$scope.trigger = this.trigger;
   this.load = generateInjector(this.$scope);
-  this.renderPie();
-  return _.pick(this.$scope, 'on', 'moveArrowTo');
-};
+  this.render();
+  return _.omit('$scope', 'call', 'parseOpts', 'render');
+}
 
 /**
  * Generate a pie by setting all it parts.
  */
-Charicharts.Pie.prototype.renderPie = function() {
-  var self = this,
-      opts = this.options;
+Pie.prototype.render = function() {
+  var self = this;
 
   // Pie size
-  this.$scope.radius = Math.min(opts.fullWidth, opts.fullHeight) / 2;
+  this.$scope.radius = Math.min(this._opts.fullWidth, this._opts.fullHeight) / 2;
 
   // Draw SVG
-  this.$scope.svg = this.load(p_svg)
-    .draw(h_getTranslate(opts.fullWidth/2, opts.fullHeight/2));
+  this.$scope.svg = this.load(p_svg).draw();
 
-  if (opts.outerBorder) {
+  if (this._opts.outerBorder) {
     this.$scope.svg.append('svg:circle')
       .attr('class', 'outer-border')
       .attr('fill', 'transparent')
@@ -430,16 +421,16 @@ Charicharts.Pie.prototype.renderPie = function() {
     .value(function(d) {return d.value;});
 
   // Pie arc
-  var innerPadding = opts.outerBorder ? (1 - opts.outerBorder) : 1;
+  var innerPadding = this._opts.outerBorder ? (1 - this._opts.outerBorder) : 1;
   var arcRadius = this.$scope.radius * innerPadding;
 
   this.$scope.arc = d3.svg.arc()
-    .innerRadius(arcRadius - (arcRadius * (1 - opts.innerRadius)))
+    .innerRadius(arcRadius - (arcRadius * (1 - this._opts.innerRadius)))
     .outerRadius(arcRadius); 
 
   // Draw pie
   this.$scope.pieces = this.$scope.svg.selectAll('path')
-      .data(this.$scope.pieLayout(opts.data))
+      .data(this.$scope.pieLayout(this._opts.data))
       .enter()
     .append('path')
     .attr('class', 'pie-piece')
@@ -452,7 +443,7 @@ Charicharts.Pie.prototype.renderPie = function() {
   this.$scope.pieces.on('mouseover', function(d) {
     // Fade all paths
     self.$scope.pieces
-      .style('opacity', opts.fadeOpacity);
+      .style('opacity', this._opts.fadeOpacity);
     // Highlight hovered
     d3.select(this).style('opacity', 1);
     // Triger over event
@@ -465,14 +456,14 @@ Charicharts.Pie.prototype.renderPie = function() {
       .style('opacity', 1);
   });
 
-  if (opts.innerArrow) {
+  if (this._opts.innerArrow) {
     this.setInnerArrow();
   }
 };
 
-Charicharts.Pie.prototype.setInnerArrow = function() {
+Pie.prototype.setInnerArrow = function() {
   var self = this,
-      opts = this.options,
+      opts = this._opts,
       radius = this.$scope.radius * (1 - opts.outerBorder),
       arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius)),
       diameter = radius * (opts.innerRadius) * 2;
@@ -548,10 +539,25 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
   }, 0);
 };
 
+Pie.prototype.parseOpts = function(opts) {
+  var o = _.extend({}, Pie.defaults, opts);
+
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
+
+  o.fullWidth = o.target.offsetWidth;
+  o.fullHeight = o.target.offsetHeight;
+  o.width = o.fullWidth - o.margin.left - o.margin.right;
+  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+  o.gmainTranslate = h_getTranslate(o.fullWidth/2, o.fullHeight/2);
+
+  return o;
+};
+
 /**
  * Defaults pie options.
  */
-Charicharts.Pie.defaults = {
+Pie.defaults = {
   margin: '0,0,0,0',
   innerRadius: 0.5,
   outerBorder: 0.1,
@@ -706,6 +712,7 @@ var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
  */
 var p_line = ['svg', 'xscale', 'yscale', 'data',
   function(svg, xscale, yscale, data) {
+
     var line = d3.svg.line()
       .x(function(d) {
         return xscale(d.datetime);
@@ -949,8 +956,8 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
 /**
  * SVG module.
  */
-var p_svg = ['fullWidth', 'fullHeight', 'target',
-  function(fullWidth, fullHeight, target) {
+var p_svg = ['responsive', 'fullWidth', 'fullHeight', 'target', 'gmainTranslate',
+  function(responsive, fullWidth, fullHeight, target, gmainTranslate) {
 
   /**
    * Draw svg and apply the supplied translate.
@@ -958,28 +965,17 @@ var p_svg = ['fullWidth', 'fullHeight', 'target',
    * @param  {String} translate
    * @return {Svg}    svg
    */
-  function draw(translate) {
+  function draw() {
     return d3.select(target)
       .append('svg')
-        .attr('width', fullWidth)
+        .attr('width', responsive ?  '100%' : fullWidth)
         .attr('height', fullHeight)
       .append('g')
         .attr('class', 'g-main')
-        .attr('transform', translate || h_getTranslate(0, 0));
-  }
-
-  function drawResponsive(translate) {
-    return d3.select(target)
-      .append('svg')
-        .attr('width', '100%')
-        .attr('height', fullHeight)
-      .append('g')
-        .attr('class', 'g-main')
-        .attr('transform', translate || h_getTranslate(0, 0));
+        .attr('transform', gmainTranslate);
   }
 
   return {
-    drawResponsive: drawResponsive,
     draw: draw
   };
   

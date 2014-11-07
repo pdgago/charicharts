@@ -9,6 +9,7 @@
  */
 var p_line = ['svg', 'xscale', 'yscale', 'data',
   function(svg, xscale, yscale, data) {
+
     var line = d3.svg.line()
       .x(function(d) {
         return xscale(d.datetime);

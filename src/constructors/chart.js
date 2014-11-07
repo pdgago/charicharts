@@ -1,33 +1,25 @@
-/**
- * Chart constructor.
- * 
- * @param {Object} options Chart options
- */
-Charicharts.Chart = function(options) {
-  this.options = this.parseOptions(options);
-  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
-  this.call = generateInjector(this.$scope);
-  this.renderChart();
+Charicharts.Chart = Chart;
 
-  return {
-    on: this.$scope.on,
-    toggleSerie: _.bind(this.toggleSerie, this),
-    addSerie: _.bind(this.addSerie, this)
-  };
-};
+function Chart(opts) {
+  this._opts = this.parseOpts(opts);
+  _.extend(this, Charicharts.Events(this));
+  // this.$scope = {};
+  // this.$scope.opts = this._opts;
+  this.$scope = _.extend({}, this._opts);
+  this.$scope.trigger = this.trigger;
+  this.call = generateInjector(this.$scope);
+  this.render();
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
+}
 
 /**
  * Render the chart by setting/drawing all it parts.
  */
-Charicharts.Chart.prototype.renderChart = function() {
-  var self = this,
-      opts = this.options,
-      xaxis, yaxis;
+Chart.prototype.render = function() {
+  var self = this;
 
   // Draw svg
-  // Main chart wrapper under the given target.
-  var svgTranslate = h_getTranslate(opts.margin.left, opts.margin.top);
-  this.$scope.svg = this.call(p_svg).draw(svgTranslate);
+  this.$scope.svg = this.call(p_svg).draw();
 
   // Set scales
   this.$scope.xscale = this.call(p_scale).getXScale();
@@ -37,14 +29,14 @@ Charicharts.Chart.prototype.renderChart = function() {
   this.call(p_axes).drawY();
   this.call(p_axes).drawX();
 
-  _.each(opts.data, function(serie) {
+  _.each(this._opts.data, function(serie) {
     self.addSerie(serie);
   });
 
   // Draw trail (optional)
   // Add a trail line to the chart and trigger a 'moveTrail'
   // event when the user moves the trail.
-  if (opts.trail) {
+  if (this._opts.trail) {
     this.call(p_trail);
   }
 };
@@ -54,13 +46,13 @@ Charicharts.Chart.prototype.renderChart = function() {
  * 
  * @param {Object} serie
  */
-Charicharts.Chart.prototype.addSerie = function(serie) {
+Chart.prototype.addSerie = function(serie) {
   if (serie.type === 'line') {
-    this.call(p_line).drawLine(serie);
+    this.$scope.lines = this.call(p_line).drawLine(serie);
   } else if (serie.type === 'bar') {
-    this.call(p_bar).drawBar(serie);
+    this.$scope.bars = this.call(p_bar).drawBar(serie);
   } else if (serie.type === 'stacked-bar') {
-    this.call(p_stacked_bar).drawBar(serie);
+    this.$scope.stackedBars = this.call(p_stacked_bar).drawBar(serie);
   }
 };
 
@@ -69,7 +61,7 @@ Charicharts.Chart.prototype.addSerie = function(serie) {
  * 
  * @param  {Integer} serieId
  */
-Charicharts.Chart.prototype.toggleSerie = function(serieId) {
+Chart.prototype.toggleSerie = function(serieId) {
   var el = this.$scope.svg.select('#serie' + serieId);
   if (el.empty()) {return;}
   var active = Number(el.attr('active')) ? 0 : 1;
@@ -86,40 +78,42 @@ Charicharts.Chart.prototype.toggleSerie = function(serieId) {
  * @param  {Object} options User options
  * @return {Object} options Parsed options
  */
-Charicharts.Chart.prototype.parseOptions = function(options) {
-  // TODO => Use deep extend to clone defaults and supplied options.
-  options = _.extend({}, Charicharts.Chart.defaults, options);
-  options.series = _.extend({}, Charicharts.Chart.defaults.series, options.series);
-  options.xaxis = _.extend({}, Charicharts.Chart.defaults.xaxis, options.xaxis);
-  options.xaxis.bottom = _.extend({}, Charicharts.Chart.defaults.xaxis.bottom, options.xaxis.bottom);
-  options.xaxis.top = _.extend({}, Charicharts.Chart.defaults.xaxis.top, options.xaxis.top);
-  options.yaxis = _.extend({}, Charicharts.Chart.defaults.yaxis, options.yaxis);
-  options.yaxis.left = _.extend({}, Charicharts.Chart.defaults.yaxis.left, options.yaxis.left);
-  options.yaxis.right = _.extend({}, Charicharts.Chart.defaults.yaxis.right, options.yaxis.right);
+Chart.prototype.parseOpts = function(opts) {
+  var o = _.extend({}, Chart.defaults, opts);
+  
+  // TODO => Use deep extend to clone defaults and supplied opts.
+  o.series = _.extend({}, Chart.defaults.series, o.series);
+  o.xaxis = _.extend({}, Chart.defaults.xaxis, o.xaxis);
+  o.xaxis.bottom = _.extend({}, Chart.defaults.xaxis.bottom, o.xaxis.bottom);
+  o.xaxis.top = _.extend({}, Chart.defaults.xaxis.top, o.xaxis.top);
+  o.yaxis = _.extend({}, Chart.defaults.yaxis, o.yaxis);
+  o.yaxis.left = _.extend({}, Chart.defaults.yaxis.left, o.yaxis.left);
+  o.yaxis.right = _.extend({}, Chart.defaults.yaxis.right, o.yaxis.right);
 
-  options.margin = _.object(['top', 'right', 'bottom', 'left'],
-    options.margin.split(',').map(Number));
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
 
   /**
    * Axis labels padding.
    * TODO: => Do this better.
    */
-  if (options.yaxis.left.label || options.yaxis.right.label) {
-    options.margin.top += Math.abs(options.yaxis.textMarginTop - 30);
+  if (o.yaxis.left.label || o.yaxis.right.label) {
+    o.margin.top += Math.abs(o.yaxis.textMarginTop - 30);
   }
 
-  options.fullWidth = options.target.offsetWidth;
-  options.fullHeight = options.target.offsetHeight;
-  options.width = options.fullWidth - options.margin.left - options.margin.right;
-  options.height = options.fullHeight - options.margin.top - options.margin.bottom;
+  o.fullWidth = o.target.offsetWidth;
+  o.fullHeight = o.target.offsetHeight;
+  o.width = o.fullWidth - o.margin.left - o.margin.right;
+  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+  o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
 
-  return options;
+  return o;
 };
 
 /**
  * Defaults Chart options.
  */
-Charicharts.Chart.defaults = {
+Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
   /**

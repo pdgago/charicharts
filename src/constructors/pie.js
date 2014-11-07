@@ -1,30 +1,28 @@
-/**
- * Pie events:
- *   mouseover - mouseover over the paths
- */
-Charicharts.Pie = function(options) {
-  this.options = h_parseOptions(_.extend({}, Charicharts.Pie.defaults, options));
-  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
+Charicharts.Pie = Pie;
+
+function Pie(opts) {
+  this._opts = this.parseOpts(opts);
+  _.extend(this, Charicharts.Events(this));
+  this.$scope = _.extend({}, this._opts);
+  this.$scope.trigger = this.trigger;
   this.load = generateInjector(this.$scope);
-  this.renderPie();
-  return _.pick(this.$scope, 'on', 'moveArrowTo');
-};
+  this.render();
+  return _.omit('$scope', 'call', 'parseOpts', 'render');
+}
 
 /**
  * Generate a pie by setting all it parts.
  */
-Charicharts.Pie.prototype.renderPie = function() {
-  var self = this,
-      opts = this.options;
+Pie.prototype.render = function() {
+  var self = this;
 
   // Pie size
-  this.$scope.radius = Math.min(opts.fullWidth, opts.fullHeight) / 2;
+  this.$scope.radius = Math.min(this._opts.fullWidth, this._opts.fullHeight) / 2;
 
   // Draw SVG
-  this.$scope.svg = this.load(p_svg)
-    .draw(h_getTranslate(opts.fullWidth/2, opts.fullHeight/2));
+  this.$scope.svg = this.load(p_svg).draw();
 
-  if (opts.outerBorder) {
+  if (this._opts.outerBorder) {
     this.$scope.svg.append('svg:circle')
       .attr('class', 'outer-border')
       .attr('fill', 'transparent')
@@ -39,16 +37,16 @@ Charicharts.Pie.prototype.renderPie = function() {
     .value(function(d) {return d.value;});
 
   // Pie arc
-  var innerPadding = opts.outerBorder ? (1 - opts.outerBorder) : 1;
+  var innerPadding = this._opts.outerBorder ? (1 - this._opts.outerBorder) : 1;
   var arcRadius = this.$scope.radius * innerPadding;
 
   this.$scope.arc = d3.svg.arc()
-    .innerRadius(arcRadius - (arcRadius * (1 - opts.innerRadius)))
+    .innerRadius(arcRadius - (arcRadius * (1 - this._opts.innerRadius)))
     .outerRadius(arcRadius); 
 
   // Draw pie
   this.$scope.pieces = this.$scope.svg.selectAll('path')
-      .data(this.$scope.pieLayout(opts.data))
+      .data(this.$scope.pieLayout(this._opts.data))
       .enter()
     .append('path')
     .attr('class', 'pie-piece')
@@ -61,7 +59,7 @@ Charicharts.Pie.prototype.renderPie = function() {
   this.$scope.pieces.on('mouseover', function(d) {
     // Fade all paths
     self.$scope.pieces
-      .style('opacity', opts.fadeOpacity);
+      .style('opacity', this._opts.fadeOpacity);
     // Highlight hovered
     d3.select(this).style('opacity', 1);
     // Triger over event
@@ -74,14 +72,14 @@ Charicharts.Pie.prototype.renderPie = function() {
       .style('opacity', 1);
   });
 
-  if (opts.innerArrow) {
+  if (this._opts.innerArrow) {
     this.setInnerArrow();
   }
 };
 
-Charicharts.Pie.prototype.setInnerArrow = function() {
+Pie.prototype.setInnerArrow = function() {
   var self = this,
-      opts = this.options,
+      opts = this._opts,
       radius = this.$scope.radius * (1 - opts.outerBorder),
       arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius)),
       diameter = radius * (opts.innerRadius) * 2;
@@ -157,10 +155,25 @@ Charicharts.Pie.prototype.setInnerArrow = function() {
   }, 0);
 };
 
+Pie.prototype.parseOpts = function(opts) {
+  var o = _.extend({}, Pie.defaults, opts);
+
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
+
+  o.fullWidth = o.target.offsetWidth;
+  o.fullHeight = o.target.offsetHeight;
+  o.width = o.fullWidth - o.margin.left - o.margin.right;
+  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+  o.gmainTranslate = h_getTranslate(o.fullWidth/2, o.fullHeight/2);
+
+  return o;
+};
+
 /**
  * Defaults pie options.
  */
-Charicharts.Pie.defaults = {
+Pie.defaults = {
   margin: '0,0,0,0',
   innerRadius: 0.5,
   outerBorder: 0.1,

@@ -1,17 +1,17 @@
 /**
  * Generate a injector to the given context.
  *
- * When calling a function using call(), that function
- * will be able to ask for context variables.
+ * When calling a function using the returned function,
+ * that module will be able to ask for context properties.
  *
  * Injectors are specially build for the charichart parts, because they
- * need access to many variables. This makes the code cleaner and more
+ * need access to so many variables. This makes the code cleaner and more
  * testeable.
  *
  * @param  {Ojbect} ctx Context
  */
 var generateInjector = function(ctx) {
-  return function call(args) {
+  return function(args) {
     var func = args[args.length-1];
     args = args.slice(0, args.length-1).map(function(a) {
       return ctx[a];

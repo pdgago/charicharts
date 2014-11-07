@@ -1,21 +1,26 @@
-Charicharts.Bar = function(options) {
-  this.options = h_parseOptions(_.extend({}, Charicharts.Bar.defaults, options));
-  this.$scope = _.extend({}, this.options, Charicharts.Events(this));
+Charicharts.Bar = Bar;
+
+function Bar(opts) {
+  this._opts = this.parseOpts(opts);
+  _.extend(this, Charicharts.Events(this));
+  this.$scope = _.extend({}, this._opts);
+  this.$scope.trigger = this.trigger;
   this.call = generateInjector(this.$scope);
-  this[Charicharts.Bar.types[this.options.type]]();
-  return _.pick(this.$scope, 'on');
-};
+  var render = this[Bar.types[this._opts.type]];
+  render();
+  return _.omit('$scope', 'call', 'parseOpts', 'render');
+}
 
 /**
  * Renders a percentage bar in the target.
  */
-Charicharts.Bar.prototype.renderPercentageBar = function() {
-  this.$scope.svg = this.call(p_svg).drawResponsive();
+Bar.prototype.renderPercentageBar = function() {
+  this.$scope.svg = this.call(p_svg).draw();
 
-  var total = d3.sum(_.pluck(this.options.data, 'value'));
+  var total = d3.sum(_.pluck(this._opts.data, 'value'));
   var x0 = 0;
 
-  var data = _.map(this.options.data,
+  var data = _.map(this._opts.data,
     function(d) {
       var v = {
         x0: x0,
@@ -38,23 +43,37 @@ Charicharts.Bar.prototype.renderPercentageBar = function() {
     .attr('width', function(d) {
       return d.x1 + '%';
     })
-    .attr('height', this.options.height)
+    .attr('height', this._opts.height)
     .style('fill', function(d) {
       return d.color;
     });
 };
 
-/**
- * Map bar types with it render methods.
- */
-Charicharts.Bar.types = {
-  percentage: 'renderPercentageBar'
+Bar.prototype.renderStackedBar = function() {
+
+};
+
+Bar.prototype.parseOpts = function(opts) {
+  var o = _.extend({}, Bar.defaults, opts);
+  o.margin = _.object(['top', 'right', 'bottom', 'left'],
+    o.margin.split(',').map(Number));
+  o.gmainTranslate = h_getTranslate(0, 0);
+  o.responsive = true;
+  return o;
 };
 
 /**
- * Defaults bar options.
+ * Map bar types with it render methods.
  */
-Charicharts.Bar.defaults = {
+Bar.types = {
+  percentage: 'renderPercentageBar',
+  stacked: 'renderStackedBar'
+};
+
+/**
+ * Defaults bar opts.
+ */
+Bar.defaults = {
   margin: '0,0,0,0',
   type: 'percentage'
 };

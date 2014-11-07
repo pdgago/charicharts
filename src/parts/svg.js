@@ -1,8 +1,8 @@
 /**
  * SVG module.
  */
-var p_svg = ['fullWidth', 'fullHeight', 'target',
-  function(fullWidth, fullHeight, target) {
+var p_svg = ['responsive', 'fullWidth', 'fullHeight', 'target', 'gmainTranslate',
+  function(responsive, fullWidth, fullHeight, target, gmainTranslate) {
 
   /**
    * Draw svg and apply the supplied translate.
@@ -10,28 +10,17 @@ var p_svg = ['fullWidth', 'fullHeight', 'target',
    * @param  {String} translate
    * @return {Svg}    svg
    */
-  function draw(translate) {
+  function draw() {
     return d3.select(target)
       .append('svg')
-        .attr('width', fullWidth)
+        .attr('width', responsive ?  '100%' : fullWidth)
         .attr('height', fullHeight)
       .append('g')
         .attr('class', 'g-main')
-        .attr('transform', translate || h_getTranslate(0, 0));
-  }
-
-  function drawResponsive(translate) {
-    return d3.select(target)
-      .append('svg')
-        .attr('width', '100%')
-        .attr('height', fullHeight)
-      .append('g')
-        .attr('class', 'g-main')
-        .attr('transform', translate || h_getTranslate(0, 0));
+        .attr('transform', gmainTranslate);
   }
 
   return {
-    drawResponsive: drawResponsive,
     draw: draw
   };
   
