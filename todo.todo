@@ -1,0 +1,19 @@
+NOW:
+  ✔ svg gets inner width/height @done (14-10-21 18:34)
+  ✔ remove 0 from yaxis @done (14-10-21 18:35)
+  ✔ deep extent chart options @done (14-10-22 10:39)
+  ✔ padding-left charts with yaxis inside chart @done (14-10-22 11:27)
+  ✔ disabled y-grid keep showing OR disable just texts @done (14-10-22 11:27)
+  ✔ toggle layer methods @done (14-10-27 12:37)
+  ☐ arrow trail-line
+  ☐ specify number steps y/x axis (xaxis dates months, years etc..)
+  ☐ infowindow lines (home_myp)
+
+LATER:
+  ✔ clamp top chart (somethimes doesn't show well) @done (14-10-27 13:43)
+  ☐ Don't show yaxis if it's cut by the svg
+  ☐ use deep extend to extend chart options
+  ☐ Trails steps options (year, month, hour, minute, ...)
+
+ NOTES:
+ - In tickFormat function we can use d3.format like: return d3.format('.1s')(d);
