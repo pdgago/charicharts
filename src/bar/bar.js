@@ -2,6 +2,7 @@ Charicharts.Bar = Bar;
 
 function Bar() {
   this.init.apply(this, arguments);
+  return _.omit('$scope', 'call', 'parseOpts', 'render');
 }
 
 Bar.prototype.init = function(opts) {
@@ -11,7 +12,6 @@ Bar.prototype.init = function(opts) {
   this.$scope.trigger = this.trigger;
   this.call = generateInjector(this.$scope);
   this.render(this._opts.type);
-  return _.omit('$scope', 'call', 'parseOpts', 'render');
 };
 
 Bar.defaults = {
