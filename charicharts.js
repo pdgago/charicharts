@@ -404,7 +404,7 @@ Charicharts.Pie = Pie;
 
 function Pie() {
   this.init.apply(this, arguments);
-  return _.omit('$scope', 'call', 'parseOpts', 'render');
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render', 'setInnerArrow');
 }
 
 Pie.prototype.init = function(opts) {
@@ -412,7 +412,7 @@ Pie.prototype.init = function(opts) {
   _.extend(this, Charicharts.Events(this));
   this.$scope = _.extend({}, this._opts);
   this.$scope.trigger = this.trigger;
-  this.load = generateInjector(this.$scope);
+  this.call = generateInjector(this.$scope);
   this.render();
 };
 
@@ -486,7 +486,7 @@ Pie.prototype.setInnerArrow = function() {
       .attr('y2', y);
   }
 
-  this.$scope.moveArrowTo = function(id) {
+  this.moveArrowTo = function(id) {
     self.$scope.pieces.each(function(d) {
       if (d.data.id !== id) {return;}
       self.$scope.trigger('mouseover', [d]);
@@ -522,7 +522,7 @@ Pie.prototype.render = function() {
   this.$scope.radius = Math.min(this._opts.fullWidth, this._opts.fullHeight) / 2;
 
   // Draw SVG
-  this.$scope.svg = this.load(p_svg).draw();
+  this.$scope.svg = this.call(p_svg).draw();
 
   if (this._opts.outerBorder) {
     this.$scope.svg.append('svg:circle')
@@ -582,7 +582,7 @@ Charicharts.Bar = Bar;
 
 function Bar() {
   this.init.apply(this, arguments);
-  return _.omit('$scope', 'call', 'parseOpts', 'render');
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
 }
 
 Bar.prototype.init = function(opts) {

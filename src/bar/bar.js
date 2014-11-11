@@ -2,7 +2,7 @@ Charicharts.Bar = Bar;
 
 function Bar() {
   this.init.apply(this, arguments);
-  return _.omit('$scope', 'call', 'parseOpts', 'render');
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
 }
 
 Bar.prototype.init = function(opts) {
