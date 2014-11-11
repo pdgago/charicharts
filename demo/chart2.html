@@ -14,7 +14,7 @@
 
     #chart {
       height: 500px;
-      width: 500px;
+      width: 700px;
     }
 
     .line {
@@ -50,30 +50,27 @@
     window.onload = function() {
 
       var getData = function() {
-        return _.map(_.range(23), function(hour) {
-          var date = new Date();
-          date.setHours(hour+1, 0, 0, 0);
+        var dates = _.map(_.range(27), function(hour) {
+          var date;
+          date = Date.UTC(2014, 9, 26, hour-2, 0, 0, 0);
           return {
             value: _.random(500, 2000),
             datetime: date
           }
         });
+
+        return dates;
       };
 
       var color = d3.scale.category10();
 
       var data = [{
         id: 1004,
-        type: 'line',
-        values: getData(),
-        color: color(0),
-        interepolation: 'basis'
-      }, {
-        id: 1005,
         type: 'bar',
-        values: getData(),
-        color: '#ddd'
-      }].reverse();
+        values: getData(),  
+        color: '#999',
+        interepolation: 'basis'
+      }];
 
       /**
        * Charichart Options.
@@ -84,7 +81,7 @@
         data: data,
         trail: true,
         xaxis: {
-          ticks: [d3.time.hours, 1],
+          ticks: [d3.time.hours.utc, 1],
           bottom: {
             enabled: true,
             tickFormat: function(d,i) {

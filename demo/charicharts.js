@@ -876,7 +876,7 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
   function(data, xaxis, yaxis, width, height) {
 
     var d3Scales = {
-      'time': d3.time.scale,
+      'time': d3.time.scale.utc,
       'ordinal': d3.scale.ordinal,
       'linear': d3.scale.linear
     };
@@ -1159,27 +1159,27 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
         date = brush.extent()[0];
       }
 
+      // If the selected date is out of the domain,
+      // select the nearest domain date.
       if (Date.parse(date) > Date.parse(xdomain[1])) {
         date = xdomain[1];
-      }
-
-      if (Date.parse(date) < Date.parse(xdomain[0])) {
+      } else if (Date.parse(date) < Date.parse(xdomain[0])) {
         date = xdomain[0];
       }
 
-      if ((date.getMinutes()) >= -30) {
-        date.setHours(date.getHours());
+      if (date.getUTCMinutes() >= 30) {
+        date.setUTCHours(date.getUTCHours()+1);
       }
 
-      date.setMinutes(0, 0);
+      date.setUTCMinutes(0, 0); // steps to minutes
+      date = Date.parse(date);
 
-      if (Date.parse(currentDate) === Date.parse(date)) {
+      if (currentDate === date) {
         return;
       }
 
       currentDate = date;
       var xtrail = Math.round(xscale(date)) - 1;
-
       moveTrail(xtrail);
       trigger('moveTrail', [date]);
     }
