@@ -5,7 +5,7 @@ Pie.prototype.render = function() {
   this.$scope.radius = Math.min(this._opts.fullWidth, this._opts.fullHeight) / 2;
 
   // Draw SVG
-  this.$scope.svg = this.load(p_svg).draw();
+  this.$scope.svg = this.call(p_svg).draw();
 
   if (this._opts.outerBorder) {
     this.$scope.svg.append('svg:circle')

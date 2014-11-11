@@ -60,7 +60,7 @@ Pie.prototype.setInnerArrow = function() {
       .attr('y2', y);
   }
 
-  this.$scope.moveArrowTo = function(id) {
+  this.moveArrowTo = function(id) {
     self.$scope.pieces.each(function(d) {
       if (d.data.id !== id) {return;}
       self.$scope.trigger('mouseover', [d]);

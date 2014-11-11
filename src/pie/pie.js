@@ -2,7 +2,7 @@ Charicharts.Pie = Pie;
 
 function Pie() {
   this.init.apply(this, arguments);
-  return _.omit('$scope', 'call', 'parseOpts', 'render');
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render', 'setInnerArrow');
 }
 
 Pie.prototype.init = function(opts) {
@@ -10,7 +10,7 @@ Pie.prototype.init = function(opts) {
   _.extend(this, Charicharts.Events(this));
   this.$scope = _.extend({}, this._opts);
   this.$scope.trigger = this.trigger;
-  this.load = generateInjector(this.$scope);
+  this.call = generateInjector(this.$scope);
   this.render();
 };
 
