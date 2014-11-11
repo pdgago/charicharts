@@ -4,8 +4,8 @@
  * @param  {Array}    scales [x,y] scales
  * @return {Function}        D3 line path generator
  */
-var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'height',
-  function(svg, xscale, yscale, trigger, series, width, height) {
+var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'height', 'on',
+  function(svg, xscale, yscale, trigger, series, width, height, on) {
 
     /**
      * Draw a bar for the given serie.
@@ -44,6 +44,9 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
           return d.scrutinized;
         })
         .enter().append('rect')
+        .attr('id', function(d) {
+          return d.id;
+        })
         .attr('width', series.barWidth)
         .attr('y', function(d) {
           return yscale(d.y1);
@@ -58,6 +61,17 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
         .on('mousemove', function(d) {
           trigger('mouseoverStackbar', [d, d3.mouse(this)]);
         });
+
+      // quick thing: refactor this
+      on('stackbar-over', function(id) {
+        var el = _.filter(bars[0], function(el) {
+          return el.id === String(id);
+        })[0];
+        var centroid = h_getCentroid(d3.select(el));
+        d3.select(el).each(function(d) {
+          trigger('mouseoverStackbar', [d3.select(el).data()[0], centroid]);
+        });
+      });
 
       /**
        * Trigger mouseoverStackbar for the given selection.
