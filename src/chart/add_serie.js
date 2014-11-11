@@ -1,9 +1,24 @@
 Chart.prototype.addSerie = function(serie) {
-  if (serie.type === 'line') {
-    this.$scope.lines = this.call(p_line).drawLine(serie);
-  } else if (serie.type === 'bar') {
-    this.$scope.bars = this.call(p_bar).drawBar(serie);
-  } else if (serie.type === 'stacked-bar') {
-    this.$scope.stackedBars = this.call(p_stacked_bar).drawBar(serie);
+  var self = this;
+
+  // Map serie types with its render methods
+  var addMethods = {
+    'line': addLine,
+    'bar': addBar,
+    'stacked-bar': addStackedBar
+  };
+
+  function addLine() {
+    self.$scope.lines = self.call(p_line).drawLine(serie);
   }
+
+  function addBar() {
+    self.$scope.bars = self.call(p_bar).drawBar(serie);
+  }
+
+  function addStackedBar() {
+    self.$scope.stackedBars = self.call(p_stacked_bar).drawBar(serie);
+  }
+
+  addMethods[serie.type]();
 };

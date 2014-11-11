@@ -50,7 +50,6 @@ Bar.prototype.render = function(type) {
   function renderStackedBar() {
   } 
 
-
   var renderMethod = types[type];
   renderMethod();
 };

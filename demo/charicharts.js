@@ -119,9 +119,9 @@ Charicharts.Events = function(context) {
   };
 };
 /**
- * Generate a injector to the given context.
+ * Generate a injector for the given context.
  *
- * When calling a function using the returned function,
+ * When calling a module function using the returned function,
  * that module will be able to ask for context properties.
  *
  * Injectors are specially build for the charichart parts, because they
@@ -152,22 +152,41 @@ Chart.prototype.init = function(opts) {
   this.$scope.trigger = this.trigger;
   this.call = generateInjector(this.$scope);
   this.render();
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');  
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
 };
+Chart.prototype.addSerie = function(serie) {
+  var self = this;
 
+  // Map serie types with its render methods
+  var addMethods = {
+    'line': addLine,
+    'bar': addBar,
+    'stacked-bar': addStackedBar
+  };
+
+  function addLine() {
+    self.$scope.lines = self.call(p_line).drawLine(serie);
+  }
+
+  function addBar() {
+    self.$scope.bars = self.call(p_bar).drawBar(serie);
+  }
+
+  function addStackedBar() {
+    self.$scope.stackedBars = self.call(p_stacked_bar).drawBar(serie);
+  }
+
+  addMethods[serie.type]();
+};
 Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
-  /**
-   * Series options.
-   */
+  // Series options.
   series: {
     barWidth: 12,
     stackedBarAlign: 'right'
   },
-  /**
-   * Xaxis Options.
-   */
+  // Xaxis Options.
   xaxis: {
     scale: 'time',
     fit: false,
@@ -183,9 +202,7 @@ Chart.defaults = {
       tickFormat: function(d) {return d.getMonth();}
     }  
   },
-  /**
-   * Yaxis Options.
-   */
+  // Yaxis Options.
   yaxis: {
     scale: 'linear',
     fit: false,
@@ -202,15 +219,6 @@ Chart.defaults = {
       label: false,
       tickFormat: function(d) {return d;}
     }
-  }
-};
-Chart.prototype.addSerie = function(serie) {
-  if (serie.type === 'line') {
-    this.$scope.lines = this.call(p_line).drawLine(serie);
-  } else if (serie.type === 'bar') {
-    this.$scope.bars = this.call(p_bar).drawBar(serie);
-  } else if (serie.type === 'stacked-bar') {
-    this.$scope.stackedBars = this.call(p_stacked_bar).drawBar(serie);
   }
 };
 Chart.prototype.parseOpts = function(opts) {
@@ -246,29 +254,29 @@ Chart.prototype.parseOpts = function(opts) {
 };
 
 Chart.prototype.render = function() {
-  var self = this;
+    var self = this;
 
-  // Draw svg
-  this.$scope.svg = this.call(p_svg).draw();
+    // Draw svg
+    this.$scope.svg = this.call(p_svg).draw();
 
-  // Set scales
-  this.$scope.xscale = this.call(p_scale).getXScale();
-  this.$scope.yscale = this.call(p_scale).getYScale();
+    // Set scales
+    this.$scope.xscale = this.call(p_scale).getXScale();
+    this.$scope.yscale = this.call(p_scale).getYScale();
 
-  // Draw axis
-  this.call(p_axes).drawY();
-  this.call(p_axes).drawX();
+    // Draw axis
+    this.call(p_axes).drawY();
+    this.call(p_axes).drawX();
 
-  _.each(this._opts.data, function(serie) {
-    self.addSerie(serie);
-  });
+    _.each(this._opts.data, function(serie) {
+      self.addSerie(serie);
+    });
 
-  // Draw trail (optional)
-  // Add a trail line to the chart and trigger a 'moveTrail'
-  // event when the user moves the trail.
-  if (this._opts.trail) {
-    this.call(p_trail);
-  }
+    // // Draw trail (optional)
+    // // Add a trail line to the chart and trigger a 'moveTrail'
+    // // event when the user moves the trail.
+    if (this.$scope.trail) {
+      this.call(p_trail);
+    }
 };
 Chart.prototype.toggleSerie = function(serieId) {
   var el = this.$scope.svg.select('#serie' + serieId);
@@ -281,6 +289,117 @@ Chart.prototype.toggleSerie = function(serieId) {
     .style('opacity', el.attr('active'));
 };
 
+/**
+ * Add an trail to the supplied svg and trigger events
+ * when the user moves it.
+ */
+var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
+  function(svg, trigger, height, width, xscale, margin) {
+
+    var currentDate;
+
+    var trail = svg.append('g')
+      .attr('class', 'trail');
+
+    var markerDef = svg.append('svg:marker')
+      .attr('id', 'trailArrow')
+      .attr('class', 'trail-arrow')
+      .attr('viewBox','0 0 20 20')
+      .attr('refX','15')
+      .attr('refY','11')
+      .attr('markerUnits','strokeWidth')
+      .attr('markerWidth','15')
+      .attr('markerHeight','11')
+      .attr('orient','auto')
+      .append('svg:path')
+        .attr('d','M 0 0 L 20 10 L 0 20 z')
+        .attr('fill', '#777');
+
+    var trailLine = trail.append('svg:line')
+      .attr('class', 'trail-line')
+      .attr('x1', 0)
+      .attr('x2', 0)
+      .attr('y1', -margin.top + 10) // 10px padding
+      .attr('y2', height)
+      .attr('marker-start', 'url(#trailArrow)');
+
+    var brush = d3.svg.brush()
+      .x(xscale)
+      .extent([0, 0]);
+
+    var slider = svg.append('g')
+      .attr('transform', h_getTranslate(0,0))
+      .attr('class', 'trail-slider')
+      .call(brush);
+
+    slider.select('.background')
+      .attr('height', height)
+      .attr('width', width)
+      .style('cursor', 'pointer');
+
+    svg.selectAll('.extent,.resize').remove();
+
+    brush.on('brush', onBrush);
+
+
+    // quickfix: add to event loop so its call event is set.
+    setTimeout(function() {
+      slider
+        .call(brush.extent([new Date(), new Date()]))
+        .call(brush.event);
+    }, 0);
+
+    /**
+     * Triggered when the user mouseover or clicks on
+     * the slider brush.
+     * TODO: => support different date units
+     */
+    function onBrush() {
+      var xdomain = xscale.domain();
+      var date;
+
+      if (d3.event.sourceEvent) {
+        date = xscale.invert(d3.mouse(this)[0]);
+      } else {
+        date = brush.extent()[0];
+      }
+
+      if (Date.parse(date) > Date.parse(xdomain[1])) {
+        date = xdomain[1];
+      }
+
+      if (Date.parse(date) < Date.parse(xdomain[0])) {
+        date = xdomain[0];
+      }
+
+      if ((date.getMinutes()) >= -30) {
+        date.setHours(date.getHours());
+      }
+
+      date.setMinutes(0, 0);
+
+      if (Date.parse(currentDate) === Date.parse(date)) {
+        return;
+      }
+
+      currentDate = date;
+      var xtrail = Math.round(xscale(date)) - 1;
+
+      moveTrail(xtrail);
+      trigger('moveTrail', [date]);
+    }
+
+    /**
+     * Move the trail to the given x position.
+     * 
+     * @param  {integer} x
+     */
+    function moveTrail(x) {
+      trailLine
+        .attr('x1', x)
+        .attr('x2', x);
+    }
+}];
 Charicharts.Pie = Pie;
 
 function Pie() {
@@ -542,7 +661,6 @@ Bar.prototype.render = function(type) {
 
   function renderStackedBar() {
   } 
-
 
   var renderMethod = types[type];
   renderMethod();
@@ -935,33 +1053,22 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
     };
   }
 ];
-/**
- * SVG module.
- */
 var p_svg = ['responsive', 'fullWidth', 'fullHeight', 'target', 'gmainTranslate',
   function(responsive, fullWidth, fullHeight, target, gmainTranslate) {
+    var m = {};
 
-  /**
-   * Draw svg and apply the supplied translate.
-   * 
-   * @param  {String} translate
-   * @return {Svg}    svg
-   */
-  function draw() {
-    return d3.select(target)
-      .append('svg')
-        .attr('width', responsive ?  '100%' : fullWidth)
-        .attr('height', fullHeight)
-      .append('g')
-        .attr('class', 'g-main')
-        .attr('transform', gmainTranslate);
-  }
+    m.draw = function() {
+      return d3.select(target)
+        .append('svg')
+          .attr('width', responsive ?  '100%' : fullWidth)
+          .attr('height', fullHeight)
+        .append('g')
+          .attr('class', 'g-main')
+          .attr('transform', gmainTranslate);
+    };
 
-  return {
-    draw: draw
-  };
-  
-}];
+    return m;
+  }];
 /**
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.
