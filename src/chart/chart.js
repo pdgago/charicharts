@@ -10,6 +10,7 @@ Chart.prototype.init = function(opts) {
   _.extend(this, Charicharts.Events(this));
   this.$scope = _.extend({}, this._opts);
   this.$scope.trigger = this.trigger;
+  this.$scope.on = this.on;
   this.call = generateInjector(this.$scope);
   this.render();
 };
