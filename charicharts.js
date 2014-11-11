@@ -143,6 +143,7 @@ Charicharts.Chart = Chart;
 
 function Chart() {
   this.init.apply(this, arguments);
+  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
 }
 
 Chart.prototype.init = function(opts) {
@@ -152,7 +153,6 @@ Chart.prototype.init = function(opts) {
   this.$scope.trigger = this.trigger;
   this.call = generateInjector(this.$scope);
   this.render();
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
 };
 Chart.prototype.addSerie = function(serie) {
   var self = this;
@@ -404,6 +404,7 @@ Charicharts.Pie = Pie;
 
 function Pie() {
   this.init.apply(this, arguments);
+  return _.omit('$scope', 'call', 'parseOpts', 'render');
 }
 
 Pie.prototype.init = function(opts) {
@@ -413,7 +414,6 @@ Pie.prototype.init = function(opts) {
   this.$scope.trigger = this.trigger;
   this.load = generateInjector(this.$scope);
   this.render();
-  return _.omit('$scope', 'call', 'parseOpts', 'render');
 };
 
 Pie.defaults = {
@@ -582,6 +582,7 @@ Charicharts.Bar = Bar;
 
 function Bar() {
   this.init.apply(this, arguments);
+  return _.omit('$scope', 'call', 'parseOpts', 'render');
 }
 
 Bar.prototype.init = function(opts) {
@@ -591,7 +592,6 @@ Bar.prototype.init = function(opts) {
   this.$scope.trigger = this.trigger;
   this.call = generateInjector(this.$scope);
   this.render(this._opts.type);
-  return _.omit('$scope', 'call', 'parseOpts', 'render');
 };
 
 Bar.defaults = {
