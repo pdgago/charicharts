@@ -1,7 +1,7 @@
 /**
- * Generate a injector to the given context.
+ * Generate a injector for the given context.
  *
- * When calling a function using the returned function,
+ * When calling a module function using the returned function,
  * that module will be able to ask for context properties.
  *
  * Injectors are specially build for the charichart parts, because they
