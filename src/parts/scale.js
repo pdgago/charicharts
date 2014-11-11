@@ -11,7 +11,7 @@ var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
   function(data, xaxis, yaxis, width, height) {
 
     var d3Scales = {
-      'time': d3.time.scale,
+      'time': d3.time.scale.utc,
       'ordinal': d3.scale.ordinal,
       'linear': d3.scale.linear
     };
