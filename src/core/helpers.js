@@ -40,11 +40,21 @@ function h_getAngle(x, y) {
   return angle;
 }
 
-if (!String.prototype.format) {
-  String.prototype.format = function() {
-    var args = arguments;
-    return this.replace(/{(\d+)}/g, function(match, number) {
-      return typeof args[number] !== 'undefined' ? args[number] : match;
-    });
-  };
+// Method that loadmodules and set the $scope.
+function h_loadModules(modules) {
+  var self = this;
+
+  // Set $scope
+  this.$scope = {};
+  this.$scope.opts = this._opts;
+  this.$scope.data = this._data;
+
+  // Generate injector caller
+  var caller = generateInjector(this.$scope);
+
+  // Load modules
+  _.each(modules, function(module) {
+    var defs = caller(module);
+    _.extend(self.$scope, defs);
+  });
 }

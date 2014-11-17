@@ -10,7 +10,7 @@
  *
  * @param  {Ojbect} ctx Context
  */
-var generateInjector = function(ctx) {
+function generateInjector(ctx) {
   return function(args) {
     var func = args[args.length-1];
     args = args.slice(0, args.length-1).map(function(a) {
@@ -18,4 +18,4 @@ var generateInjector = function(ctx) {
     });
     return func.apply(ctx, args);
   };
-};
+}

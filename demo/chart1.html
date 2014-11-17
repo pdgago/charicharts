@@ -79,7 +79,6 @@
       var options = {
         target: document.getElementById('chart'),
         margin: '10,0,25,40',
-        data: data,
         xaxis: {
           bottom: {
             enabled: false,
@@ -93,7 +92,7 @@
         }
       };
 
-      var chart = new Charicharts.Chart(options);
+      var chart = new Charicharts.Chart(options, data);
     };
   </script>
 

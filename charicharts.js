@@ -2,6 +2,15 @@
 !function(context) {
   'use strict';
   var Charicharts = {version: "0.0.0"};
+  if (!String.prototype.format) {
+    String.prototype.format = function() {
+      var args = arguments;
+      return this.replace(/{(\d+)}/g, function(match, number) {
+        return typeof args[number] !== 'undefined' ? args[number] : match;
+      });
+    };
+  }
+
 /* jshint ignore:end */
 /**
  * Get translate attribute from supplied width/height.
@@ -45,13 +54,23 @@ function h_getAngle(x, y) {
   return angle;
 }
 
-if (!String.prototype.format) {
-  String.prototype.format = function() {
-    var args = arguments;
-    return this.replace(/{(\d+)}/g, function(match, number) {
-      return typeof args[number] !== 'undefined' ? args[number] : match;
-    });
-  };
+// Method that loadmodules and set the $scope.
+function h_loadModules(modules) {
+  var self = this;
+
+  // Set $scope
+  this.$scope = {};
+  this.$scope.opts = this._opts;
+  this.$scope.data = this._data;
+
+  // Generate injector caller
+  var caller = generateInjector(this.$scope);
+
+  // Load modules
+  _.each(modules, function(module) {
+    var defs = caller(module);
+    _.extend(self.$scope, defs);
+  });
 }
 /**
  * Generate a injector for the given context.
@@ -65,7 +84,7 @@ if (!String.prototype.format) {
  *
  * @param  {Ojbect} ctx Context
  */
-var generateInjector = function(ctx) {
+function generateInjector(ctx) {
   return function(args) {
     var func = args[args.length-1];
     args = args.slice(0, args.length-1).map(function(a) {
@@ -73,7 +92,8 @@ var generateInjector = function(ctx) {
     });
     return func.apply(ctx, args);
   };
-};
+}
+
 var p_axes = ['svg', 'xscale','yscale', 'opts', function(svg, xscale, yscale, opts) {
 
   function setAxis(orient) {
@@ -259,6 +279,147 @@ var p_events = [function() {
 
   return events;
 }];
+var p_pieInnerArrow = ['opts', 'svg', 'on', 'trigger', 'pieArc', 'piePieces',
+  function(opts, svg, on, trigger, pieArc, piePieces) {
+
+    function setArrow() {
+      var radius = opts.radius * (1 - opts.outerBorder),
+          diameter = radius * (opts.innerRadius) * 2,
+          arrowSize;
+
+      if (diameter < arrowSize) {
+        arrowSize = diameter * 0.5;
+      } else {
+        arrowSize = radius * opts.innerArrowSize * (1 - opts.innerRadius);
+      }
+
+      // Define arrow
+      svg.append('svg:marker')
+          .attr('id', 'innerArrow')
+          .attr('viewBox', '0 {0} {1} {2}'.format(
+            -(arrowSize/2), arrowSize, arrowSize))
+          .attr('refX', (radius * (1-opts.innerRadius)) + 5)
+          .attr('refY', 0)
+          .attr('fill', 'white')
+          .attr('markerWidth', arrowSize)
+          .attr('markerHeight', arrowSize)
+          .attr('orient', 'auto')
+        .append('svg:path')
+          .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
+            -(arrowSize/2), arrowSize, arrowSize/2));
+
+      // Draw arrow
+      var innerArrow = svg.append('line')
+        .attr('class', 'outer-border')
+        .style('stroke', 'transparent')
+        .attr('x1', 0)
+        .attr('x2', 0)
+        .attr('y1', 0)
+        .attr('y2', 0)
+        .attr('marker-end', 'url(#innerArrow)');
+
+      on('mouseover', function(d) {
+        arrowPosition(d);
+      });
+
+      /**
+       * Move arrow to the given d object.
+       */
+      function arrowPosition(d) {
+        var coords = pieArc.centroid(d),
+            angle = h_getAngle(coords[0], coords[1]),
+            cos = Math.cos(angle),
+            sin = Math.sin(angle),
+            x = radius * cos,
+            y = radius * sin;
+
+        if (!x || !y) {return;}
+
+        innerArrow
+          .attr('x2', x)
+          .attr('y2', y);
+      }
+
+      // Select automatically first pie piece.
+      setTimeout(function() {
+        var d = piePieces.data()[0];
+        trigger('mouseover', [d]);
+      }, 0);
+    }
+
+    /**
+     * Move arrow to the given data object id.
+     */
+    function moveArrowTo(id) {
+      piePieces.each(function(d) {
+        if (d.data.id !== id) {return;}
+        trigger('mouseover', [d]);
+      });
+    }
+
+    if (opts.innerArrow) {
+      setArrow();
+      return {
+        moveArrowTo: moveArrowTo
+      };
+    }
+  }];
+var p_pie = ['opts', 'svg', 'data', 'trigger', function(opts, svg, data, trigger) {
+
+  // Render outerborder
+  if (opts.outerBorder) {
+    svg.append('svg:circle')
+      .attr('class', 'outer-border')
+      .attr('fill', 'transparent')
+      .attr('cx', 0)
+      .attr('cy', 0)
+      .attr('r', opts.radius);
+  }
+
+  // Pie layout
+  var pieLayout = d3.layout.pie()
+    .sort(null)
+    .value(function(d) {return d.value;});
+
+  // Pie arc
+  var innerPadding = opts.outerBorder ? (1 - opts.outerBorder) : 1;
+  var arcRadius = opts.radius * innerPadding;
+
+  var pieArc = d3.svg.arc()
+    .innerRadius(arcRadius - (arcRadius * (1 - opts.innerRadius)))
+    .outerRadius(arcRadius); 
+
+  // Draw pie
+  var piePieces = svg.selectAll('path')
+      .data(pieLayout(data))
+      .enter()
+    .append('path')
+    .attr('class', 'pie-piece')
+    .attr('fill', _.bind(function(d) {
+      return d.data.color;
+    }, this))
+    .attr('d', pieArc);
+
+  // Mouse over event
+  piePieces.on('mouseover', function(d) {
+    // Fade all paths
+    piePieces.style('opacity', opts.fadeOpacity);
+    // Highlight hovered
+    d3.select(this).style('opacity', 1);
+    // Triger over event
+    trigger('mouseover', [d]);
+  });
+  
+  // Mouse leave event
+  svg.on('mouseleave', function(d) {
+    piePieces.style('opacity', 1);
+  });
+
+  return {
+    pieArc: pieArc,
+    piePieces: piePieces
+  };
+}];
 /**
  * Set X/Y scales.
  */
@@ -366,163 +527,104 @@ var p_scale = ['data', 'opts', function(data, opts) {
 var p_series = ['data', 'svg', 'xscale', 'yscale', 'opts',
   function(data, svg, xscale, yscale, opts) {
 
-    function addLineSerie(serie) {
-      var line = d3.svg.line()
-        .x(function(d) {
-          return xscale(d.datetime);
-        })
-        .y(function(d) {
-          return yscale(d.value);
-        });
-
-      svg.append('path')
-        .attr('id', 'serie' + serie.id)
-        .attr('active', 1)
-        .attr('class', 'line')
-        .attr('transform', 'translate(0, 0)')
-        .attr('stroke', serie.color)
-        .attr('d', line.interpolate(serie.interpolation)(serie.values));
-    }
-
-    function addBarSerie(serie) {
-      svg.append('g')
-        .attr('id', 'serie' + serie.id)
-        .attr('active', 1)
-        .attr('class', 'bar')
-        .selectAll('rect')
-        .data(serie.values)
-      .enter().append('rect')
-        .attr('class', function(d) {
-          return d.value < 0 ? 'bar-negative' : 'bar-positive';
-        })
-        .attr('x', function(d) {
-          // TODO: Linear scale support
-          return xscale(d.datetime) - opts.series.barWidth/2;
-        })
-        .attr('y', function(d) {
-          return d.value < 0 ? yscale(0) : yscale(d.value) - 1;
-        })
-        .attr('width', opts.series.barWidth)
-        .attr('height', function(d) {
-          return Math.abs(yscale(d.value) - yscale(0));
-        })
-        .attr('fill', function() {
-          return serie.color;
-        });
-    }
-
-    function addStackedBar(serie) {
-    }
-
-    _.each(data, function(serie) {
-      if (serie.type === 'line') {
-        addLineSerie(serie);
-      } else if (serie.type ==='bar') {
-        addBarSerie(serie);
-      } else if (serie.type === 'stacked-bar') {
-        addStackedBar(serie);
-      }
-    });
-
-  }];
-/**
- * Get d3 path generator Function for bars.
- *
- * @param  {Array}    scales [x,y] scales
- * @return {Function}        D3 line path generator
- */
-var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'height', 'on',
-  function(svg, xscale, yscale, trigger, series, width, height, on) {
-
-    /**
-     * Draw a bar for the given serie.
-     */
-    function drawBar(serie) {
-      serie.values.forEach(function(v) {
-        var y0 = 0;
-
-        v.scrutinized.forEach(function(d) {
-          d.y0 = y0;
-          d.y1 = y0 += Math.max(0, d.value); // Math.max(0, d.value); // negatives to zero
-        });
-
-        v.total = v.scrutinized[v.scrutinized.length - 1].y1;
+  /**
+   * Add line serie.
+   */
+  function addLineSerie(serie) {
+    var line = d3.svg.line()
+      .x(function(d) {
+        return xscale(d.datetime);
+      })
+      .y(function(d) {
+        return yscale(d.value);
       });
 
-      var stackedBar = svg.selectAll('stacked-bar')
-        .data(serie.values)
-        .enter().append('g')
-        .attr('transform', function(d) {
-          var x;
-
-          // Todo => Trick to get a single bar on the right.
-          // It's better to have it under Charichart.Bar.
-          if (series.stackedBarAlign === 'right') {
-            x = width - series.barWidth;
-          } else {
-            x = xscale(d.datetime);
-          }
-
-          return h_getTranslate(x, 0);
-        });
-
-      var bars = stackedBar.selectAll('rect')
-        .data(function(d) {
-          return d.scrutinized;
-        })
-        .enter().append('rect')
-        .attr('id', function(d) {
-          return d.id;
-        })
-        .attr('width', series.barWidth)
-        .attr('y', function(d) {
-          return yscale(d.y1);
-        })
-        .attr('height', function(d) {
-          return yscale(d.y0) - yscale(d.y1);
-        })
-        .style('cursor', 'pointer')
-        .style('fill', function(d) {
-          return d.color;
-        })
-        .on('mousemove', function(d) {
-          trigger('mouseoverStackbar', [d, d3.mouse(this)]);
-        });
-
-      // quick thing: refactor this
-      on('stackbar-over', function(id) {
-        var el = _.filter(bars[0], function(el) {
-          return el.id === String(id);
-        })[0];
-        var centroid = h_getCentroid(d3.select(el));
-        d3.select(el).each(function(d) {
-          trigger('mouseoverStackbar', [d3.select(el).data()[0], centroid]);
-        });
-      });
-
-      /**
-       * Trigger mouseoverStackbar for the given selection.
-       * TODO => This is probably better on the user side, we could
-       * return bars array, and the user can do anything he wants.
-       * 
-       * @param  {Object} selection d3 selection
-       */
-      function triggerSelect(selection) {
-        selection.each(function(d) {
-          trigger('mouseoverStackbar', [d, h_getCentroid(selection)]);
-        });
-      }
-
-      setTimeout(function() {
-        triggerSelect(d3.select(_.last(bars[0])));
-      }, 0);
-    }
-
-    return {
-      drawBar: drawBar
-    };
+    svg.append('path')
+      .attr('id', 'serie' + serie.id)
+      .attr('active', 1)
+      .attr('class', 'line')
+      .attr('transform', 'translate(0, 0)')
+      .attr('stroke', serie.color)
+      .attr('d', line.interpolate(serie.interpolation)(serie.values));
   }
-];
+
+  /**
+   * Add bar serie.
+   */
+  function addBarSerie(serie) {
+    svg.append('g')
+      .attr('id', 'serie' + serie.id)
+      .attr('active', 1)
+      .attr('class', 'bar')
+      .selectAll('rect')
+      .data(serie.values)
+    .enter().append('rect')
+      .attr('class', function(d) {
+        return d.value < 0 ? 'bar-negative' : 'bar-positive';
+      })
+      .attr('x', function(d) {
+        // TODO: Linear scale support
+        return xscale(d.datetime) - opts.series.barWidth/2;
+      })
+      .attr('y', function(d) {
+        return d.value < 0 ? yscale(0) : yscale(d.value) - 1;
+      })
+      .attr('width', opts.series.barWidth)
+      .attr('height', function(d) {
+        return Math.abs(yscale(d.value) - yscale(0));
+      })
+      .attr('fill', function() {
+        return serie.color;
+      });
+  }
+
+  /**
+   * Add stacked bar.
+   */
+  function addStackedSerie(serie) {
+  }
+
+  /**
+   * Add area serie.
+   */
+  function addAreaSerie(serie) {
+
+  }
+
+  function toggleSerie(id) {
+    var el = svg.select('#serie' + id);
+    if (el.empty()) {return;}
+    var active = Number(el.attr('active')) ? 0 : 1;
+    el.attr('active', active);
+
+    el.transition()
+      .duration(200)
+      .style('opacity', el.attr('active'));
+  }
+
+  // TODO => When adding a serie, reset axisy and axisx
+  function addSerie(serie) {
+    if (serie.type === 'line') {
+      addLineSerie(serie);
+    } else if (serie.type ==='bar') {
+      addBarSerie(serie);
+    } else if (serie.type === 'stacked-bar') {
+      addStackedSerie(serie);
+    } else if (serie.type === 'area') {
+      addAreaSerie(serie);
+    }
+  }
+
+  _.each(data, function(serie) {
+    addSerie(serie);
+  });
+
+  return {
+    toggleSerie: toggleSerie,
+    addSerie: addSerie
+  };
+
+}];
 var p_svg = ['opts', function(opts) {
 
   function drawSvg() {
@@ -650,6 +752,7 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
         .attr('x2', x);
     }
 }];
+
 Charicharts.Chart = Chart;
 
 // Chart constructor.
@@ -658,11 +761,20 @@ function Chart() {
 
   return {
     on: this.$scope.on,
-    unbind: this.$scope.unbind
+    unbind: this.$scope.unbind,
+    toggleSerie: this.$scope.toggleSerie,
+    addSerie: this.$scope.addSerie
   };
 }
 
-// Chart parts dependencies.
+// Initialize
+Chart.prototype.init = function(opts, data) {
+  this._opts = this.parseOpts(opts);
+  this._data = data;
+  h_loadModules.apply(this, [Chart.modules]);
+};
+
+// Chart parts dependencies
 Chart.modules = [
   p_events,
   p_svg,
@@ -672,31 +784,7 @@ Chart.modules = [
   // p_trail
 ];
 
-// Initialize teh Chart.
-Chart.prototype.init = function(opts, data) {
-  this._opts = this.parseOpts(opts);
-  this._data = data;
-  loadModules.apply(this, [Chart.modules]);
-};
-
-// Method that loadmodules and set the $scope.
-function loadModules(modules) {
-  var self = this;
-
-  // Set $scope
-  this.$scope = {};
-  this.$scope.opts = this._opts;
-  this.$scope.data = this._data;
-
-  // Generate injector caller
-  var caller = generateInjector(this.$scope);
-
-  // Load modules
-  _.each(modules, function(module) {
-    var defs = caller(module);
-    _.extend(self.$scope, defs);
-  });
-}
+// Chart defaults
 Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
@@ -740,6 +828,7 @@ Chart.defaults = {
     }
   }
 };
+
 Chart.prototype.parseOpts = function(opts) {
   var o = _.extend({}, Chart.defaults, opts);
   
@@ -772,21 +861,35 @@ Chart.prototype.parseOpts = function(opts) {
   return o;
 };
 
+
 Charicharts.Pie = Pie;
 
+// Pie constructor.
 function Pie() {
   this.init.apply(this, arguments);
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render', 'setInnerArrow');
+  var methods = {};
+
+  if (this._opts.innerArrow) {
+    methods.moveArrowTo = this.$scope.moveArrowTo;
+  }
+
+  return methods;
 }
 
-Pie.prototype.init = function(opts) {
+// Initialize
+Pie.prototype.init = function(opts, data) {
   this._opts = this.parseOpts(opts);
-  _.extend(this, Charicharts.Events(this));
-  this.$scope = _.extend({}, this._opts);
-  this.$scope.trigger = this.trigger;
-  this.call = generateInjector(this.$scope);
-  this.render();
+  this._data = data;
+  h_loadModules.apply(this, [Pie.modules]);
 };
+
+// Pie parts dependencies
+Pie.modules = [
+  p_events,
+  p_svg,
+  p_pie,
+  p_pieInnerArrow
+];
 
 Pie.defaults = {
   margin: '0,0,0,0',
@@ -796,80 +899,7 @@ Pie.defaults = {
   innerArrow: false,
   innerArrowSize: 0.6
 };
-Pie.prototype.setInnerArrow = function() {
-  var self = this,
-      opts = this._opts,
-      radius = this.$scope.radius * (1 - opts.outerBorder),
-      arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius)),
-      diameter = radius * (opts.innerRadius) * 2;
 
-  if (diameter < arrowSize) {
-    arrowSize = diameter * 0.5;
-  }
-
-  // Define arrow
-  this.$scope.svg.append('svg:marker')
-      .attr('id', 'innerArrow')
-      .attr('viewBox', '0 {0} {1} {2}'.format(
-        -(arrowSize/2), arrowSize, arrowSize))
-      .attr('refX', (radius * (1-opts.innerRadius)) + 5)
-      .attr('refY', 0)
-      .attr('fill', 'white')
-      .attr('markerWidth', arrowSize)
-      .attr('markerHeight', arrowSize)
-      .attr('orient', 'auto')
-    .append('svg:path')
-      .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
-        -(arrowSize/2), arrowSize, arrowSize/2));
-
-  // Draw arrow
-  this.$scope.innerArrow = this.$scope.svg.append('line')
-    .attr('class', 'outer-border')
-    .style('stroke', 'transparent')
-    .attr('x1', 0)
-    .attr('x2', 0)
-    .attr('y1', 0)
-    .attr('y2', 0)
-    .attr('marker-end', 'url(#innerArrow)');
-
-  // Set mouse move Event
-  this.on('mouseover', function(d) {
-    moveArrow(d);
-  });
-
-  /**
-   * Moves the arrow to the given data object.
-   * 
-   * @param  {Object} d d3 data object appended to the arc.
-   */
-  function moveArrow(d) {
-    var coords = self.$scope.arc.centroid(d),
-        angle = h_getAngle(coords[0], coords[1]),
-        cos = Math.cos(angle),
-        sin = Math.sin(angle),
-        x = radius * cos,
-        y = radius * sin;
-
-    if (!x || !y) {return;}
-
-    self.$scope.innerArrow
-      .attr('x2', x)
-      .attr('y2', y);
-  }
-
-  this.moveArrowTo = function(id) {
-    self.$scope.pieces.each(function(d) {
-      if (d.data.id !== id) {return;}
-      self.$scope.trigger('mouseover', [d]);
-    });
-  };
-
-  // Select automatically first pie piece.
-  setTimeout(function() {
-    var d = self.$scope.pieces.data()[0];
-    self.$scope.trigger('mouseover', [d]);
-  }, 0);
-};
 Pie.prototype.parseOpts = function(opts) {
   var o = _.extend({}, Pie.defaults, opts);
 
@@ -881,158 +911,9 @@ Pie.prototype.parseOpts = function(opts) {
   o.width = o.fullWidth - o.margin.left - o.margin.right;
   o.height = o.fullHeight - o.margin.top - o.margin.bottom;
   o.gmainTranslate = h_getTranslate(o.fullWidth/2, o.fullHeight/2);
+  o.radius = Math.min(o.fullWidth, o.fullHeight) / 2;
 
   return o;
-};
-Pie.prototype.render = function() {
-  var self = this;
-
-  // Pie size
-  this.$scope.radius = Math.min(this._opts.fullWidth, this._opts.fullHeight) / 2;
-
-  // Draw SVG
-  this.$scope.svg = this.call(p_svg).draw();
-
-  if (this._opts.outerBorder) {
-    this.$scope.svg.append('svg:circle')
-      .attr('class', 'outer-border')
-      .attr('fill', 'transparent')
-      .attr('cx', 0)
-      .attr('cy', 0)
-      .attr('r', this.$scope.radius);
-  }
-
-  // Pie layout
-  this.$scope.pieLayout = d3.layout.pie()
-    .sort(null)
-    .value(function(d) {return d.value;});
-
-  // Pie arc
-  var innerPadding = this._opts.outerBorder ? (1 - this._opts.outerBorder) : 1;
-  var arcRadius = this.$scope.radius * innerPadding;
-
-  this.$scope.arc = d3.svg.arc()
-    .innerRadius(arcRadius - (arcRadius * (1 - this._opts.innerRadius)))
-    .outerRadius(arcRadius); 
-
-  // Draw pie
-  this.$scope.pieces = this.$scope.svg.selectAll('path')
-      .data(this.$scope.pieLayout(this._opts.data))
-      .enter()
-    .append('path')
-    .attr('class', 'pie-piece')
-    .attr('fill', _.bind(function(d) {
-      return d.data.color;
-    }, this))
-    .attr('d', this.$scope.arc);
-
-  // Mouse over event
-  this.$scope.pieces.on('mouseover', function(d) {
-    // Fade all paths
-    self.$scope.pieces
-      .style('opacity', self._opts.fadeOpacity);
-    // Highlight hovered
-    d3.select(this).style('opacity', 1);
-    // Triger over event
-    self.$scope.trigger('mouseover', [d]);
-  });
-  
-  // Mouse leave event
-  this.$scope.svg.on('mouseleave', function(d) {
-    self.$scope.pieces
-      .style('opacity', 1);
-  });
-
-  if (this._opts.innerArrow) {
-    this.setInnerArrow();
-  }
-};
-Charicharts.Bar = Bar;
-
-function Bar() {
-  this.init.apply(this, arguments);
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
-}
-
-Bar.prototype.init = function(opts) {
-  this._opts = this.parseOpts(opts);
-  _.extend(this, Charicharts.Events(this));
-  this.$scope = _.extend({}, this._opts);
-  this.$scope.trigger = this.trigger;
-  this.call = generateInjector(this.$scope);
-  this.render(this._opts.type);
-};
-
-Bar.defaults = {
-  margin: '0,0,0,0',
-  type: 'percentage'
-};
-Bar.prototype.parseOpts = function(opts) {
-  var o = _.extend({}, Bar.defaults, opts);
-  o.margin = _.object(['top', 'right', 'bottom', 'left'],
-    o.margin.split(',').map(Number));
-  o.fullWidth = o.target.offsetWidth;
-  o.fullHeight = o.target.offsetHeight;
-  o.width = o.fullWidth - o.margin.left - o.margin.right;
-  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
-  o.gmainTranslate = h_getTranslate(0, 0);
-  o.responsive = true;
-  return o;
-};
-/**
- * Renders a percentage bar in the target.
- *
- * @param {String} type String type
- */
-Bar.prototype.render = function(type) {
-  var self = this;
-
-  // Map bar types with it render methods.
-  var types = {
-    percentage: renderPercentageBar,
-    stacked: renderStackedBar
-  };
-
-  function renderPercentageBar() {
-    self.$scope.svg = self.call(p_svg).draw();
-
-    var total = d3.sum(_.pluck(self._opts.data, 'value'));
-    var x0 = 0;
-
-    var data = _.map(self._opts.data,
-      function(d) {
-        var v = {
-          x0: x0,
-          x1: d.value * 100 / total,
-          color: d.color
-        };
-        x0 += v.x1;
-        return v;
-      });
-
-    self.$scope.svg
-      .selectAll('rect')
-      .data(data)
-      .enter()
-      .append('rect')
-      .attr('x', function(d, i) {
-        return d.x0 + '%';
-      })
-      .attr('y', 0)
-      .attr('width', function(d) {
-        return d.x1 + '%';
-      })
-      .attr('height', self._opts.height)
-      .style('fill', function(d) {
-        return d.color;
-      });
-  }
-
-  function renderStackedBar() {
-  } 
-
-  var renderMethod = types[type];
-  renderMethod();
 };
 /* jshint ignore:start */
   if (typeof define === "function" && define.amd) define(Charicharts);
