@@ -100,7 +100,7 @@
         color: color(1)
       }, {
         id: 1006,
-        type: 'line',
+        type: 'area',
         interpolation: 'cardinal',
         values: getData(),
         color: color(0)
@@ -138,7 +138,7 @@
         }
       };
 
-      var chart = new Charicharts.Chart(options, data);
+      var chart = new Charicharts.Chart(options, data.reverse());
     };
   </script>
 

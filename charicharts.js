@@ -573,9 +573,7 @@ var p_series = ['data', 'svg', 'xscale', 'yscale', 'opts',
       .attr('height', function(d) {
         return Math.abs(yscale(d.value) - yscale(0));
       })
-      .attr('fill', function() {
-        return serie.color;
-      });
+      .attr('fill', serie.color);
   }
 
   /**
@@ -588,7 +586,20 @@ var p_series = ['data', 'svg', 'xscale', 'yscale', 'opts',
    * Add area serie.
    */
   function addAreaSerie(serie) {
+    var area = d3.svg.area()
+      .x(function(d) {return xscale(d.datetime);})
+      .y0(yscale(0))
+      .y1(function(d) {return yscale(d.value);});
 
+    svg.append('path')
+      .attr('id', 'serie' + serie.id)
+      .attr('active', 1)
+      .attr('class', 'serie-area')
+      .attr('transform', 'translate(0, 0)')
+      .attr('fill', function(d) {
+        return serie.color;
+      })
+      .attr('d', area.interpolate(serie.interpolation)(serie.values));
   }
 
   function toggleSerie(id) {
