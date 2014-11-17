@@ -26,6 +26,11 @@
       fill: #999;
     }
 
+    .domain {
+      stroke: green;
+      shape-rendering: crispEdges;
+    }
+
     rect {
       shape-rendering: crispEdges;
     }
@@ -35,7 +40,7 @@
       stroke-width: 1px;
     }
     .yaxis line {
-      stroke: #ddd;
+      stroke: red;
       shape-rendering: crispEdges;
     }
 
@@ -67,7 +72,7 @@
       var data = [{
         id: 1004,
         type: 'bar',
-        values: getData(),  
+        values: getData(),
         color: '#999',
         interepolation: 'basis'
       }];
@@ -77,27 +82,31 @@
        */
       var options = {
         target: document.getElementById('chart'),
-        margin: '10,20,25,50',
-        data: data,
+        margin: '25,50,25,50',
         trail: true,
         xaxis: {
           ticks: [d3.time.hours.utc, 1],
           bottom: {
             enabled: true,
-            tickFormat: function(d,i) {
+            tickFormat: function(d, i) {
               return d.getHours();
-            }
+            },
+            label: 'Hours'
           }
         },
         yaxis: {
           textMarginTop: -10,
           left: {
-            enabled: true
+            label: '$'
+          },
+          right: {
+            enabled: true,
+            label: '%'
           }
         }
       };
 
-      var chart = new Charicharts.Chart(options);
+      var chart = new Charicharts.Chart(options, data);
     };
   </script>
 

@@ -1,16 +1,47 @@
 Charicharts.Chart = Chart;
 
+// Chart constructor.
 function Chart() {
   this.init.apply(this, arguments);
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
+
+  return {
+    on: this.$scope.on,
+    unbind: this.$scope.unbind
+  };
 }
 
-Chart.prototype.init = function(opts) {
+// Chart parts dependencies.
+Chart.modules = [
+  p_events,
+  p_svg,
+  p_scale,
+  p_axes,
+  p_series,
+  // p_trail
+];
+
+// Initialize teh Chart.
+Chart.prototype.init = function(opts, data) {
   this._opts = this.parseOpts(opts);
-  _.extend(this, Charicharts.Events(this));
-  this.$scope = _.extend({}, this._opts);
-  this.$scope.trigger = this.trigger;
-  this.$scope.on = this.on;
-  this.call = generateInjector(this.$scope);
-  this.render();
+  this._data = data;
+  loadModules.apply(this, [Chart.modules]);
 };
+
+// Method that loadmodules and set the $scope.
+function loadModules(modules) {
+  var self = this;
+
+  // Set $scope
+  this.$scope = {};
+  this.$scope.opts = this._opts;
+  this.$scope.data = this._data;
+
+  // Generate injector caller
+  var caller = generateInjector(this.$scope);
+
+  // Load modules
+  _.each(modules, function(module) {
+    var defs = caller(module);
+    _.extend(self.$scope, defs);
+  });
+}

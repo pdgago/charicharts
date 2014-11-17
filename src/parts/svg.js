@@ -1,16 +1,16 @@
-var p_svg = ['responsive', 'fullWidth', 'fullHeight', 'target', 'gmainTranslate',
-  function(responsive, fullWidth, fullHeight, target, gmainTranslate) {
-    var m = {};
+var p_svg = ['opts', function(opts) {
 
-    m.draw = function() {
-      return d3.select(target)
-        .append('svg')
-          .attr('width', responsive ?  '100%' : fullWidth)
-          .attr('height', fullHeight)
-        .append('g')
-          .attr('class', 'g-main')
-          .attr('transform', gmainTranslate);
-    };
+  function drawSvg() {
+    return d3.select(opts.target)
+      .append('svg')
+        .attr('width', opts.responsive ?  '100%' : opts.fullWidth)
+        .attr('height', opts.fullHeight)
+      .append('g')
+        .attr('class', 'g-main')
+        .attr('transform', opts.gmainTranslate);
+  }
 
-    return m;
-  }];
+  var svg = drawSvg();
+
+  return {svg: svg};
+}];

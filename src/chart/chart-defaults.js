@@ -27,7 +27,7 @@ Chart.defaults = {
     scale: 'linear',
     fit: false,
     fullGrid: true,
-    ticksMarginTop: 0,
+    textMarginTop: 0,
     ticks: false,
     left: {
       enabled: true,
