@@ -87,7 +87,7 @@ var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'h
       }
 
       setTimeout(function() {
-        triggerSelect(d3.select(_.last(bars[0])));
+        triggerSelect(d3.select(_.first(bars[0])));
       }, 0);
     }
 

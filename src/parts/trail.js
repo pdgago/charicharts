@@ -2,8 +2,8 @@
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.
  */
-var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
-  function(svg, trigger, height, width, xscale, margin) {
+var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin', 'trailParser',
+  function(svg, trigger, height, width, xscale, margin, trailParser) {
 
     var currentDate;
 
@@ -81,11 +81,11 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
         date = xdomain[0];
       }
 
-      if (date.getUTCMinutes() >= 30) {
-        date.setUTCHours(date.getUTCHours()+1);
-      }
+      // if (date.getUTCMinutes() >= 30) {
+      //   date.setUTCHours(date.getUTCHours()+1);
+      // }
 
-      date.setUTCMinutes(0, 0); // steps to minutes
+      date = trailParser(date);
       date = Date.parse(date);
 
       if (currentDate === date) {

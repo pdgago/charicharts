@@ -1,6 +1,10 @@
 Chart.defaults = {
   margin: '0,0,0,0',
   trail: false,
+  trailParser: function(date) {
+    date.setUTCMinutes(0, 0);
+    return date;
+  },
   // Series options.
   series: {
     barWidth: 12,
