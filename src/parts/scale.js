@@ -1,34 +1,100 @@
 /**
  * Set X/Y scales.
  */
-var p_scale = ['data', 'opts', function(data, opts) {
+var p_scale = PClass.extend({
 
-  var d3Scales = {
+  deps: [
+    'data',
+    'opts'
+  ],
+
+  _subscriptions: [{
+    /**
+     * Triggered when the serie gets updated with new data.
+     * @param  {Object} data Single data object
+     */
+    'Serie/update': function(data) {
+      // Update data
+      this._dataFlattened = data;
+
+      // Update scales
+      this.xscale = this._getXScale();
+      this.yscale = this._getYScale();
+
+      // Emit them to all scopes
+      this.emit({
+        xscale: this.xscale,
+        yscale: this.yscale
+      });
+
+      this.trigger('Scale/update', []);
+    }
+  }],
+
+  _d3Scales: {
     'time': d3.time.scale.utc,
     'ordinal': d3.scale.ordinal,
     'linear': d3.scale.linear
-  };
+  },
 
-  // Get flatten values.
-  var valuesArr = _.flatten(_.map(data,
-    function(d) {
+  initialize: function() {
+    this._dataFlattened = this._getFlattenedData();
+    this.xscale = this._getXScale();
+    this.yscale = this._getYScale();
+  },
+
+  /**
+   * Get this.data flattened of all series.
+   * Handy when we need to get the extent.
+   */
+  _getFlattenedData: function() {
+    return _.flatten(_.map(this.data, function(d) {
       return d.values;
     }));
+  },
 
   /**
-   * Returns time domain from data.
+   * Returns the xscale.
    */
-  function getTimeDomain() {
-    return d3.extent(valuesArr, function(d) {
+  _getXScale: function() {
+    var domain = this._getDomain(this.opts.xaxis.scale, this.opts.xaxis.fit);
+    return this._d3Scales[this.opts.xaxis.scale]()
+      .domain(domain)
+      .range([0, this.opts.width]);
+  },
+
+  /**
+   * Returns the yscale.
+   */
+  _getYScale: function() {
+    var domain = this._getDomain(this.opts.yaxis.scale, this.opts.yaxis.fit);
+
+    return this._d3Scales[this.opts.yaxis.scale]()
+      .domain(domain)
+      .range([this.opts.height, 0])
+      .nice(); // Extends the domain so that it starts and ends on nice round values.
+  },
+
+  _getDomain: function(scale, fit) {
+    if (scale === 'time') {
+      return this._getTimeDomain();
+    }
+
+    if (fit) {
+      return this._getLinearFitDomain();
+    } else {
+      return this._getLinearAllDomain();
+    }
+  },
+
+  _getTimeDomain: function() {
+    return d3.extent(this._dataFlattened, function(d) {
       return d.datetime;
     });
-  }
-  
-  /**
-   * Returns linear domain from 0 to max data value.
-   */
-  function getLinearAllDomain() {
-    var extent = d3.extent(valuesArr, function(d) {
+  },
+
+  _getLinearAllDomain: function() {
+    var extent = d3.extent(this._dataFlattened, function(d) {
       if (d.scrutinized) {
         return d3.sum(_.pluck(d.scrutinized, 'value'));
       }
@@ -45,60 +111,22 @@ var p_scale = ['data', 'opts', function(data, opts) {
     var absY = Math.abs(extent[1]);
     var val = (absX > absY) ? absX : absY;
     return [-val, val];
-  }
+  },
 
-  /**
-   * Returns linear domain from min/max data values.
-   */
-  function getLinearFitDomain() {
-    return d3.extent(valuesArr, function(d) {
+  _getLinearFitDomain: function() {
+    return d3.extent(this._dataFlattened, function(d) {
       if (d.scrutinized) {
         return d3.sum(_.pluck(d.scrutinized, 'value'));
       }
       return d.value;
     });
+  },
+
+  getScopeParams: function() {
+    return {
+      xscale: this.xscale,
+      yscale: this.yscale
+    };
   }
 
-  /**
-   * Get the domain for the supplied scale type.
-   * 
-   * @param  {String}  scale
-   * @param  {Boolean} fit    Fit domain to min/max values
-   * @return {Object}  domain D3 domain
-   */
-  function getDomain(scale, fit) {
-    if (scale === 'time') {
-      return getTimeDomain();
-    }
-
-    if (fit) {
-      return getLinearFitDomain();
-    } else {
-      return getLinearAllDomain();
-    }
-  }
-
-  function getXScale() {
-    var domain = getDomain(opts.xaxis.scale, opts.xaxis.fit);
-    return d3Scales[opts.xaxis.scale]()
-      .domain(domain)
-      .range([0, opts.width]);
-  }
-
-  function getYScale() {
-    var domain = getDomain(opts.yaxis.scale, opts.yaxis.fit);
-
-    return d3Scales[opts.yaxis.scale]()
-      .domain(domain)
-      .range([opts.height, 0])
-      .nice(); // Extends the domain so that it starts and ends on nice round values.
-  }
-
-  var xscale = getXScale();
-  var yscale = getYScale();
-
-  return {
-    xscale: xscale,
-    yscale: yscale
-  };
-}];
+});

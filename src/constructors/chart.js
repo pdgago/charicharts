@@ -5,10 +5,7 @@ function Chart() {
   this.init.apply(this, arguments);
 
   return {
-    on: this.$scope.on,
-    unbind: this.$scope.unbind,
-    toggleSerie: this.$scope.toggleSerie,
-    addSerie: this.$scope.addSerie
+    updateSerie: this.$scope.updateSerie
   };
 }
 
@@ -21,7 +18,6 @@ Chart.prototype.init = function(opts, data) {
 
 // Chart parts dependencies
 Chart.modules = [
-  p_events,
   p_svg,
   p_scale,
   p_axes,

@@ -1,16 +1,27 @@
-var p_svg = ['opts', function(opts) {
+var p_svg = PClass.extend({
 
-  function drawSvg() {
-    return d3.select(opts.target)
+  deps: [
+    'opts'
+  ],
+
+  initialize: function() {
+    this.svg = this.drawSvg();
+  },
+
+  drawSvg: function() {
+    return d3.select(this.opts.target)
       .append('svg')
-        .attr('width', opts.responsive ?  '100%' : opts.fullWidth)
-        .attr('height', opts.fullHeight)
+        .attr('width', this.opts.responsive ?  '100%' : this.opts.fullWidth)
+        .attr('height', this.opts.fullHeight)
       .append('g')
         .attr('class', 'g-main')
-        .attr('transform', opts.gmainTranslate);
+        .attr('transform', this.opts.gmainTranslate);    
+  },
+
+  getScopeParams: function() {
+    return {
+      svg: this.svg
+    };
   }
 
-  var svg = drawSvg();
-
-  return {svg: svg};
-}];
+});

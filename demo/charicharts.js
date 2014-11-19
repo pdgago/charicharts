@@ -1,6 +1,6 @@
 /* jshint ignore:start */
 !function(context) {
-  'use strict';
+  // 'use strict';
   var Charicharts = {version: "0.0.0"};
   if (!String.prototype.format) {
     String.prototype.format = function() {
@@ -62,165 +62,163 @@ function h_loadModules(modules) {
   this.$scope = {};
   this.$scope.opts = this._opts;
   this.$scope.data = this._data;
+  _.extend(this.$scope, p_events());
+
+  this.partsInstances = {};
 
   // Generate injector caller
   var caller = generateInjector(this.$scope);
 
   // Load modules
-  _.each(modules, function(module) {
-    var defs = caller(module);
-    _.extend(self.$scope, defs);
+  _.each(modules, function(Module) {
+    self.partsInstances = new Module(self.$scope);
+    _.extend(self.$scope, self.partsInstances.getScopeParams());
   });
+
+  console.log(this.$scope);
 }
-/**
- * Generate a injector for the given context.
- *
- * When calling a module function using the returned function,
- * that module will be able to ask for context properties.
- *
- * Injectors are specially build for the charichart parts, because they
- * need access to so many variables. This makes the code cleaner and more
- * testeable.
- *
- * @param  {Ojbect} ctx Context
+/* Simple JavaScript Inheritance
+ * By John Resig http://ejohn.org/
+ * MIT Licensed.
  */
-function generateInjector(ctx) {
-  return function(args) {
-    var func = args[args.length-1];
-    args = args.slice(0, args.length-1).map(function(a) {
-      return ctx[a];
-    });
-    return func.apply(ctx, args);
+// Inspired by base2 and Prototype
+/* jshint ignore:start */
+(function(){
+  var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
+ 
+  // The base Class implementation (does nothing)
+  this.Class = function(){};
+ 
+  // Create a new Class that inherits from this class
+  Class.extend = function(prop) {
+    var _super = this.prototype;
+   
+    // Instantiate a base class (but only create the instance,
+    // don't run the init constructor)
+    initializing = true;
+    var prototype = new this();
+    initializing = false;
+   
+    // Copy the properties over onto the new prototype
+    for (var name in prop) {
+      // Check if we're overwriting an existing function
+      prototype[name] = typeof prop[name] == "function" &&
+        typeof _super[name] == "function" && fnTest.test(prop[name]) ?
+        (function(name, fn){
+          return function() {
+            var tmp = this._super;
+           
+            // Add a new ._super() method that is the same method
+            // but on the super-class
+            this._super = _super[name];
+           
+            // The method only need to be bound temporarily, so we
+            // remove it when we're done executing
+            var ret = fn.apply(this, arguments);        
+            this._super = tmp;
+           
+            return ret;
+          };
+        })(name, prop[name]) :
+        prop[name];
+    }
+   
+    // The dummy class constructor
+    function Class() {
+      // All construction is actually done in the init method
+      if ( !initializing && this.init )
+        this.init.apply(this, arguments);
+    }
+   
+    // Populate our constructed prototype object
+    Class.prototype = prototype;
+   
+    // Enforce the constructor to be what we expect
+    Class.prototype.constructor = Class;
+ 
+    // And make this class extendable
+    Class.extend = arguments.callee;
+   
+    return Class;
   };
-}
+}).call(window);
+/* jshint ignore:end */
+var CClass = Class.extend({
 
-var p_axes = ['svg', 'xscale','yscale', 'opts', function(svg, xscale, yscale, opts) {
+  init: function(opts, data) {
+    // Set scope
+    this.$scope = {};
+    this.$scope.opts = this.parseOpts(opts);
+    this.$scope.data = data;
+    _.extend(this.$scope, p_events());
 
-  function setAxis(orient) {
-    var params = {
-      'bottom': {
-        axis: 'xaxis',
-        translate: h_getTranslate(0, opts.height),
-        textAnchor: 'middle',
-      },
-      'top': {
-        axis: 'xaxis',
-        translate: h_getTranslate(0, 0),
-        textAnchor: 'middle'
-      },
-      'left': {
-        axis: 'yaxis',
-        translate: h_getTranslate(0, 0),
-        textAnchor: 'start'
-      },
-      'right': {
-        axis: 'yaxis',
-        translate: h_getTranslate(opts.width + opts.margin.right, 0),
-        textAnchor: 'end'
-      }
+    this._loadModules(this._modules);
+  },
+
+  _loadModules: function() {
+    this.partsInstances = {};
+
+    // Generate injector
+    var caller = this._generateInjector(this.$scope);
+
+    // Load modules
+    _.each(modules, _.bind(function(Module) {
+      this.partsInstances = new Module(this.$scope);
+      _.extend(this.$scope, this.partsInstances.getScopeParams());
+    }, this));
+  },
+
+  /**
+   * Generate a injector for the given context.
+   *
+   * When calling a module function using the returned function,
+   * that module will be able to ask for context properties.
+   *
+   * Injectors are specially build for the charichart parts, because they
+   * need access to so many variables. This makes the code cleaner and more
+   * testeable.
+   *
+   * @param  {Ojbect} ctx Context
+   */
+  _generateInjector: function(ctx) {
+    return function(args) {
+      var func = args[args.length-1];
+      args = args.slice(0, args.length-1).map(function(a) {
+        return ctx[a];
+      });
+      return func.apply(ctx, args);
     };
-
-    var p = params[orient];
-
-    // Set axis
-    var axis =  d3.svg.axis()
-      .scale(p.axis === 'xaxis' ? xscale : yscale)
-      .orient(orient)
-      .tickFormat(opts[p.axis][orient].tickFormat);
-
-    if (opts[p.axis].ticks) {
-      axis.ticks.apply(this, opts[p.axis].ticks);
-    }
-
-    // Draw axis
-    var axisG = svg.append('g')
-      .attr('class', p.axis + ' ' + orient)
-      .attr('transform', p.translate)
-      .call(axis);
-
-    // Axis ticks texts
-    var axisGTexts = axisG.selectAll('text');
-    axisGTexts.style('text-anchor', p.textAnchor);
-
-    if (p.axis === 'yaxis') {
-      axisGTexts
-        .attr('x', orient === 'left' ? -opts.margin.left : 0)
-        .attr('y', opts.yaxis.textMarginTop);
-      svg.select('.yaxis .domain').remove();
-    }
-
-    // Axis ticks texts
-    if (opts[p.axis][orient].label) {
-      setLabel(axisG, opts[p.axis][orient].label, orient);
-    }
   }
 
-  function setLabel(axisG, label, orient) {
-    // 'top' Not supported right now
-    if (orient === 'top') {return;}
-    var params = {
-      'bottom': {
-        x: 0 - opts.margin.left,
-        y: opts.margin.bottom -7,
-        textAnchor: 'start'
-      },
-      'left': {
-        x: -opts.margin.left,
-        y: opts.yaxis.textMarginTop - 20,
-        textAnchor: 'start'
-      },
-      'right': {
-        x: 0,
-        y: opts.yaxis.textMarginTop - 20,
-        textAnchor: 'end'
-      }
-    };
+});
 
-    var p = params[orient];
+// var Chart = CClass.extend({
 
-    axisG.append('text')
-      .attr('class', 'label')
-      .attr('x', p.x)
-      .attr('y', p.y)
-      .attr('text-anchor', p.textAnchor)
-      .text(label);
-  }
-  
-  function setXDomainFullwidth() {
-    svg.selectAll('.xaxis .domain')
-      .attr('d', 'M{0},0V0H{1}V0'.format(-opts.margin.left, opts.fullWidth));
-  }
+//   modules: [
+//     p_svg,
+//     p_scale,
+//     p_axes,
+//     p_series,
+//     // p_trail
+//   ],
 
-  function setYGrid() {
-    svg.select('.yaxis')
-      .selectAll('line')
-        .attr('x1', opts.yaxis.fullGrid ? -opts.margin.left : 0)
-        .attr('x2', opts.yaxis.fullGrid ? opts.width + opts.margin.right : opts.width)
-        // add zeroline class
-        .each(function(d) {
-          if (d !== 0) {return;}
-          d3.select(this).attr('class', 'zeroline');
-        });
-  }
+//   defaults: {
 
-  // render first yaxis so the xaxis domain os on top
-  opts.yaxis.left.enabled && setAxis('left');
-  opts.yaxis.right.enabled && setAxis('right');
-  opts.xaxis.top.enabled && setAxis('top');
-  opts.xaxis.bottom.enabled && setAxis('bottom');
+//   },
 
-  if (opts.yaxis.left.enabled || opts.yaxis.right.enabled) {
-    setYGrid();
-  }
+//   parseOptions: function(opts) {
 
-  if (opts.xaxis.top.enabled || opts.xaxis.bottom.enabled) {
-    setXDomainFullwidth();
-  }
-}];
+//   },
+
+//   getInstanceProperties: function() {
+//     return {};
+//   }
+
+// });
 /**
  * Creates a events module for the supplied context.
  */
-var p_events = [function() {
+var p_events = function() {
 
   var events = {};
 
@@ -278,7 +276,232 @@ var p_events = [function() {
   };
 
   return events;
-}];
+};
+/**
+ * Generate a injector for the given context.
+ *
+ * When calling a module function using the returned function,
+ * that module will be able to ask for context properties.
+ *
+ * Injectors are specially build for the charichart parts, because they
+ * need access to so many variables. This makes the code cleaner and more
+ * testeable.
+ *
+ * @param  {Ojbect} ctx Context
+ */
+function generateInjector(ctx) {
+  return function(args) {
+    var func = args[args.length-1];
+    args = args.slice(0, args.length-1).map(function(a) {
+      return ctx[a];
+    });
+    return func.apply(ctx, args);
+  };
+}
+
+var PClass = Class.extend({
+
+  _coreSubscriptions: [{
+    'Scope/emit': function(obj) {
+      _.extend(this, obj);
+    }
+  }],
+
+  init: function($scope) {
+    this._loadModules($scope);
+
+    // Subscribe
+    _.each(_.union(this._coreSubscriptions,
+      this._subscriptions), this._subscribe, this);
+
+    // Initialize P Module
+    return this.initialize();
+  },
+
+  /**
+   * Load dependencies modules.
+   */
+  _loadModules: function($scope) {
+    for (var i = this.deps.length - 1; i >= 0; i--) {
+      this[this.deps[i]] = $scope[this.deps[i]];
+    }
+
+    this.on = $scope.on;
+    this.trigger = $scope.trigger;
+  },
+
+  /**
+   * Subscribe to module events.
+   */
+  _subscribe: function(subscription) {
+    _.each(subscription, _.bind(function(callback, name) {
+      this.on(name, _.bind(callback, this));
+    },this));
+  },
+
+  /**
+   * Update scope variables in every PClass child
+   * for the given objects.
+   * 
+   * @param  {Array} objs
+   */
+  emit: function(objs) {
+    this.trigger('Scope/emit', [objs]);
+  }
+
+});
+var p_axes = PClass.extend({
+
+  deps: [
+    'svg',
+    'opts',
+    'xscale',
+    'yscale'
+  ],
+
+  _subscriptions: [{
+    'Scale/update': function(data) {
+    }
+  }],
+
+  initialize: function() {
+    if (this.opts.yaxis.left.enabled) {
+      this._setAxis('left');
+    }
+
+    if (this.opts.yaxis.right.enabled) {
+      this._setAxis('right');
+    }
+
+    if (this.opts.xaxis.top.enabled) {
+      this._setAxis('top');
+    }
+
+    if (this.opts.xaxis.bottom.enabled) {
+      this._setAxis('bottom');
+    }
+
+    if (this.opts.yaxis.left.enabled || this.opts.yaxis.right.enabled) {
+      this._setYGrid();
+    }
+
+    if (this.opts.xaxis.top.enabled || this.opts.xaxis.bottom.enabled) {
+      this._setXDomainFullwidth();
+    }
+  },
+
+  _setAxis: function(orient) {
+    var params = {
+      'bottom': {
+        axis: 'xaxis',
+        translate: h_getTranslate(0, this.opts.height),
+        textAnchor: 'middle',
+      },
+      'top': {
+        axis: 'xaxis',
+        translate: h_getTranslate(0, 0),
+        textAnchor: 'middle'
+      },
+      'left': {
+        axis: 'yaxis',
+        translate: h_getTranslate(0, 0),
+        textAnchor: 'start'
+      },
+      'right': {
+        axis: 'yaxis',
+        translate: h_getTranslate(this.opts.width + this.opts.margin.right, 0),
+        textAnchor: 'end'
+      }
+    };
+
+    var p = params[orient];
+
+    // Set axis
+    var axis = d3.svg.axis()
+      .scale(p.axis === 'xaxis' ? this.xscale : this.yscale)
+      .orient(orient)
+      .tickFormat(this.opts[p.axis][orient].tickFormat);
+
+    if (this.opts[p.axis].ticks) {
+      axis.ticks.apply(this, this.opts[p.axis].ticks);
+    }
+
+    // Draw axis
+    var axisG = this.svg.append('g')
+      .attr('class', p.axis + ' ' + orient)
+      .attr('transform', p.translate)
+      .call(axis);
+
+    // Axis ticks texts
+    var axisGTexts = axisG.selectAll('text');
+    axisGTexts.style('text-anchor', p.textAnchor);
+
+    if (p.axis === 'yaxis') {
+      axisGTexts
+        .attr('x', orient === 'left' ? -this.opts.margin.left : 0)
+        .attr('y', this.opts.yaxis.textMarginTop);
+      this.svg.select('.yaxis .domain').remove();
+    }
+
+    // // Axis ticks texts
+    if (this.opts[p.axis][orient].label) {
+      this._setLabel(axisG, this.opts[p.axis][orient].label, orient);
+    }
+  },
+
+  _setXDomainFullwidth: function() {
+    this.svg.selectAll('.xaxis .domain')
+      .attr('d', 'M{0},0V0H{1}V0'.format(-this.opts.margin.left, this.opts.fullWidth));
+  },
+
+  _setYGrid: function() {
+    this.svg.select('.yaxis')
+      .selectAll('line')
+        .attr('x1', this.opts.yaxis.fullGrid ? -this.opts.margin.left : 0)
+        .attr('x2', this.opts.yaxis.fullGrid ? this.opts.width + this.opts.margin.right : this.opts.width)
+        // add zeroline class
+        .each(function(d) {
+          if (d !== 0) {return;}
+          d3.select(this).attr('class', 'zeroline');
+        });    
+  },
+
+  _setLabel: function(axisG, label, orient) {
+    // 'top' Not supported right now
+    if (orient === 'top') {return;}
+    var params = {
+      'bottom': {
+        x: 0 - this.opts.margin.left,
+        y: this.opts.margin.bottom -7,
+        textAnchor: 'start'
+      },
+      'left': {
+        x: -this.opts.margin.left,
+        y: this.opts.yaxis.textMarginTop - 20,
+        textAnchor: 'start'
+      },
+      'right': {
+        x: 0,
+        y: this.opts.yaxis.textMarginTop - 20,
+        textAnchor: 'end'
+      }
+    };
+
+    var p = params[orient];
+
+    axisG.append('text')
+      .attr('class', 'label')
+      .attr('x', p.x)
+      .attr('y', p.y)
+      .attr('text-anchor', p.textAnchor)
+      .text(label);
+  },
+
+  getScopeParams: function() {
+    return {};
+  }
+
+});
 var p_pieInnerArrow = ['opts', 'svg', 'on', 'trigger', 'pieArc', 'piePieces',
   function(opts, svg, on, trigger, pieArc, piePieces) {
 
@@ -423,34 +646,100 @@ var p_pie = ['opts', 'svg', 'data', 'trigger', function(opts, svg, data, trigger
 /**
  * Set X/Y scales.
  */
-var p_scale = ['data', 'opts', function(data, opts) {
+var p_scale = PClass.extend({
 
-  var d3Scales = {
+  deps: [
+    'data',
+    'opts'
+  ],
+
+  _subscriptions: [{
+    /**
+     * Triggered when the serie gets updated with new data.
+     * @param  {Object} data Single data object
+     */
+    'Serie/update': function(data) {
+      // Update data
+      this._dataFlattened = data;
+
+      // Update scales
+      this.xscale = this._getXScale();
+      this.yscale = this._getYScale();
+
+      // Emit them to all scopes
+      this.emit({
+        xscale: this.xscale,
+        yscale: this.yscale
+      });
+
+      this.trigger('Scale/update', []);
+    }
+  }],
+
+  _d3Scales: {
     'time': d3.time.scale.utc,
     'ordinal': d3.scale.ordinal,
     'linear': d3.scale.linear
-  };
+  },
 
-  // Get flatten values.
-  var valuesArr = _.flatten(_.map(data,
-    function(d) {
+  initialize: function() {
+    this._dataFlattened = this._getFlattenedData();
+    this.xscale = this._getXScale();
+    this.yscale = this._getYScale();
+  },
+
+  /**
+   * Get this.data flattened of all series.
+   * Handy when we need to get the extent.
+   */
+  _getFlattenedData: function() {
+    return _.flatten(_.map(this.data, function(d) {
       return d.values;
     }));
+  },
 
   /**
-   * Returns time domain from data.
+   * Returns the xscale.
    */
-  function getTimeDomain() {
-    return d3.extent(valuesArr, function(d) {
+  _getXScale: function() {
+    var domain = this._getDomain(this.opts.xaxis.scale, this.opts.xaxis.fit);
+    return this._d3Scales[this.opts.xaxis.scale]()
+      .domain(domain)
+      .range([0, this.opts.width]);
+  },
+
+  /**
+   * Returns the yscale.
+   */
+  _getYScale: function() {
+    var domain = this._getDomain(this.opts.yaxis.scale, this.opts.yaxis.fit);
+
+    return this._d3Scales[this.opts.yaxis.scale]()
+      .domain(domain)
+      .range([this.opts.height, 0])
+      .nice(); // Extends the domain so that it starts and ends on nice round values.
+  },
+
+  _getDomain: function(scale, fit) {
+    if (scale === 'time') {
+      return this._getTimeDomain();
+    }
+
+    if (fit) {
+      return this._getLinearFitDomain();
+    } else {
+      return this._getLinearAllDomain();
+    }
+  },
+
+  _getTimeDomain: function() {
+    return d3.extent(this._dataFlattened, function(d) {
       return d.datetime;
     });
-  }
-  
-  /**
-   * Returns linear domain from 0 to max data value.
-   */
-  function getLinearAllDomain() {
-    var extent = d3.extent(valuesArr, function(d) {
+  },
+
+  _getLinearAllDomain: function() {
+    var extent = d3.extent(this._dataFlattened, function(d) {
       if (d.scrutinized) {
         return d3.sum(_.pluck(d.scrutinized, 'value'));
       }
@@ -467,191 +756,139 @@ var p_scale = ['data', 'opts', function(data, opts) {
     var absY = Math.abs(extent[1]);
     var val = (absX > absY) ? absX : absY;
     return [-val, val];
-  }
+  },
 
-  /**
-   * Returns linear domain from min/max data values.
-   */
-  function getLinearFitDomain() {
-    return d3.extent(valuesArr, function(d) {
+  _getLinearFitDomain: function() {
+    return d3.extent(this._dataFlattened, function(d) {
       if (d.scrutinized) {
         return d3.sum(_.pluck(d.scrutinized, 'value'));
       }
       return d.value;
     });
+  },
+
+  getScopeParams: function() {
+    return {
+      xscale: this.xscale,
+      yscale: this.yscale
+    };
   }
 
-  /**
-   * Get the domain for the supplied scale type.
-   * 
-   * @param  {String}  scale
-   * @param  {Boolean} fit    Fit domain to min/max values
-   * @return {Object}  domain D3 domain
-   */
-  function getDomain(scale, fit) {
-    if (scale === 'time') {
-      return getTimeDomain();
+});
+var p_series = PClass.extend({
+
+  deps: [
+    'data',
+    'svg',
+    'xscale',
+    'yscale',
+    'opts'
+  ],
+
+  _subscriptions: [{
+  }],
+
+  initialize: function() {
+    var self = this;
+
+    _.each(this.data, function(serie) {
+      self._addSerie(serie);
+    });
+  },
+
+  _addSerie: function(serie) {
+    if (serie.type === 'line') {
+      this._addLineSerie(serie);
+    } else if (serie.type ==='bar') {
+      this._addBarSerie(serie);
+    } else if (serie.type === 'stacked-bar') {
+      this._addStackedSerie(serie);
+    } else if (serie.type === 'area') {
+      this._addAreaSerie(serie);
     }
+  },
 
-    if (fit) {
-      return getLinearFitDomain();
-    } else {
-      return getLinearAllDomain();
-    }
-  }
+  _addLineSerie: function(serie, el, update) {
+    var self = this;
 
-  function getXScale() {
-    var domain = getDomain(opts.xaxis.scale, opts.xaxis.fit);
-    return d3Scales[opts.xaxis.scale]()
-      .domain(domain)
-      .range([0, opts.width]);
-  }
-
-  function getYScale() {
-    var domain = getDomain(opts.yaxis.scale, opts.yaxis.fit);
-
-    return d3Scales[opts.yaxis.scale]()
-      .domain(domain)
-      .range([opts.height, 0])
-      .nice(); // Extends the domain so that it starts and ends on nice round values.
-  }
-
-  var xscale = getXScale();
-  var yscale = getYScale();
-
-  return {
-    xscale: xscale,
-    yscale: yscale
-  };
-}];
-var p_series = ['data', 'svg', 'xscale', 'yscale', 'opts',
-  function(data, svg, xscale, yscale, opts) {
-
-  /**
-   * Add line serie.
-   */
-  function addLineSerie(serie) {
     var line = d3.svg.line()
       .x(function(d) {
-        return xscale(d.datetime);
+        return self.xscale(d.datetime);
       })
       .y(function(d) {
-        return yscale(d.value);
+        return self.yscale(d.value);
       });
 
-    svg.append('path')
+    if (update) {
+      el
+        .attr('d', line.interpolate('linear'))
+        .attr('transform', 'translate(0,0)');
+      return;
+    }
+
+    this.svg.append('path')
+      .datum(serie.values)
+      .attr('type', 'line')
       .attr('id', 'serie' + serie.id)
       .attr('active', 1)
       .attr('class', 'line')
       .attr('transform', 'translate(0, 0)')
       .attr('stroke', serie.color)
-      .attr('d', line.interpolate(serie.interpolation)(serie.values));
-  }
+      .attr('d', line.interpolate(serie.interpolation));
+  },
 
-  /**
-   * Add bar serie.
-   */
-  function addBarSerie(serie) {
-    svg.append('g')
-      .attr('id', 'serie' + serie.id)
-      .attr('active', 1)
-      .attr('class', 'bar')
-      .selectAll('rect')
-      .data(serie.values)
-    .enter().append('rect')
-      .attr('class', function(d) {
-        return d.value < 0 ? 'bar-negative' : 'bar-positive';
-      })
-      .attr('x', function(d) {
-        // TODO: Linear scale support
-        return xscale(d.datetime) - opts.series.barWidth/2;
-      })
-      .attr('y', function(d) {
-        return d.value < 0 ? yscale(0) : yscale(d.value) - 1;
-      })
-      .attr('width', opts.series.barWidth)
-      .attr('height', function(d) {
-        return Math.abs(yscale(d.value) - yscale(0));
-      })
-      .attr('fill', serie.color);
-  }
+  _getSerieById: function(id) {
+    return this.svg.select('#serie' + id);
+  },
 
-  /**
-   * Add stacked bar.
-   */
-  function addStackedSerie(serie) {
-  }
+  updateSerie: function(id) {
+    var el = this._getSerieById(id);
+    var data = el.datum();
 
-  /**
-   * Add area serie.
-   */
-  function addAreaSerie(serie) {
-    var area = d3.svg.area()
-      .x(function(d) {return xscale(d.datetime);})
-      .y0(yscale(0))
-      .y1(function(d) {return yscale(d.value);});
+    // comunicate through events,
+    this.trigger('Serie/update', [data]);
 
-    svg.append('path')
-      .attr('id', 'serie' + serie.id)
-      .attr('active', 1)
-      .attr('class', 'serie-area')
-      .attr('transform', 'translate(0, 0)')
-      .attr('fill', function(d) {
-        return serie.color;
-      })
-      .attr('d', area.interpolate(serie.interpolation)(serie.values));
-  }
+    console.log(this.xscale.domain());
 
-  function toggleSerie(id) {
-    var el = svg.select('#serie' + id);
-    if (el.empty()) {return;}
-    var active = Number(el.attr('active')) ? 0 : 1;
-    el.attr('active', active);
-
-    el.transition()
-      .duration(200)
-      .style('opacity', el.attr('active'));
-  }
-
-  // TODO => When adding a serie, reset axisy and axisx
-  function addSerie(serie) {
-    if (serie.type === 'line') {
-      addLineSerie(serie);
-    } else if (serie.type ==='bar') {
-      addBarSerie(serie);
-    } else if (serie.type === 'stacked-bar') {
-      addStackedSerie(serie);
-    } else if (serie.type === 'area') {
-      addAreaSerie(serie);
+    if (el.attr('type') === 'line') {
+      this._addLineSerie(false, el, true);
     }
+  },
+
+  getScopeParams: function() {
+    return {
+      updateSerie: _.bind(this.updateSerie, this)
+    };
   }
 
-  _.each(data, function(serie) {
-    addSerie(serie);
-  });
+});
+var p_svg = PClass.extend({
 
-  return {
-    toggleSerie: toggleSerie,
-    addSerie: addSerie
-  };
+  deps: [
+    'opts'
+  ],
 
-}];
-var p_svg = ['opts', function(opts) {
+  initialize: function() {
+    this.svg = this.drawSvg();
+  },
 
-  function drawSvg() {
-    return d3.select(opts.target)
+  drawSvg: function() {
+    return d3.select(this.opts.target)
       .append('svg')
-        .attr('width', opts.responsive ?  '100%' : opts.fullWidth)
-        .attr('height', opts.fullHeight)
+        .attr('width', this.opts.responsive ?  '100%' : this.opts.fullWidth)
+        .attr('height', this.opts.fullHeight)
       .append('g')
         .attr('class', 'g-main')
-        .attr('transform', opts.gmainTranslate);
+        .attr('transform', this.opts.gmainTranslate);    
+  },
+
+  getScopeParams: function() {
+    return {
+      svg: this.svg
+    };
   }
 
-  var svg = drawSvg();
-
-  return {svg: svg};
-}];
+});
 /**
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.
@@ -771,10 +1008,7 @@ function Chart() {
   this.init.apply(this, arguments);
 
   return {
-    on: this.$scope.on,
-    unbind: this.$scope.unbind,
-    toggleSerie: this.$scope.toggleSerie,
-    addSerie: this.$scope.addSerie
+    updateSerie: this.$scope.updateSerie
   };
 }
 
@@ -787,7 +1021,6 @@ Chart.prototype.init = function(opts, data) {
 
 // Chart parts dependencies
 Chart.modules = [
-  p_events,
   p_svg,
   p_scale,
   p_axes,

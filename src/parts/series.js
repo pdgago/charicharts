@@ -1,112 +1,87 @@
-var p_series = ['data', 'svg', 'xscale', 'yscale', 'opts',
-  function(data, svg, xscale, yscale, opts) {
+var p_series = PClass.extend({
 
-  /**
-   * Add line serie.
-   */
-  function addLineSerie(serie) {
+  deps: [
+    'data',
+    'svg',
+    'xscale',
+    'yscale',
+    'opts'
+  ],
+
+  _subscriptions: [{
+  }],
+
+  initialize: function() {
+    var self = this;
+
+    _.each(this.data, function(serie) {
+      self._addSerie(serie);
+    });
+  },
+
+  _addSerie: function(serie) {
+    if (serie.type === 'line') {
+      this._addLineSerie(serie);
+    } else if (serie.type ==='bar') {
+      this._addBarSerie(serie);
+    } else if (serie.type === 'stacked-bar') {
+      this._addStackedSerie(serie);
+    } else if (serie.type === 'area') {
+      this._addAreaSerie(serie);
+    }
+  },
+
+  _addLineSerie: function(serie, el, update) {
+    var self = this;
+
     var line = d3.svg.line()
       .x(function(d) {
-        return xscale(d.datetime);
+        return self.xscale(d.datetime);
       })
       .y(function(d) {
-        return yscale(d.value);
+        return self.yscale(d.value);
       });
 
-    svg.append('path')
+    if (update) {
+      el
+        .attr('d', line.interpolate('linear'))
+        .attr('transform', 'translate(0,0)');
+      return;
+    }
+
+    this.svg.append('path')
+      .datum(serie.values)
+      .attr('type', 'line')
       .attr('id', 'serie' + serie.id)
       .attr('active', 1)
       .attr('class', 'line')
       .attr('transform', 'translate(0, 0)')
       .attr('stroke', serie.color)
-      .attr('d', line.interpolate(serie.interpolation)(serie.values));
-  }
+      .attr('d', line.interpolate(serie.interpolation));
+  },
 
-  /**
-   * Add bar serie.
-   */
-  function addBarSerie(serie) {
-    svg.append('g')
-      .attr('id', 'serie' + serie.id)
-      .attr('active', 1)
-      .attr('class', 'bar')
-      .selectAll('rect')
-      .data(serie.values)
-    .enter().append('rect')
-      .attr('class', function(d) {
-        return d.value < 0 ? 'bar-negative' : 'bar-positive';
-      })
-      .attr('x', function(d) {
-        // TODO: Linear scale support
-        return xscale(d.datetime) - opts.series.barWidth/2;
-      })
-      .attr('y', function(d) {
-        return d.value < 0 ? yscale(0) : yscale(d.value) - 1;
-      })
-      .attr('width', opts.series.barWidth)
-      .attr('height', function(d) {
-        return Math.abs(yscale(d.value) - yscale(0));
-      })
-      .attr('fill', serie.color);
-  }
+  _getSerieById: function(id) {
+    return this.svg.select('#serie' + id);
+  },
 
-  /**
-   * Add stacked bar.
-   */
-  function addStackedSerie(serie) {
-  }
+  updateSerie: function(id) {
+    var el = this._getSerieById(id);
+    var data = el.datum();
 
-  /**
-   * Add area serie.
-   */
-  function addAreaSerie(serie) {
-    var area = d3.svg.area()
-      .x(function(d) {return xscale(d.datetime);})
-      .y0(yscale(0))
-      .y1(function(d) {return yscale(d.value);});
+    // comunicate through events,
+    this.trigger('Serie/update', [data]);
 
-    svg.append('path')
-      .attr('id', 'serie' + serie.id)
-      .attr('active', 1)
-      .attr('class', 'serie-area')
-      .attr('transform', 'translate(0, 0)')
-      .attr('fill', function(d) {
-        return serie.color;
-      })
-      .attr('d', area.interpolate(serie.interpolation)(serie.values));
-  }
+    console.log(this.xscale.domain());
 
-  function toggleSerie(id) {
-    var el = svg.select('#serie' + id);
-    if (el.empty()) {return;}
-    var active = Number(el.attr('active')) ? 0 : 1;
-    el.attr('active', active);
-
-    el.transition()
-      .duration(200)
-      .style('opacity', el.attr('active'));
-  }
-
-  // TODO => When adding a serie, reset axisy and axisx
-  function addSerie(serie) {
-    if (serie.type === 'line') {
-      addLineSerie(serie);
-    } else if (serie.type ==='bar') {
-      addBarSerie(serie);
-    } else if (serie.type === 'stacked-bar') {
-      addStackedSerie(serie);
-    } else if (serie.type === 'area') {
-      addAreaSerie(serie);
+    if (el.attr('type') === 'line') {
+      this._addLineSerie(false, el, true);
     }
+  },
+
+  getScopeParams: function() {
+    return {
+      updateSerie: _.bind(this.updateSerie, this)
+    };
   }
 
-  _.each(data, function(serie) {
-    addSerie(serie);
-  });
-
-  return {
-    toggleSerie: toggleSerie,
-    addSerie: addSerie
-  };
-
-}];
+});

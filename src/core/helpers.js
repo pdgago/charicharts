@@ -48,13 +48,18 @@ function h_loadModules(modules) {
   this.$scope = {};
   this.$scope.opts = this._opts;
   this.$scope.data = this._data;
+  _.extend(this.$scope, p_events());
+
+  this.partsInstances = {};
 
   // Generate injector caller
   var caller = generateInjector(this.$scope);
 
   // Load modules
-  _.each(modules, function(module) {
-    var defs = caller(module);
-    _.extend(self.$scope, defs);
+  _.each(modules, function(Module) {
+    self.partsInstances = new Module(self.$scope);
+    _.extend(self.$scope, self.partsInstances.getScopeParams());
   });
+
+  console.log(this.$scope);
 }

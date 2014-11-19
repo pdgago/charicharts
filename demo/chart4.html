@@ -74,7 +74,7 @@
       var getData = function () {
         return _.map(_.range(12), function(month) {
           var date = new Date();
-          date.setMonth(month + 1, 1);
+          date.setMonth(month, 1);
           date.setHours(0,0,0,0);
           return {
             value: _.random(-1000, 2000),
@@ -83,27 +83,32 @@
         });
       };
 
+      var lineData = getData();
+
+      var getNewData = function() {
+        var d = new Date();
+        var date = lineData[lineData.length-1].datetime;
+        d.setYear(date.getFullYear());
+        d.setMonth(date.getMonth() + 1);
+        var a = {
+          value: _.random(-1000, 2000),
+          datetime: d
+        };
+        lineData.push(a);
+        lineData.shift();
+        return a;
+      };
+
       var monthsText = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
 
       var color = d3.scale.category20();
 
       var data = [{
-        id: 1004,
-        type: 'bar',
-        values: getData(),
-        color: '#ddd',
-      }, {
         id: 1006,
         type: 'line',
-        interpolation: 'cardinal',
-        values: getData(),
+        interpolation: 'linear',
+        values: lineData,
         color: color(1)
-      }, {
-        id: 1006,
-        type: 'area',
-        interpolation: 'cardinal',
-        values: getData(),
-        color: color(0)
       }];
 
       /**
@@ -139,6 +144,23 @@
       };
 
       var chart = new Charicharts.Chart(options, data.reverse());
+
+      var i =0;
+
+      function update() {
+        var a = getNewData();
+        chart.updateSerie(1006, a);
+
+        setTimeout(function() {
+          if (i < 4) {
+            update();
+            i += 1;
+          }
+        }, 700);
+      }
+
+      update();
+
     };
   </script>
 

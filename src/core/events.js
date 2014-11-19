@@ -1,7 +1,7 @@
 /**
  * Creates a events module for the supplied context.
  */
-var p_events = [function() {
+var p_events = function() {
 
   var events = {};
 
@@ -59,4 +59,4 @@ var p_events = [function() {
   };
 
   return events;
-}];
+};
