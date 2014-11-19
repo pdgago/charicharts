@@ -30,7 +30,7 @@ var p_series = PClass.extend({
     switch(serie.type) {
       case 'line': this._renderLineSerie(serie); break;
       case 'bar': this._renderBarSerie(serie); break;
-      case 'stacked-bar': this._renderStackedSerie(serie); break;
+      // case 'stacked-bar': this._renderStackedSerie(serie); break;
       case 'area': this._renderAreaSerie(serie); break;
     }
   },
@@ -48,7 +48,7 @@ var p_series = PClass.extend({
       switch(el.attr('type')) {
         case 'line': this._updateLineSerie(el); break;
         case 'bar': this._updateBarSerie(el); break;
-        case 'stacked-bar': this._updateStackedSerie(el); break;
+        // case 'stacked-bar': this._updateStackedSerie(el); break;
         case 'area': this._updateAreaSerie(el); break;
       }
     }, this));
