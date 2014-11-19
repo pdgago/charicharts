@@ -35,8 +35,7 @@ Pie.prototype.setInnerArrow = function() {
     .attr('marker-end', 'url(#innerArrow)');
 
   // Set mouse move Event
-  this.$scope.pieces.on('mouseover', function(d) {
-    self.$scope.trigger('mouseover', [d]);
+  this.on('mouseover', function(d) {
     moveArrow(d);
   });
 
@@ -64,14 +63,12 @@ Pie.prototype.setInnerArrow = function() {
     self.$scope.pieces.each(function(d) {
       if (d.data.id !== id) {return;}
       self.$scope.trigger('mouseover', [d]);
-      moveArrow(d);
     });
   };
 
   // Select automatically first pie piece.
   setTimeout(function() {
     var d = self.$scope.pieces.data()[0];
-    moveArrow(d);
     self.$scope.trigger('mouseover', [d]);
   }, 0);
 };

@@ -259,29 +259,41 @@ Chart.prototype.parseOpts = function(opts) {
 };
 
 Chart.prototype.render = function() {
-    var self = this;
+  var self = this;
 
-    // Draw svg
-    this.$scope.svg = this.call(p_svg).draw();
+  // Draw svg
+  this.$scope.svg = this.call(p_svg).draw();
 
-    // Set scales
-    this.$scope.xscale = this.call(p_scale).getXScale();
-    this.$scope.yscale = this.call(p_scale).getYScale();
+  // Set scales
+  this.$scope.xscale = this.call(p_scale).getXScale();
+  this.$scope.yscale = this.call(p_scale).getYScale();
 
-    // Draw axis
-    this.call(p_axes).drawY();
-    this.call(p_axes).drawX();
+  // Draw axis
+  this.call(p_axes).drawY();
+  this.call(p_axes).drawX();
 
-    _.each(this._opts.data, function(serie) {
-      self.addSerie(serie);
-    });
+  _.each(this._opts.data, function(serie) {
+    self.addSerie(serie);
+  });
 
-    // // Draw trail (optional)
-    // // Add a trail line to the chart and trigger a 'moveTrail'
-    // // event when the user moves the trail.
-    if (this.$scope.trail) {
-      this.call(p_trail);
-    }
+  // temporal => mode this from here
+  this.toggleSerie = function(serieId) {
+    var el = self.$scope.svg.select('#serie' + serieId);
+    if (el.empty()) {return;}
+    var active = Number(el.attr('active')) ? 0 : 1;
+    el.attr('active', active);
+
+    el.transition()
+      .duration(200)
+      .style('opacity', el.attr('active'));
+  };
+
+  // // Draw trail (optional)
+  // // Add a trail line to the chart and trigger a 'moveTrail'
+  // // event when the user moves the trail.
+  if (this.$scope.trail) {
+    this.call(p_trail);
+  }
 };
 Chart.prototype.toggleSerie = function(serieId) {
   var el = this.$scope.svg.select('#serie' + serieId);
@@ -355,8 +367,7 @@ Pie.prototype.setInnerArrow = function() {
     .attr('marker-end', 'url(#innerArrow)');
 
   // Set mouse move Event
-  this.$scope.pieces.on('mouseover', function(d) {
-    self.$scope.trigger('mouseover', [d]);
+  this.on('mouseover', function(d) {
     moveArrow(d);
   });
 
@@ -384,14 +395,12 @@ Pie.prototype.setInnerArrow = function() {
     self.$scope.pieces.each(function(d) {
       if (d.data.id !== id) {return;}
       self.$scope.trigger('mouseover', [d]);
-      moveArrow(d);
     });
   };
 
   // Select automatically first pie piece.
   setTimeout(function() {
     var d = self.$scope.pieces.data()[0];
-    moveArrow(d);
     self.$scope.trigger('mouseover', [d]);
   }, 0);
 };
@@ -455,7 +464,7 @@ Pie.prototype.render = function() {
   this.$scope.pieces.on('mouseover', function(d) {
     // Fade all paths
     self.$scope.pieces
-      .style('opacity', this._opts.fadeOpacity);
+      .style('opacity', self._opts.fadeOpacity);
     // Highlight hovered
     d3.select(this).style('opacity', 1);
     // Triger over event

@@ -44,7 +44,7 @@ Pie.prototype.render = function() {
   this.$scope.pieces.on('mouseover', function(d) {
     // Fade all paths
     self.$scope.pieces
-      .style('opacity', this._opts.fadeOpacity);
+      .style('opacity', self._opts.fadeOpacity);
     // Highlight hovered
     d3.select(this).style('opacity', 1);
     // Triger over event
