@@ -39,27 +39,3 @@ function h_getAngle(x, y) {
 
   return angle;
 }
-
-// Method that loadmodules and set the $scope.
-function h_loadModules(modules) {
-  var self = this;
-
-  // Set $scope
-  this.$scope = {};
-  this.$scope.opts = this._opts;
-  this.$scope.data = this._data;
-  _.extend(this.$scope, p_events());
-
-  this.partsInstances = {};
-
-  // Generate injector caller
-  var caller = generateInjector(this.$scope);
-
-  // Load modules
-  _.each(modules, function(Module) {
-    self.partsInstances = new Module(self.$scope);
-    _.extend(self.$scope, self.partsInstances.getScopeParams());
-  });
-
-  console.log(this.$scope);
-}

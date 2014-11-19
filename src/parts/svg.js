@@ -6,6 +6,10 @@ var p_svg = PClass.extend({
 
   initialize: function() {
     this.svg = this.drawSvg();
+
+    return {
+      svg: this.svg
+    };
   },
 
   drawSvg: function() {
@@ -16,12 +20,6 @@ var p_svg = PClass.extend({
       .append('g')
         .attr('class', 'g-main')
         .attr('transform', this.opts.gmainTranslate);    
-  },
-
-  getScopeParams: function() {
-    return {
-      svg: this.svg
-    };
   }
 
 });

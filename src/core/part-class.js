@@ -1,3 +1,6 @@
+/**
+ * Part Class. All charicharts parts extends this Class.
+ */
 var PClass = Class.extend({
 
   _coreSubscriptions: [{

@@ -14,9 +14,13 @@ var p_series = PClass.extend({
   initialize: function() {
     var self = this;
 
-    _.each(this.data, function(serie) {
-      self._addSerie(serie);
-    });
+    for (var i = 0; i < this.data.length; i++) {
+      this._addSerie(this.data[i]);
+    }
+
+    return {
+      updateSerie: _.bind(this.updateSerie, this)
+    };
   },
 
   _addSerie: function(serie) {
@@ -76,12 +80,6 @@ var p_series = PClass.extend({
     if (el.attr('type') === 'line') {
       this._addLineSerie(false, el, true);
     }
-  },
-
-  getScopeParams: function() {
-    return {
-      updateSerie: _.bind(this.updateSerie, this)
-    };
   }
 
 });

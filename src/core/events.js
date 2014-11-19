@@ -1,7 +1,7 @@
 /**
- * Creates a events module for the supplied context.
+ * Creates a events module.
  */
-var p_events = function() {
+var charichartsEvents = function() {
 
   var events = {};
 

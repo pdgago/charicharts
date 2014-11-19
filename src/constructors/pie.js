@@ -21,7 +21,7 @@ Pie.prototype.init = function(opts, data) {
 
 // Pie parts dependencies
 Pie.modules = [
-  p_events,
+  // p_events,
   p_svg,
   p_pie,
   p_pieInnerArrow

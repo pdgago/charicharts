@@ -1,26 +1,30 @@
+/**
+ * Constructor Class. All charicharts constructors extends this Class.
+ */
 var CClass = Class.extend({
 
   init: function(opts, data) {
     // Set scope
-    this.$scope = {};
-    this.$scope.opts = this.parseOpts(opts);
-    this.$scope.data = data;
-    _.extend(this.$scope, p_events());
+    this.$scope = {
+      opts: this.parseOptions(opts),
+      data: data
+    };
+
+    // Set events module into the $scope.
+    _.extend(this.$scope, charichartsEvents());
 
     this._loadModules(this._modules);
+    return this.getInstanceProperties();
   },
 
   _loadModules: function() {
-    this.partsInstances = {};
-
     // Generate injector
     var caller = this._generateInjector(this.$scope);
 
     // Load modules
-    _.each(modules, _.bind(function(Module) {
-      this.partsInstances = new Module(this.$scope);
-      _.extend(this.$scope, this.partsInstances.getScopeParams());
-    }, this));
+    for (var i = 0; i < this.modules.length; i++) {
+      _.extend(this.$scope, new this.modules[i](this.$scope));
+    }
   },
 
   /**
@@ -46,27 +50,3 @@ var CClass = Class.extend({
   }
 
 });
-
-// var Chart = CClass.extend({
-
-//   modules: [
-//     p_svg,
-//     p_scale,
-//     p_axes,
-//     p_series,
-//     // p_trail
-//   ],
-
-//   defaults: {
-
-//   },
-
-//   parseOptions: function(opts) {
-
-//   },
-
-//   getInstanceProperties: function() {
-//     return {};
-//   }
-
-// });

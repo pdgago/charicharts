@@ -53,30 +53,6 @@ function h_getAngle(x, y) {
 
   return angle;
 }
-
-// Method that loadmodules and set the $scope.
-function h_loadModules(modules) {
-  var self = this;
-
-  // Set $scope
-  this.$scope = {};
-  this.$scope.opts = this._opts;
-  this.$scope.data = this._data;
-  _.extend(this.$scope, p_events());
-
-  this.partsInstances = {};
-
-  // Generate injector caller
-  var caller = generateInjector(this.$scope);
-
-  // Load modules
-  _.each(modules, function(Module) {
-    self.partsInstances = new Module(self.$scope);
-    _.extend(self.$scope, self.partsInstances.getScopeParams());
-  });
-
-  console.log(this.$scope);
-}
 /* Simple JavaScript Inheritance
  * By John Resig http://ejohn.org/
  * MIT Licensed.
@@ -126,8 +102,9 @@ function h_loadModules(modules) {
     // The dummy class constructor
     function Class() {
       // All construction is actually done in the init method
-      if ( !initializing && this.init )
-        this.init.apply(this, arguments);
+      if (!initializing && this.init) {
+        return this.init.apply(this, arguments);
+      }
     }
    
     // Populate our constructed prototype object
@@ -143,29 +120,33 @@ function h_loadModules(modules) {
   };
 }).call(window);
 /* jshint ignore:end */
+/**
+ * Constructor Class. All charicharts constructors extends this Class.
+ */
 var CClass = Class.extend({
 
   init: function(opts, data) {
     // Set scope
-    this.$scope = {};
-    this.$scope.opts = this.parseOpts(opts);
-    this.$scope.data = data;
-    _.extend(this.$scope, p_events());
+    this.$scope = {
+      opts: this.parseOptions(opts),
+      data: data
+    };
+
+    // Set events module into the $scope.
+    _.extend(this.$scope, charichartsEvents());
 
     this._loadModules(this._modules);
+    return this.getInstanceProperties();
   },
 
   _loadModules: function() {
-    this.partsInstances = {};
-
     // Generate injector
     var caller = this._generateInjector(this.$scope);
 
     // Load modules
-    _.each(modules, _.bind(function(Module) {
-      this.partsInstances = new Module(this.$scope);
-      _.extend(this.$scope, this.partsInstances.getScopeParams());
-    }, this));
+    for (var i = 0; i < this.modules.length; i++) {
+      _.extend(this.$scope, new this.modules[i](this.$scope));
+    }
   },
 
   /**
@@ -191,34 +172,10 @@ var CClass = Class.extend({
   }
 
 });
-
-// var Chart = CClass.extend({
-
-//   modules: [
-//     p_svg,
-//     p_scale,
-//     p_axes,
-//     p_series,
-//     // p_trail
-//   ],
-
-//   defaults: {
-
-//   },
-
-//   parseOptions: function(opts) {
-
-//   },
-
-//   getInstanceProperties: function() {
-//     return {};
-//   }
-
-// });
 /**
- * Creates a events module for the supplied context.
+ * Creates a events module.
  */
-var p_events = function() {
+var charichartsEvents = function() {
 
   var events = {};
 
@@ -278,27 +235,8 @@ var p_events = function() {
   return events;
 };
 /**
- * Generate a injector for the given context.
- *
- * When calling a module function using the returned function,
- * that module will be able to ask for context properties.
- *
- * Injectors are specially build for the charichart parts, because they
- * need access to so many variables. This makes the code cleaner and more
- * testeable.
- *
- * @param  {Ojbect} ctx Context
+ * Part Class. All charicharts parts extends this Class.
  */
-function generateInjector(ctx) {
-  return function(args) {
-    var func = args[args.length-1];
-    args = args.slice(0, args.length-1).map(function(a) {
-      return ctx[a];
-    });
-    return func.apply(ctx, args);
-  };
-}
-
 var PClass = Class.extend({
 
   _coreSubscriptions: [{
@@ -686,6 +624,11 @@ var p_scale = PClass.extend({
     this._dataFlattened = this._getFlattenedData();
     this.xscale = this._getXScale();
     this.yscale = this._getYScale();
+
+    return {
+      xscale: this.xscale,
+      yscale: this.yscale
+    };
   },
 
   /**
@@ -765,13 +708,6 @@ var p_scale = PClass.extend({
       }
       return d.value;
     });
-  },
-
-  getScopeParams: function() {
-    return {
-      xscale: this.xscale,
-      yscale: this.yscale
-    };
   }
 
 });
@@ -791,9 +727,13 @@ var p_series = PClass.extend({
   initialize: function() {
     var self = this;
 
-    _.each(this.data, function(serie) {
-      self._addSerie(serie);
-    });
+    for (var i = 0; i < this.data.length; i++) {
+      this._addSerie(this.data[i]);
+    }
+
+    return {
+      updateSerie: _.bind(this.updateSerie, this)
+    };
   },
 
   _addSerie: function(serie) {
@@ -853,12 +793,6 @@ var p_series = PClass.extend({
     if (el.attr('type') === 'line') {
       this._addLineSerie(false, el, true);
     }
-  },
-
-  getScopeParams: function() {
-    return {
-      updateSerie: _.bind(this.updateSerie, this)
-    };
   }
 
 });
@@ -870,6 +804,10 @@ var p_svg = PClass.extend({
 
   initialize: function() {
     this.svg = this.drawSvg();
+
+    return {
+      svg: this.svg
+    };
   },
 
   drawSvg: function() {
@@ -880,12 +818,6 @@ var p_svg = PClass.extend({
       .append('g')
         .attr('class', 'g-main')
         .attr('transform', this.opts.gmainTranslate);    
-  },
-
-  getScopeParams: function() {
-    return {
-      svg: this.svg
-    };
   }
 
 });
@@ -1001,111 +933,113 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
     }
 }];
 
-Charicharts.Chart = Chart;
+Charicharts.Chart = CClass.extend({
 
-// Chart constructor.
-function Chart() {
-  this.init.apply(this, arguments);
-
-  return {
-    updateSerie: this.$scope.updateSerie
-  };
-}
-
-// Initialize
-Chart.prototype.init = function(opts, data) {
-  this._opts = this.parseOpts(opts);
-  this._data = data;
-  h_loadModules.apply(this, [Chart.modules]);
-};
-
-// Chart parts dependencies
-Chart.modules = [
-  p_svg,
-  p_scale,
-  p_axes,
-  p_series,
-  // p_trail
-];
-
-// Chart defaults
-Chart.defaults = {
-  margin: '0,0,0,0',
-  trail: false,
-  // Series options.
-  series: {
-    barWidth: 12,
-    stackedBarAlign: 'right'
-  },
-  // Xaxis Options.
-  xaxis: {
-    scale: 'time',
-    fit: false,
-    ticks: false,
-    top: {
-      enabled: false,
-      label: false,
-      tickFormat: function(d) {return d;}
-    },
-    bottom: {
-      enabled: true,
-      label: false,
-      tickFormat: function(d) {return d.getMonth();}
-    }  
-  },
-  // Yaxis Options.
-  yaxis: {
-    scale: 'linear',
-    fit: false,
-    fullGrid: true,
-    textMarginTop: 0,
-    ticks: false,
-    left: {
-      enabled: true,
-      label: false,
-      tickFormat: function(d) {return d;}
-    },
-    right: {
-      enabled: false,
-      label: false,
-      tickFormat: function(d) {return d;}
-    }
-  }
-};
-
-Chart.prototype.parseOpts = function(opts) {
-  var o = _.extend({}, Chart.defaults, opts);
-  
-  // TODO => Use deep extend to clone defaults and supplied opts.
-  o.series = _.extend({}, Chart.defaults.series, o.series);
-  o.xaxis = _.extend({}, Chart.defaults.xaxis, o.xaxis);
-  o.xaxis.bottom = _.extend({}, Chart.defaults.xaxis.bottom, o.xaxis.bottom);
-  o.xaxis.top = _.extend({}, Chart.defaults.xaxis.top, o.xaxis.top);
-  o.yaxis = _.extend({}, Chart.defaults.yaxis, o.yaxis);
-  o.yaxis.left = _.extend({}, Chart.defaults.yaxis.left, o.yaxis.left);
-  o.yaxis.right = _.extend({}, Chart.defaults.yaxis.right, o.yaxis.right);
-
-  o.margin = _.object(['top', 'right', 'bottom', 'left'],
-    o.margin.split(',').map(Number));
+  modules: [
+    p_svg,
+    p_scale,
+    p_axes,
+    p_series,
+    // p_trail
+  ],
 
   /**
-   * Axis labels padding.
-   * TODO: => Do this better.
+   * What is going to be returned to the chart instance.
+   * @return {Object} Chart properties
    */
-  if (o.yaxis.left.label || o.yaxis.right.label) {
-    o.margin.top += Math.abs(o.yaxis.textMarginTop - 30);
+  getInstanceProperties: function() {
+    return {
+      updateSerie: this.$scope.updateSerie,
+      on: this.$scope.on,
+      unbind: this.$scope.unbind
+    };
+  },
+
+  defaults: {
+    margin: '0,0,0,0',
+    trail: false,
+    // Series options.
+    series: {
+      barWidth: 12,
+      stackedBarAlign: 'right'
+    },
+    // Xaxis Options.
+    xaxis: {
+      scale: 'time',
+      fit: false,
+      ticks: false,
+      top: {
+        enabled: false,
+        label: false,
+        tickFormat: function(d) {
+          return d;
+        }
+      },
+      bottom: {
+        enabled: true,
+        label: false,
+        tickFormat: function(d) {
+          return d.getMonth();
+        }
+      }  
+    },
+    // Yaxis Options.
+    yaxis: {
+      scale: 'linear',
+      fit: false,
+      fullGrid: true,
+      textMarginTop: 0,
+      ticks: false,
+      left: {
+        enabled: true,
+        label: false,
+        tickFormat: function(d) {
+          return d;
+        }
+      },
+      right: {
+        enabled: false,
+        label: false,
+        tickFormat: function(d) {
+          return d;
+        }
+      }
+    }
+  },
+
+  parseOptions: function(options) {
+    var o = _.extend({}, this.defaults, options);
+    
+    // TODO => Use deep extend to clone defaults and supplied options.
+    o.series = _.extend({}, this.defaults.series, o.series);
+    o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);
+    o.xaxis.bottom = _.extend({}, this.defaults.xaxis.bottom, o.xaxis.bottom);
+    o.xaxis.top = _.extend({}, this.defaults.xaxis.top, o.xaxis.top);
+    o.yaxis = _.extend({}, this.defaults.yaxis, o.yaxis);
+    o.yaxis.left = _.extend({}, this.defaults.yaxis.left, o.yaxis.left);
+    o.yaxis.right = _.extend({}, this.defaults.yaxis.right, o.yaxis.right);
+
+    o.margin = _.object(['top', 'right', 'bottom', 'left'],
+      o.margin.split(',').map(Number));
+
+    /**
+     * Axis labels padding.
+     * TODO: => Do this better.
+     */
+    if (o.yaxis.left.label || o.yaxis.right.label) {
+      o.margin.top += Math.abs(o.yaxis.textMarginTop - 30);
+    }
+
+    o.fullWidth = o.target.offsetWidth;
+    o.fullHeight = o.target.offsetHeight;
+    o.width = o.fullWidth - o.margin.left - o.margin.right;
+    o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+    o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
+
+    return o;
   }
 
-  o.fullWidth = o.target.offsetWidth;
-  o.fullHeight = o.target.offsetHeight;
-  o.width = o.fullWidth - o.margin.left - o.margin.right;
-  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
-  o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
-
-  return o;
-};
-
-
+});
 Charicharts.Pie = Pie;
 
 // Pie constructor.
@@ -1129,7 +1063,7 @@ Pie.prototype.init = function(opts, data) {
 
 // Pie parts dependencies
 Pie.modules = [
-  p_events,
+  // p_events,
   p_svg,
   p_pie,
   p_pieInnerArrow
@@ -1160,8 +1094,11 @@ Pie.prototype.parseOpts = function(opts) {
   return o;
 };
 /* jshint ignore:start */
-  if (typeof define === "function" && define.amd) define(Charicharts);
-  else if (typeof module === "object" && module.exports) module.exports = Charicharts;
+  if (typeof define === 'function' && define.amd) {
+    define(Charicharts);
+  } else if (typeof module === 'object' && module.exports) {
+    module.exports = Charicharts;
+  }
   this.Charicharts = Charicharts;
 }.call(window);
 /* jshint ignore:end */

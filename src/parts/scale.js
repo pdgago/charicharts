@@ -41,6 +41,11 @@ var p_scale = PClass.extend({
     this._dataFlattened = this._getFlattenedData();
     this.xscale = this._getXScale();
     this.yscale = this._getYScale();
+
+    return {
+      xscale: this.xscale,
+      yscale: this.yscale
+    };
   },
 
   /**
@@ -120,13 +125,6 @@ var p_scale = PClass.extend({
       }
       return d.value;
     });
-  },
-
-  getScopeParams: function() {
-    return {
-      xscale: this.xscale,
-      yscale: this.yscale
-    };
   }
 
 });
