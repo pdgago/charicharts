@@ -990,8 +990,8 @@ var p_svg = ['responsive', 'fullWidth', 'fullHeight', 'target', 'gmainTranslate'
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.
  */
-var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin', 'trailParser',
-  function(svg, trigger, height, width, xscale, margin, trailParser) {
+var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin', 'trailParser', 'data',
+  function(svg, trigger, height, width, xscale, margin, trailParser, data) {
 
     var currentDate;
 
@@ -1080,10 +1080,22 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin', 'trailPa
         return;
       }
 
+      var bisectDate = d3.bisector(function(d) {return d.datetime;}).left;
+      var pointData = [];
+
+      _.each(data, function(d) {
+        var ob = d.values[bisectDate(d.values, date)];
+        if (!ob) {
+          ob = {value: '-'};
+        }
+        ob.id = d.id;
+        pointData.push(ob);
+      });
+
       currentDate = date;
       var xtrail = Math.round(xscale(date)) - 1;
       moveTrail(xtrail);
-      trigger('moveTrail', [date]);
+      trigger('moveTrail', [date, pointData]);
     }
 
     /**
