@@ -11,6 +11,7 @@ var PClass = Class.extend({
 
   init: function($scope) {
     this._loadModules($scope);
+    this.status = new StatusClass();
 
     // Subscribe
     _.each(_.union(this._coreSubscriptions,

@@ -15,7 +15,7 @@ var p_scale = PClass.extend({
      */
     'Serie/update': function(data) {
       // Update data
-      this._dataFlattened = data;
+      this._dataFlattened = this._getFlattenedData();
 
       // Update scales
       this.xscale = this._getXScale();

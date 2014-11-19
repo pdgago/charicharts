@@ -8,6 +8,9 @@ var p_axes = PClass.extend({
   ],
 
   _subscriptions: [{
+    /**
+     * Updates the axes when the scale has been updated.
+     */
     'Scale/update': function(data) {
     }
   }],

@@ -14,7 +14,7 @@ Charicharts.Chart = CClass.extend({
    */
   getInstanceProperties: function() {
     return {
-      updateSerie: this.$scope.updateSerie,
+      update: this.$scope.updateSeries,
       on: this.$scope.on,
       unbind: this.$scope.unbind
     };
