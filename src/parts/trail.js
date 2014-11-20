@@ -2,8 +2,8 @@
  * Add an trail to the supplied svg and trigger events
  * when the user moves it.
  */
-var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin', 'trailParser', 'data',
-  function(svg, trigger, height, width, xscale, margin, trailParser, data) {
+var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin', 'trailParser', 'data', 'trailInitDate',
+  function(svg, trigger, height, width, xscale, margin, trailParser, data, trailInitDate) {
 
     var currentDate;
 
@@ -54,7 +54,7 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin', 'trailPa
     // quickfix: add to event loop so its call event is set.
     setTimeout(function() {
       slider
-        .call(brush.extent([new Date(), new Date()]))
+        .call(brush.extent([trailInitDate, trailInitDate]))
         .call(brush.event);
     }, 0);
 

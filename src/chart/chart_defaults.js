@@ -5,6 +5,7 @@ Chart.defaults = {
     date.setUTCMinutes(0, 0);
     return date;
   },
+  trailInitDate: new Date(),
   // Series options.
   series: {
     barWidth: 12,
