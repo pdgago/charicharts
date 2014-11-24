@@ -16,7 +16,7 @@ var p_series = PClass.extend({
     this.status.set({series: {}});
 
     for (var i = 0; i < this.data.length; i++) {
-      this._addSerie(this.data[i]);}
+      this._addSerie(this.data[i]);} 
 
     return {
       updateSeries: _.bind(this.updateSeries, this)
@@ -43,13 +43,11 @@ var p_series = PClass.extend({
     var series = this.status.toJSON().series;
 
     _.each(series, _.bind(function(serie) {
-      var el = serie.el;
-
-      switch(el.attr('type')) {
-        case 'line': this._updateLineSerie(el); break;
-        case 'bar': this._updateBarSerie(el); break;
-        // case 'stacked-bar': this._updateStackedSerie(el); break;
-        case 'area': this._updateAreaSerie(el); break;
+      switch(serie.el.attr('type')) {
+        case 'line': this._updateLineSerie(serie); break;
+        case 'bar': this._updateBarSerie(serie); break;
+        // case 'stacked-bar': this._updateStackedSerie(serie); break;
+        case 'area': this._updateAreaSerie(serie); break;
       }
     }, this));
   },
@@ -60,7 +58,7 @@ var p_series = PClass.extend({
   _renderLineSerie: function(serie) {
     var line = this._getLineFunc();
 
-    var lineEl = this.svg.append('path')
+    var el = this.svg.append('path')
       .datum(serie.values)
       .attr('type', 'line')
       .attr('id', 'serie' + serie.id)
@@ -71,7 +69,8 @@ var p_series = PClass.extend({
       .attr('d', line.interpolate(serie.interpolation));
 
     this.status.get('series')[serie.id] = {
-      el: lineEl
+      el: el,
+      serie: serie
     };
   },
 
@@ -79,10 +78,10 @@ var p_series = PClass.extend({
    * Update line serie.
    * @param  {Object} el Serie path element
    */
-  _updateLineSerie: function(el) {
+  _updateLineSerie: function(serie) {
     var line = this._getLineFunc();
 
-    el.attr('d', line.interpolate('linear'))
+    serie.el.attr('d', line.interpolate('linear'))
       .attr('transform', 'translate(0,0)');
   },
 
@@ -99,12 +98,14 @@ var p_series = PClass.extend({
 
   _renderBarSerie: function(serie) {
     var self = this;
-    this.svg.append('g')
+
+    var el = this.svg.append('g')
       .attr('type', 'bar')
       .attr('id', 'serie' + serie.id)
       .attr('class', 'serie-bar')
-      .attr('active', 1)
-      .selectAll('rect')
+      .attr('active', 1);
+
+    el.selectAll('rect')
       .data(serie.values)
     .enter().append('rect')
       .attr('class', function(d) {
@@ -121,10 +122,75 @@ var p_series = PClass.extend({
         return Math.abs(self.yscale(d.value) - self.yscale(0));
       })
       .attr('fill', serie.color);
+
+    this.status.get('series')[serie.id] = {
+      el: el,
+      serie: serie
+    };
   },
 
-  _updateBarSerie: function(el) {
+  _updateBarSerie: function(serie) {
+    var self = this;
+    var el = serie.el;
+    serie = serie.serie;
 
+    el.selectAll('rect')
+      .data(serie.values)
+      .attr('class', function(d) {
+        return d.value < 0 ? 'bar-negative' : 'bar-positive';
+      })
+      .attr('x', function(d) {
+        return self.xscale(d.datetime) - self.opts.series.barWidth/2;
+      })
+      .attr('y', function(d) {
+        return d.value < 0 ? self.yscale(0) : self.yscale(d.value) - 1;
+      })
+      .attr('height', function(d) {
+        return Math.abs(self.yscale(d.value) - self.yscale(0));
+      });
+  },
+
+  _getAreaFunc: function() {
+    var self = this;
+    return d3.svg.area()
+      .x(function(d) {
+        return self.xscale(d.datetime);
+      })
+      .y0(this.yscale(0))
+      .y1(function(d) {
+        return self.yscale(d.value);
+      });
+  },
+
+  /**
+   * Render area serie.
+   */
+  _renderAreaSerie: function(serie) {
+    var area = this._getAreaFunc();
+    var el = this.svg.append('path')
+      .datum(serie.values)
+      .attr('type', 'area')
+      .attr('id', 'serie' + serie.id)
+      .attr('class', 'serie-area')
+      .attr('active', 1)
+      .attr('transform', 'translate(0, 0)')
+      .attr('fill', function(d) {
+        return serie.color;
+      })
+      .attr('d', area.interpolate(serie.interpolation));
+
+    this.status.get('series')[serie.id] = {
+      el: el,
+      serie: serie
+    };
+  },
+
+  /**
+   * Update area serie.
+   */
+  _updateAreaSerie: function(serie) {
+    var area = this._getAreaFunc();
+    serie.el.attr('d', area.interpolate(serie.serie.interpolation));
   },
 
   _getSerieById: function(id) {

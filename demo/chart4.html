@@ -83,33 +83,21 @@
         });
       };
 
+      var areaData = getData();
       var lineData = getData();
-      var lineData2 = getData();
+      var barData = getData();
 
-      var getNewData = function() {
+      var getNewData = function(data) {
         var d = new Date();
-        var date = lineData[lineData.length-1].datetime;
+        var date = data[data.length-1].datetime;
         d.setYear(date.getFullYear());
         d.setMonth(date.getMonth() + 1);
         var a = {
           value: _.random(-1000, 2000),
           datetime: d
         };
-        lineData.push(a);
-        lineData.shift();
-        return a;
-      };
-      var getNewData2 = function() {
-        var d = new Date();
-        var date = lineData2[lineData2.length-1].datetime;
-        d.setYear(date.getFullYear());
-        d.setMonth(date.getMonth() + 1);
-        var a = {
-          value: _.random(-1000, 2000),
-          datetime: d
-        };
-        lineData2.push(a);
-        lineData2.shift();
+        data.push(a);
+        data.shift();
         return a;
       };
 
@@ -119,15 +107,21 @@
 
       var data = [{
         id: 1006,
+        type: 'area',
+        interpolation: 'basis',
+        values: areaData,
+        color: '#ddd'
+      },{
+        id: 1008,
+        type: 'bar',
+        interpolation: 'linear',
+        values: barData,
+        color: color(3)
+      },{
+        id: 1007,
         type: 'line',
         interpolation: 'linear',
         values: lineData,
-        color: color(1)
-      },{
-        id: 1007,
-        type: 'bar',
-        interpolation: 'linear',
-        values: lineData2,
         color: color(2)
       }];
 
@@ -163,12 +157,13 @@
         }
       };
 
-      var chart = new Charicharts.Chart(options, data.reverse());
+      var chart = new Charicharts.Chart(options, data);
       // var i =0;
 
       function update() {
-        getNewData();
-        getNewData2();
+        getNewData(areaData);
+        getNewData(lineData);
+        getNewData(barData);
         chart.update();
 
         setTimeout(function() {
