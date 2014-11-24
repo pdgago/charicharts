@@ -115,7 +115,7 @@ var p_series = PClass.extend({
         return self.xscale(d.datetime) - self.opts.series.barWidth/2;
       })
       .attr('y', function(d) {
-        return d.value < 0 ? self.yscale(0) : self.yscale(d.value) - 1;
+        return d.value < 0 ? self.yscale(0) : self.yscale(d.value);
       })
       .attr('width', self.opts.series.barWidth)
       .attr('height', function(d) {

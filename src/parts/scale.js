@@ -13,7 +13,7 @@ var p_scale = PClass.extend({
      * Triggered when the serie gets updated with new data.
      * @param  {Object} data Single data object
      */
-    'Serie/update': function(data) {
+    'Serie/update': function() {
       // Update data
       this._dataFlattened = this._getFlattenedData();
 

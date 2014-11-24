@@ -26,7 +26,7 @@
       fill: #999;
     }
 
-    .domain {
+    .xaxis-domain {
       stroke: green;
       shape-rendering: crispEdges;
     }
@@ -40,7 +40,7 @@
       stroke-width: 1px;
     }
     .yaxis line {
-      stroke: red;
+      stroke: #ddd;
       shape-rendering: crispEdges;
     }
 
@@ -92,10 +92,16 @@
               return d.getHours();
             },
             label: 'Hours'
+          },
+          top: {
+            enabled: true,
+            tickFormat: function(d, i) {
+              return d.getHours();
+            }
           }
         },
         yaxis: {
-          textMarginTop: -10,
+          fullGrid: false,
           left: {
             label: '$'
           },

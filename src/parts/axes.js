@@ -11,11 +11,18 @@ var p_axes = PClass.extend({
     /**
      * Updates the axes when the scale has been updated.
      */
-    'Scale/update': function(data) {
+    'Scale/update': function() {
+      // update the series
+      this.axis
+        .transition()
+        .duration(500)
+        .ease('linear')
+        .call(this.a.scale(this.xscale).orient('bottom'));
     }
   }],
 
   initialize: function() {
+    console.log(this.status);
     if (this.opts.yaxis.left.enabled) {
       this._setAxis('left');
     }
@@ -37,7 +44,7 @@ var p_axes = PClass.extend({
     }
 
     if (this.opts.xaxis.top.enabled || this.opts.xaxis.bottom.enabled) {
-      this._setXDomainFullwidth();
+      this._addBottomDomain();
     }
   },
 
@@ -83,6 +90,11 @@ var p_axes = PClass.extend({
       .attr('transform', p.translate)
       .call(axis);
 
+    if (orient === 'bottom') {
+      this.a = axis;
+      this.axis = axisG;
+    }
+
     // Axis ticks texts
     var axisGTexts = axisG.selectAll('text');
     axisGTexts.style('text-anchor', p.textAnchor);
@@ -91,18 +103,22 @@ var p_axes = PClass.extend({
       axisGTexts
         .attr('x', orient === 'left' ? -this.opts.margin.left : 0)
         .attr('y', this.opts.yaxis.textMarginTop);
-      this.svg.select('.yaxis .domain').remove();
     }
+
+    this.svg.select('.yaxis .domain').remove();
+    this.svg.select('.xaxis .domain').remove();
 
     // // Axis ticks texts
-    if (this.opts[p.axis][orient].label) {
-      this._setLabel(axisG, this.opts[p.axis][orient].label, orient);
-    }
+    // if (this.opts[p.axis][orient].label) {
+    //   this._setLabel(axisG, this.opts[p.axis][orient].label, orient);
+    // }
   },
 
-  _setXDomainFullwidth: function() {
-    this.svg.selectAll('.xaxis .domain')
-      .attr('d', 'M{0},0V0H{1}V0'.format(-this.opts.margin.left, this.opts.fullWidth));
+  _addBottomDomain: function() {
+    this.svg.selectAll('.xaxis')
+      .append('path')
+      .attr('class', 'xaxis-domain')
+      .attr('d', 'M{0},0H{1}'.format(-this.opts.margin.left, this.opts.fullWidth));
   },
 
   _setYGrid: function() {

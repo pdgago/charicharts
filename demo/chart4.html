@@ -39,7 +39,7 @@
       stroke-width: 1px;
     }
 
-    .xaxis .domain {
+    .xaxis .bottom-domain {
       fill: none;
       stroke: #aaa;
       shape-rendering: crispEdges;
@@ -92,6 +92,8 @@
         var date = data[data.length-1].datetime;
         d.setYear(date.getFullYear());
         d.setMonth(date.getMonth() + 1);
+        d.setDate(1);
+        d.setHours(0,0,0,0);
         var a = {
           value: _.random(-1000, 2000),
           datetime: d
@@ -151,7 +153,7 @@
           bottom: {
             enabled: true,
             tickFormat: function(d, i) {
-              return monthsText[d.getMonth()];
+              return (d.getMonth()+1) + '/' + (d.getFullYear()-2000);
             }
           }
         }
