@@ -162,10 +162,6 @@ var p_axes = PClass.extend({
       .attr('y', p.y)
       .attr('text-anchor', p.textAnchor)
       .text(label);
-  },
-
-  getScopeParams: function() {
-    return {};
   }
 
 });

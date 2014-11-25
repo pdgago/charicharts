@@ -473,10 +473,6 @@ var p_axes = PClass.extend({
       .attr('y', p.y)
       .attr('text-anchor', p.textAnchor)
       .text(label);
-  },
-
-  getScopeParams: function() {
-    return {};
   }
 
 });
@@ -565,62 +561,52 @@ var p_pieInnerArrow = ['opts', 'svg', 'on', 'trigger', 'pieArc', 'piePieces',
       };
     }
   }];
-var p_pie = ['opts', 'svg', 'data', 'trigger', function(opts, svg, data, trigger) {
+var p_pie = PClass.extend({
 
-  // Render outerborder
-  if (opts.outerBorder) {
-    svg.append('svg:circle')
-      .attr('class', 'outer-border')
-      .attr('fill', 'transparent')
-      .attr('cx', 0)
-      .attr('cy', 0)
-      .attr('r', opts.radius);
+  deps: [
+    'svg',
+    'opts',
+    'data'
+  ],
+
+  _subscriptions: [
+  ],
+
+  initialize: function() {
+    // data layout
+    var pieLayout = d3.layout.pie()
+      .sort(null)
+      .value(function(d) {return d.value;});
+
+    // Pie arc
+    var pieArc = d3.svg.arc()
+      .innerRadius(this.opts.radius * this.opts.innerRadius)
+      .outerRadius(this.opts.radius);
+
+    // Draw pie
+    var piePieces = this.svg.selectAll('path')
+        .data(pieLayout(this.data))
+        .enter()
+      .append('path')
+      .attr('class', 'pie-piece')
+      .attr('fill', _.bind(function(d) {
+        return d.data.color;
+      }, this))
+      .attr('d', pieArc);
+
+    return {
+      add: this.add
+    };
+  },
+
+  /**
+   * Update the pie.
+   */
+  update: function() {
+
   }
 
-  // Pie layout
-  var pieLayout = d3.layout.pie()
-    .sort(null)
-    .value(function(d) {return d.value;});
-
-  // Pie arc
-  var innerPadding = opts.outerBorder ? (1 - opts.outerBorder) : 1;
-  var arcRadius = opts.radius * innerPadding;
-
-  var pieArc = d3.svg.arc()
-    .innerRadius(arcRadius - (arcRadius * (1 - opts.innerRadius)))
-    .outerRadius(arcRadius); 
-
-  // Draw pie
-  var piePieces = svg.selectAll('path')
-      .data(pieLayout(data))
-      .enter()
-    .append('path')
-    .attr('class', 'pie-piece')
-    .attr('fill', _.bind(function(d) {
-      return d.data.color;
-    }, this))
-    .attr('d', pieArc);
-
-  // Mouse over event
-  piePieces.on('mouseover', function(d) {
-    // Fade all paths
-    piePieces.style('opacity', opts.fadeOpacity);
-    // Highlight hovered
-    d3.select(this).style('opacity', 1);
-    // Triger over event
-    trigger('mouseover', [d]);
-  });
-  
-  // Mouse leave event
-  svg.on('mouseleave', function(d) {
-    piePieces.style('opacity', 1);
-  });
-
-  return {
-    pieArc: pieArc,
-    piePieces: piePieces
-  };
-}];
+});
 /**
  * Set X/Y scales.
  */
@@ -1293,59 +1279,42 @@ Charicharts.Chart = CClass.extend({
   }
 
 });
-Charicharts.Pie = Pie;
+Charicharts.Pie = CClass.extend({
 
-// Pie constructor.
-function Pie() {
-  this.init.apply(this, arguments);
-  var methods = {};
+  modules: [
+    p_svg,
+    p_pie,
+    // p_pieInnerArrow
+  ],
 
-  if (this._opts.innerArrow) {
-    methods.moveArrowTo = this.$scope.moveArrowTo;
+  getInstanceProperties: function() {
+    return {
+      add: this.$scope.add
+    };
+  },
+
+  defaults: {
+    margin: '0,0,0,0',
+    innerRadius: 0.6,
+    fadeOpacity: 1,
+    innerArrow: false,
+    innerArrowSize: 0.6
+  },
+
+  parseOptions: function(options) {
+    var o = _.extend({}, this.defaults, options);
+    o.margin = _.object(['top', 'right', 'bottom', 'left'],
+      o.margin.split(',').map(Number));
+    o.fullWidth = o.target.offsetWidth;
+    o.fullHeight = o.target.offsetHeight;
+    o.width = o.fullWidth - o.margin.left - o.margin.right;
+    o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+    o.gmainTranslate = h_getTranslate(o.fullWidth/2, o.fullHeight/2);
+    o.radius = Math.min(o.fullWidth, o.fullHeight) / 2;
+    return o;
   }
 
-  return methods;
-}
-
-// Initialize
-Pie.prototype.init = function(opts, data) {
-  this._opts = this.parseOpts(opts);
-  this._data = data;
-  h_loadModules.apply(this, [Pie.modules]);
-};
-
-// Pie parts dependencies
-Pie.modules = [
-  // p_events,
-  p_svg,
-  p_pie,
-  p_pieInnerArrow
-];
-
-Pie.defaults = {
-  margin: '0,0,0,0',
-  innerRadius: 0.5,
-  outerBorder: 0.1,
-  fadeOpacity: 1,
-  innerArrow: false,
-  innerArrowSize: 0.6
-};
-
-Pie.prototype.parseOpts = function(opts) {
-  var o = _.extend({}, Pie.defaults, opts);
-
-  o.margin = _.object(['top', 'right', 'bottom', 'left'],
-    o.margin.split(',').map(Number));
-
-  o.fullWidth = o.target.offsetWidth;
-  o.fullHeight = o.target.offsetHeight;
-  o.width = o.fullWidth - o.margin.left - o.margin.right;
-  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
-  o.gmainTranslate = h_getTranslate(o.fullWidth/2, o.fullHeight/2);
-  o.radius = Math.min(o.fullWidth, o.fullHeight) / 2;
-
-  return o;
-};
+});
 /* jshint ignore:start */
   if (typeof define === 'function' && define.amd) {
     define(Charicharts);
