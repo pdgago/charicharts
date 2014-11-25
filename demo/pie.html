@@ -56,8 +56,15 @@
     var pie = new Charicharts.Pie(options, data);
 
     setInterval(function() {
-      pie.addData
-    }, 3000);
+      data[_.random(0,data.length-1)].value = _.random(1, 100);
+      // pie.update();
+      // data.push({
+      //   value: _.random(1, 100),
+      //   color: color(_.random(0,10))
+      // });
+      // data.shift();
+      pie.update();
+    }, 1500);
   </script>
 
 </body>

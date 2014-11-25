@@ -8,7 +8,7 @@ Charicharts.Pie = CClass.extend({
 
   getInstanceProperties: function() {
     return {
-      add: this.$scope.add
+      update: this.$scope.update
     };
   },
 

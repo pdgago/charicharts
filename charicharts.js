@@ -573,29 +573,24 @@ var p_pie = PClass.extend({
   ],
 
   initialize: function() {
-    // data layout
-    var pieLayout = d3.layout.pie()
-      .sort(null)
-      .value(function(d) {return d.value;});
+    // pie layout
+    this.pie = d3.layout.pie()
+      .value(function(d) {return d.value;})
+      .sort(null);
 
     // Pie arc
-    var pieArc = d3.svg.arc()
+    this.arc = d3.svg.arc()
       .innerRadius(this.opts.radius * this.opts.innerRadius)
       .outerRadius(this.opts.radius);
 
-    // Draw pie
-    var piePieces = this.svg.selectAll('path')
-        .data(pieLayout(this.data))
-        .enter()
-      .append('path')
-      .attr('class', 'pie-piece')
-      .attr('fill', _.bind(function(d) {
-        return d.data.color;
-      }, this))
-      .attr('d', pieArc);
+    // Paths
+    this.path = this.svg.selectAll('path');
+    this.update();
 
     return {
-      add: this.add
+      update: _.bind(this.update, this),
+      path: this.path,
+      arc: this.arc
     };
   },
 
@@ -603,8 +598,31 @@ var p_pie = PClass.extend({
    * Update the pie.
    */
   update: function() {
+    var self = this;
+    var data = this.pie(this.data);
+    this.path = this.path.data(data);
 
-  }
+    this.path.enter().append('path')
+      .each(function(d, i) {
+        this._current = d;
+      })
+      .attr('class', 'pie-piece');
+
+    this.path.attr('fill', function(d) {return d.data.color;});
+    this.path.exit().remove();
+
+    this.path.transition()
+      .duration(300)
+      .attrTween('d', arcTween);
+
+    function arcTween(d) {
+      var i = d3.interpolate(this._current, d);
+      this._current = i(0);
+      return function(t) {
+        return self.arc(i(t));
+      };
+    }
+  },
 
 });
 /**
@@ -1289,7 +1307,7 @@ Charicharts.Pie = CClass.extend({
 
   getInstanceProperties: function() {
     return {
-      add: this.$scope.add
+      update: this.$scope.update
     };
   },
 
