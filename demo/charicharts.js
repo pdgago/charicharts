@@ -312,6 +312,12 @@ var StatusClass = Class.extend({
   }
 
 });
+/**
+ * Axes Module
+ * -----------
+ * Add x/y axes to the given svg.
+ * 
+ */
 var p_axes = PClass.extend({
 
   deps: [
@@ -480,6 +486,130 @@ var p_axes = PClass.extend({
 
 });
 /**
+ * Percentage Bar
+ * --------------
+ * Add a percentage bar to the supplied svg.
+ * 
+ */
+var p_percentage_bar = PClass.extend({
+
+  deps: [
+    'svg',
+    'opts',
+    'data'
+  ],
+
+  initialize: function() {
+    this.opts.gridTicks && this._renderGrid();
+
+    switch(this.opts.orientation) {
+      case 'vertical': this._renderVertical(); break;
+      case 'horizontal': this._renderHorizontal(); break;}
+
+    this._setEvents();
+
+    return {
+      path: this.path
+    };
+  },
+
+  _setEvents: function() {
+    var self = this;
+    this.path.on('mouseover', function(d) {
+      self.path.style('opacity', self.opts.hoverFade);
+      d3.select(this).style('opacity', 1);
+      self.on('Bar-piece/mouseover', [d]);
+    });
+
+    this.svg.on('mouseleave', function() {
+      self.path.style('opacity', 1);
+    });
+  },
+
+  _renderHorizontal: function() {
+    var total = d3.sum(_.pluck(this.data, 'value'));
+    var x0 = 0;
+
+    var data = _.map(this.data,
+      function(d) {
+        var v = {
+          x0: x0,
+          x1: d.value * 100 / total,
+          color: d.color
+        };
+        x0 += v.x1;
+        return v;
+      });
+
+    this.path = this.svg.selectAll('rect')
+        .data(data)
+      .enter().append('rect')
+        .attr('x', function(d, i) {
+          return d.x0 + '%';
+        })
+        .attr('y', 0)
+        .attr('width', function(d) {
+          return d.x1 + '%';
+        })
+        .attr('height', this.opts.fullHeight)
+        .style('fill', function(d) {
+          return d.color;
+        });
+  },
+
+  _renderVertical: function() {
+    var total = d3.sum(_.pluck(this.data, 'value'));
+    var y0 = 0;
+
+    var data = _.map(this.data,
+      function(d) {
+        var v = {
+          y0: y0,
+          y1: d.value * 100 / total,
+          color: d.color
+        };
+        y0 += v.y1;
+        return v;
+      });
+
+    this.path = this.svg.selectAll('rect')
+        .data(data)
+      .enter().append('rect')
+        .attr('x', 0)
+        .attr('y', function(d) {
+          return d.y0 + '%';
+        })
+        .attr('width', this.opts.width)
+        .attr('height', function(d) {
+          return d.y1 + '%';
+        })
+        .style('fill', function(d) {
+          return d.color;
+        });
+  },
+
+  /**
+   * Renders grid on the background.
+   */
+  _renderGrid: function() {
+    var separation = this.opts.fullHeight / (this.opts.gridTicks-1) - 1/this.opts.gridTicks;
+
+    this.grid = this.svg.append('g')
+      .attr('transform', h_getTranslate(-this.opts.margin.left, -this.opts.margin.top))
+      .attr('class', 'grid');
+
+    for (var i = 0; i < this.opts.gridTicks; i++) {
+      this.grid.append('line')
+        .attr('x1', 0)
+        .attr('x2', this.opts.fullWidth)
+        .attr('y1', separation*i)
+        .attr('y2', separation*i)
+        .attr('stroke', 'red');
+    }
+  }
+
+});
+/**
  * Pie Inner Arrow
  * ---------------
  * Add an inner arrow into the scope pie.
@@ -541,15 +671,11 @@ var p_pie_inner_arrow = PClass.extend({
         .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
           -(arrowSize/2), arrowSize, arrowSize/2));
 
-    // Draw arrow
-    var x = this.opts.radius * Math.cos(0);
-    var y = this.opts.radius * Math.sin(0);
-
     this.innerArrow = this.svg.append('svg:line')
       .attr('x1', 0)
       .attr('y1', 0)
-      .attr('x2', x)
-      .attr('y2', y)
+      .attr('x2', this.opts.radius)
+      .attr('y2', 0)
       .attr('class', 'inner-arrow')
       .style('stroke', 'transparent')
       .attr('marker-end', 'url(#innerArrow)');
@@ -590,7 +716,6 @@ var p_pie_inner_arrow = PClass.extend({
     if (!this._current) {return;}
     this.moveArrowToId(this._current.data.id);
   }
-
 
 });
 /**
@@ -680,7 +805,7 @@ var p_pie = PClass.extend({
 
     this.path.on('mouseover', function(d) {
       self.path.exit();
-      self.path.style('opacity', self.opts.fadeOpacity);
+      self.path.style('opacity', self.opts.hoverFade);
       d3.select(this).style('opacity', 1);
       self.trigger('Pie-piece/mouseover', [d]);
     });
@@ -692,13 +817,16 @@ var p_pie = PClass.extend({
 
 });
 /**
- * Set X/Y scales.
+ * Scale Module
+ * ------------
+ * Set X/Y scales from the given data.
+ * 
  */
 var p_scale = PClass.extend({
 
   deps: [
-    'data',
-    'opts'
+    'opts',
+    'data'
   ],
 
   _subscriptions: [{
@@ -1022,103 +1150,11 @@ var p_series = PClass.extend({
 
 });
 /**
- * Get d3 path generator Function for bars.
- *
- * @param  {Array}    scales [x,y] scales
- * @return {Function}        D3 line path generator
+ * Svg Module
+ * ----------
+ * Append a svg to the given opts.target.
+ * 
  */
-var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'height', 'on',
-  function(svg, xscale, yscale, trigger, series, width, height, on) {
-
-    /**
-     * Draw a bar for the given serie.
-     */
-    function drawBar(serie) {
-      serie.values.forEach(function(v) {
-        var y0 = 0;
-
-        v.scrutinized.forEach(function(d) {
-          d.y0 = y0;
-          d.y1 = y0 += Math.max(0, d.value); // Math.max(0, d.value); // negatives to zero
-        });
-
-        v.total = v.scrutinized[v.scrutinized.length - 1].y1;
-      });
-
-      var stackedBar = svg.selectAll('stacked-bar')
-        .data(serie.values)
-        .enter().append('g')
-        .attr('transform', function(d) {
-          var x;
-
-          // Todo => Trick to get a single bar on the right.
-          // It's better to have it under Charichart.Bar.
-          if (series.stackedBarAlign === 'right') {
-            x = width - series.barWidth;
-          } else {
-            x = xscale(d.datetime);
-          }
-
-          return h_getTranslate(x, 0);
-        });
-
-      var bars = stackedBar.selectAll('rect')
-        .data(function(d) {
-          return d.scrutinized;
-        })
-        .enter().append('rect')
-        .attr('id', function(d) {
-          return d.id;
-        })
-        .attr('width', series.barWidth)
-        .attr('y', function(d) {
-          return yscale(d.y1);
-        })
-        .attr('height', function(d) {
-          return yscale(d.y0) - yscale(d.y1);
-        })
-        .style('cursor', 'pointer')
-        .style('fill', function(d) {
-          return d.color;
-        })
-        .on('mousemove', function(d) {
-          trigger('mouseoverStackbar', [d, d3.mouse(this)]);
-        });
-
-      // quick thing: refactor this
-      on('stackbar-over', function(id) {
-        var el = _.filter(bars[0], function(el) {
-          return el.id === String(id);
-        })[0];
-        var centroid = h_getCentroid(d3.select(el));
-        d3.select(el).each(function(d) {
-          trigger('mouseoverStackbar', [d3.select(el).data()[0], centroid]);
-        });
-      });
-
-      /**
-       * Trigger mouseoverStackbar for the given selection.
-       * TODO => This is probably better on the user side, we could
-       * return bars array, and the user can do anything he wants.
-       * 
-       * @param  {Object} selection d3 selection
-       */
-      function triggerSelect(selection) {
-        selection.each(function(d) {
-          trigger('mouseoverStackbar', [d, h_getCentroid(selection)]);
-        });
-      }
-
-      setTimeout(function() {
-        triggerSelect(d3.select(_.first(bars[0])));
-      }, 0);
-    }
-
-    return {
-      drawBar: drawBar
-    };
-  }
-];
 var p_svg = PClass.extend({
 
   deps: [
@@ -1136,11 +1172,11 @@ var p_svg = PClass.extend({
   drawSvg: function() {
     return d3.select(this.opts.target)
       .append('svg')
-        .attr('width', this.opts.responsive ?  '100%' : this.opts.fullWidth)
+        .attr('width', this.opts.fullWidth)
         .attr('height', this.opts.fullHeight)
       .append('g')
         .attr('class', 'g-main')
-        .attr('transform', this.opts.gmainTranslate);    
+        .attr('transform', this.opts.gmainTranslate);
   }
 
 });
@@ -1255,7 +1291,6 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
         .attr('x2', x);
     }
 }];
-
 Charicharts.Chart = CClass.extend({
 
   modules: [
@@ -1361,6 +1396,47 @@ Charicharts.Chart = CClass.extend({
   }
 
 });
+Charicharts.PercentageBar = CClass.extend({
+
+  modules: [
+    p_svg,
+    p_percentage_bar
+  ],
+
+  getInstanceProperties: function() {
+    var methods = {};
+    return methods;
+  },
+
+  defaults: {
+    margin: '0 0 0 0',
+    orientation: 'horizontal',
+    hoverFade: 0.6,
+    gridTicks: 0
+  },
+
+  parseOptions: function(options) {
+    var o = _.extend({}, this.defaults, options);
+
+    o.margin = _.object(['top', 'right', 'bottom', 'left'],
+      o.margin.split(' ').map(Number));
+
+    var responsive = !o.margin.left && !o.margin.right;
+
+    o.fullWidth = responsive ? '100%' : o.target.offsetWidth;
+    o.fullHeight = o.target.offsetHeight;
+
+    if (!responsive) {
+      o.width = o.fullWidth - o.margin.left - o.margin.right;
+    }
+
+    o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+    o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
+    console.log(o);
+    return o;
+  }
+
+});
 Charicharts.Pie = CClass.extend({
 
   modules: [
@@ -1384,8 +1460,8 @@ Charicharts.Pie = CClass.extend({
   defaults: {
     margin: '0,0,0,0',
     innerRadius: 0.6,
-    fadeOpacity: 1,//0.4,
-    innerArrow: true,
+    hoverFade: 1,
+    innerArrow: false,
     innerArrowSize: 0.5
   },
 

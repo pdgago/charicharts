@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body {
+    width: 50%;
+    height: 30px;
+  }
+</style>
+<body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script src="charicharts.js"></script>
+<script>
+
+var color = d3.scale.category10();
+
+var data = _.map(_.range(8), function(d, i) {
+  return {
+    value: _.random(1, 100),
+    color: color(i)
+  }
+});
+
+var bar = new Charicharts.PercentageBar({
+  target: d3.select('body').node()
+}, data);
+
+</script>

@@ -1,3 +1,9 @@
+/**
+ * Axes Module
+ * -----------
+ * Add x/y axes to the given svg.
+ * 
+ */
 var p_axes = PClass.extend({
 
   deps: [

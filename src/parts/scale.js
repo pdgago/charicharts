@@ -1,11 +1,14 @@
 /**
- * Set X/Y scales.
+ * Scale Module
+ * ------------
+ * Set X/Y scales from the given data.
+ * 
  */
 var p_scale = PClass.extend({
 
   deps: [
-    'data',
-    'opts'
+    'opts',
+    'data'
   ],
 
   _subscriptions: [{

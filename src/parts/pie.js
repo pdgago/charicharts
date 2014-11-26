@@ -85,7 +85,7 @@ var p_pie = PClass.extend({
 
     this.path.on('mouseover', function(d) {
       self.path.exit();
-      self.path.style('opacity', self.opts.fadeOpacity);
+      self.path.style('opacity', self.opts.hoverFade);
       d3.select(this).style('opacity', 1);
       self.trigger('Pie-piece/mouseover', [d]);
     });

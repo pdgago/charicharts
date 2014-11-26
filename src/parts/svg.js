@@ -1,3 +1,9 @@
+/**
+ * Svg Module
+ * ----------
+ * Append a svg to the given opts.target.
+ * 
+ */
 var p_svg = PClass.extend({
 
   deps: [
@@ -15,11 +21,11 @@ var p_svg = PClass.extend({
   drawSvg: function() {
     return d3.select(this.opts.target)
       .append('svg')
-        .attr('width', this.opts.responsive ?  '100%' : this.opts.fullWidth)
+        .attr('width', this.opts.fullWidth)
         .attr('height', this.opts.fullHeight)
       .append('g')
         .attr('class', 'g-main')
-        .attr('transform', this.opts.gmainTranslate);    
+        .attr('transform', this.opts.gmainTranslate);
   }
 
 });

@@ -60,15 +60,11 @@ var p_pie_inner_arrow = PClass.extend({
         .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
           -(arrowSize/2), arrowSize, arrowSize/2));
 
-    // Draw arrow
-    var x = this.opts.radius * Math.cos(0);
-    var y = this.opts.radius * Math.sin(0);
-
     this.innerArrow = this.svg.append('svg:line')
       .attr('x1', 0)
       .attr('y1', 0)
-      .attr('x2', x)
-      .attr('y2', y)
+      .attr('x2', this.opts.radius)
+      .attr('y2', 0)
       .attr('class', 'inner-arrow')
       .style('stroke', 'transparent')
       .attr('marker-end', 'url(#innerArrow)');
@@ -109,6 +105,5 @@ var p_pie_inner_arrow = PClass.extend({
     if (!this._current) {return;}
     this.moveArrowToId(this._current.data.id);
   }
-
 
 });

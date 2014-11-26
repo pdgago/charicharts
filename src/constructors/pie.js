@@ -21,8 +21,8 @@ Charicharts.Pie = CClass.extend({
   defaults: {
     margin: '0,0,0,0',
     innerRadius: 0.6,
-    fadeOpacity: 1,//0.4,
-    innerArrow: true,
+    hoverFade: 1,
+    innerArrow: false,
     innerArrowSize: 0.5
   },
 
