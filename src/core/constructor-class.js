@@ -12,9 +12,12 @@ var CClass = Class.extend({
 
     // Set events module into the $scope.
     _.extend(this.$scope, charichartsEvents());
-
     this._loadModules(this._modules);
-    return this.getInstanceProperties();
+
+    return _.extend(this.getInstanceProperties(), {
+      on: this.$scope.on,
+      unbind: this.$scope.unbind
+    });
   },
 
   _loadModules: function() {

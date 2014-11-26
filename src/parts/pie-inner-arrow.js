@@ -1,85 +1,114 @@
-var p_pieInnerArrow = ['opts', 'svg', 'on', 'trigger', 'pieArc', 'piePieces',
-  function(opts, svg, on, trigger, pieArc, piePieces) {
+/**
+ * Pie Inner Arrow
+ * ---------------
+ * Add an inner arrow into the scope pie.
+ * 
+ */
+var p_pie_inner_arrow = PClass.extend({
 
-    function setArrow() {
-      var radius = opts.radius * (1 - opts.outerBorder),
-          diameter = radius * (opts.innerRadius) * 2,
-          arrowSize;
+  deps: [
+    'opts',
+    'svg',
+    'path',
+    'arc'
+  ],
 
-      if (diameter < arrowSize) {
-        arrowSize = diameter * 0.5;
-      } else {
-        arrowSize = radius * opts.innerArrowSize * (1 - opts.innerRadius);
-      }
-
-      // Define arrow
-      svg.append('svg:marker')
-          .attr('id', 'innerArrow')
-          .attr('viewBox', '0 {0} {1} {2}'.format(
-            -(arrowSize/2), arrowSize, arrowSize))
-          .attr('refX', (radius * (1-opts.innerRadius)) + 5)
-          .attr('refY', 0)
-          .attr('fill', 'white')
-          .attr('markerWidth', arrowSize)
-          .attr('markerHeight', arrowSize)
-          .attr('orient', 'auto')
-        .append('svg:path')
-          .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
-            -(arrowSize/2), arrowSize, arrowSize/2));
-
-      // Draw arrow
-      var innerArrow = svg.append('line')
-        .attr('class', 'outer-border')
-        .style('stroke', 'transparent')
-        .attr('x1', 0)
-        .attr('x2', 0)
-        .attr('y1', 0)
-        .attr('y2', 0)
-        .attr('marker-end', 'url(#innerArrow)');
-
-      on('mouseover', function(d) {
-        arrowPosition(d);
-      });
-
-      /**
-       * Move arrow to the given d object.
-       */
-      function arrowPosition(d) {
-        var coords = pieArc.centroid(d),
-            angle = h_getAngle(coords[0], coords[1]),
-            cos = Math.cos(angle),
-            sin = Math.sin(angle),
-            x = radius * cos,
-            y = radius * sin;
-
-        if (!x || !y) {return;}
-
-        innerArrow
-          .attr('x2', x)
-          .attr('y2', y);
-      }
-
-      // Select automatically first pie piece.
-      setTimeout(function() {
-        var d = piePieces.data()[0];
-        trigger('mouseover', [d]);
-      }, 0);
+  _subscriptions: [{
+    'Pie-piece/mouseover': function(d) {
+      this._moveArrow(d);
     }
-
-    /**
-     * Move arrow to the given data object id.
-     */
-    function moveArrowTo(id) {
-      piePieces.each(function(d) {
-        if (d.data.id !== id) {return;}
-        trigger('mouseover', [d]);
-      });
+  }, {
+    'Pie/updated': function() {
+      this._update();
     }
+  }],
 
-    if (opts.innerArrow) {
-      setArrow();
-      return {
-        moveArrowTo: moveArrowTo
-      };
-    }
-  }];
+  initialize: function() {
+    if (!this.opts.innerArrow) {return;}
+    var self = this;
+    this._drawArrow();
+
+    // Move arrow to first piece onload
+    setTimeout(function() {
+      var d = self.path.data()[0];
+      self.moveArrowToId(d.data.id);
+    }, 0);
+
+    return {
+      moveArrowToId: _.bind(this.moveArrowToId, this)
+    };
+  },
+
+  /**
+   * Draw the arrow!
+   */
+  _drawArrow: function() {
+    var arrowSize = this.opts.radius * this.opts.innerArrowSize * (1 - this.opts.innerRadius);
+
+    // Define arrow
+    this.svg.append('svg:marker')
+        .attr('id', 'innerArrow')
+        .attr('viewBox', '0 {0} {1} {2}'.format(
+          -(arrowSize/2), arrowSize, arrowSize))
+        .attr('refX', (this.opts.radius * (1-this.opts.innerRadius)) + 5)
+        .attr('refY', 0)
+        .attr('fill', 'white')
+        .attr('markerWidth', arrowSize)
+        .attr('markerHeight', arrowSize)
+        .attr('orient', 'auto')
+      .append('svg:path')
+        .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
+          -(arrowSize/2), arrowSize, arrowSize/2));
+
+    // Draw arrow
+    var x = this.opts.radius * Math.cos(0);
+    var y = this.opts.radius * Math.sin(0);
+
+    this.innerArrow = this.svg.append('svg:line')
+      .attr('x1', 0)
+      .attr('y1', 0)
+      .attr('x2', x)
+      .attr('y2', y)
+      .attr('class', 'inner-arrow')
+      .style('stroke', 'transparent')
+      .attr('marker-end', 'url(#innerArrow)');
+  },
+
+  /**
+   * Move arrow to the given data object.
+   */
+  _moveArrow: function(d) {
+    var coords = this.arc.centroid(d),
+        angle = h_getAngle.apply(this, coords),
+        rotation = angle * (180/Math.PI);
+
+    this.innerArrow
+      .transition()
+      .duration(200)
+      .attr('transform', 'translate(0) rotate('+ rotation +')');
+
+    this._current = d;
+    this.trigger('Pie-arrow/moved', [d]);
+  },
+
+  /**
+   * Move arrow to the given piece id;
+   */
+  moveArrowToId: function(id) {
+    var self = this;
+    this.path.each(function(d) {
+      if (d.data.id !== id) {return;}
+      self._moveArrow(d);
+    });
+  },
+
+  /**
+   * Update arrow position if the path has changed.
+   */
+  _update: function() {
+    if (!this._current) {return;}
+    this.moveArrowToId(this._current.data.id);
+  }
+
+
+});

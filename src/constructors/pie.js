@@ -3,21 +3,27 @@ Charicharts.Pie = CClass.extend({
   modules: [
     p_svg,
     p_pie,
-    // p_pieInnerArrow
+    p_pie_inner_arrow
   ],
 
   getInstanceProperties: function() {
-    return {
+    var methods = {
       update: this.$scope.update
     };
+
+    if (this.$scope.moveArrowToId) {
+      methods.moveArrowToId = this.$scope.moveArrowToId;
+    }
+
+    return methods;
   },
 
   defaults: {
     margin: '0,0,0,0',
     innerRadius: 0.6,
-    fadeOpacity: 1,
-    innerArrow: false,
-    innerArrowSize: 0.6
+    fadeOpacity: 1,//0.4,
+    innerArrow: true,
+    innerArrowSize: 0.5
   },
 
   parseOptions: function(options) {
