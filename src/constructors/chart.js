@@ -21,15 +21,10 @@ Charicharts.Chart = CClass.extend({
   defaults: {
     margin: '0,0,0,0',
     trail: false,
-    // Series options.
-    series: {
-      barWidth: 12,
-      stackedBarAlign: 'right'
-    },
     // Xaxis Options.
     xaxis: {
       scale: 'time',
-      fit: false,
+      fit: true,
       ticks: false,
       top: {
         enabled: false,
@@ -42,7 +37,7 @@ Charicharts.Chart = CClass.extend({
         enabled: true,
         label: false,
         tickFormat: function(d) {
-          return d.getMonth();
+          return d;
         }
       }  
     },
@@ -83,7 +78,7 @@ Charicharts.Chart = CClass.extend({
     o.yaxis.right = _.extend({}, this.defaults.yaxis.right, o.yaxis.right);
 
     o.margin = _.object(['top', 'right', 'bottom', 'left'],
-      o.margin.split(',').map(Number));
+      o.margin.split(' ').map(Number));
 
     /**
      * Axis labels padding.

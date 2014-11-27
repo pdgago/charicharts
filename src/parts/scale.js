@@ -11,18 +11,18 @@ var p_scale = PClass.extend({
     'data'
   ],
 
+  _d3Scales: {
+    'time': d3.time.scale.utc,
+    'ordinal': d3.scale.ordinal,
+    'linear': d3.scale.linear
+  },
+
   _subscriptions: [{
     /**
      * Triggered when the serie gets updated with new data.
-     * @param  {Object} data Single data object
      */
     'Serie/update': function() {
-      // Update data
-      this._dataFlattened = this._getFlattenedData();
-
-      // Update scales
-      this.xscale = this._getXScale();
-      this.yscale = this._getYScale();
+      this._setScales();
 
       // Emit them to all scopes
       this.emit({
@@ -30,84 +30,32 @@ var p_scale = PClass.extend({
         yscale: this.yscale
       });
 
-      this.trigger('Scale/update', []);
+      this.trigger('Scale/updated', []);
     }
   }],
 
-  _d3Scales: {
-    'time': d3.time.scale.utc,
-    'ordinal': d3.scale.ordinal,
-    'linear': d3.scale.linear
-  },
-
   initialize: function() {
-    this._dataFlattened = this._getFlattenedData();
-    this.xscale = this._getXScale();
-    this.yscale = this._getYScale();
-
-    return {
-      xscale: this.xscale,
-      yscale: this.yscale
-    };
+    this._setScales();
+    return {xscale: this.xscale, yscale: this.yscale};
   },
 
-  /**
-   * Get this.data flattened of all series.
-   * Handy when we need to get the extent.
-   */
-  _getFlattenedData: function() {
-    return _.flatten(_.map(this.data, function(d) {
-      return d.values;
-    }));
-  },
+  _getScale: function(position) {
+    var opts = this.opts[position + 'axis'],
+        domain = this._getExtent(position, opts.fit),
+        range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
-  /**
-   * Returns the xscale.
-   */
-  _getXScale: function() {
-    var domain = this._getDomain(this.opts.xaxis.scale, this.opts.xaxis.fit);
-    return this._d3Scales[this.opts.xaxis.scale]()
+    return this._d3Scales[opts.scale]()
       .domain(domain)
-      .range([0, this.opts.width]);
+      .range(range);
+      // .nice(); // Extends the domain so that it starts and ends on nice round values.
   },
 
-  /**
-   * Returns the yscale.
-   */
-  _getYScale: function() {
-    var domain = this._getDomain(this.opts.yaxis.scale, this.opts.yaxis.fit);
-
-    return this._d3Scales[this.opts.yaxis.scale]()
-      .domain(domain)
-      .range([this.opts.height, 0])
-      .nice(); // Extends the domain so that it starts and ends on nice round values.
-  },
-
-  _getDomain: function(scale, fit) {
-    if (scale === 'time') {
-      return this._getTimeDomain();
-    }
-
-    if (fit) {
-      return this._getLinearFitDomain();
-    } else {
-      return this._getLinearAllDomain();
-    }
-  },
-
-  _getTimeDomain: function() {
-    return d3.extent(this._dataFlattened, function(d) {
-      return d.datetime;
-    });
-  },
-
-  _getLinearAllDomain: function() {
+  _getExtent: function(position, fit) {
     var extent = d3.extent(this._dataFlattened, function(d) {
-      if (d.scrutinized) {
-        return d3.sum(_.pluck(d.scrutinized, 'value'));
-      }
-      return Number(d.value);
+      return d[position];
     });
+
+    if (fit) {return extent;}
 
     // Positive scale
     if (extent[0] >= 0) {
@@ -115,19 +63,27 @@ var p_scale = PClass.extend({
     }
 
     // Negative-Positive scale
+    // In this case min an max are the same values.
     var absX = Math.abs(extent[0]);
     var absY = Math.abs(extent[1]);
     var val = (absX > absY) ? absX : absY;
     return [-val, val];
   },
 
-  _getLinearFitDomain: function() {
-    return d3.extent(this._dataFlattened, function(d) {
-      if (d.scrutinized) {
-        return d3.sum(_.pluck(d.scrutinized, 'value'));
-      }
-      return d.value;
-    });
-  }
+  /**
+   * Get this.data flattened of all series.
+   * Handy when we need to get the extent.
+   */
+  _setFlattenedData: function() {
+    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
+      return d.values;
+    }));
+  },
+
+  _setScales: function() {
+    this._setFlattenedData();
+    this.xscale = this._getScale('x');
+    this.yscale = this._getScale('y');
+  },
 
 });

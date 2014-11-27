@@ -1,7 +1,7 @@
 /**
  * Axes Module
  * -----------
- * Add x/y axes to the given svg.
+ * Add x/y axis.
  * 
  */
 var p_axes = PClass.extend({
@@ -15,159 +15,133 @@ var p_axes = PClass.extend({
 
   _subscriptions: [{
     /**
-     * Updates the axes when the scale has been updated.
+     * Update the axes when the scales have changed.
      */
-    'Scale/update': function() {
-      // update the series
-      this.axis
-        .transition()
-        .duration(500)
-        .ease('linear')
-        .call(this.a.scale(this.xscale).orient('bottom'));
+    'Scale/updated': function() {
+      var axes = this.status.get('axes');
+      _.each(axes, this._updateAxis, this);
     }
   }],
 
   initialize: function() {
-    console.log(this.status);
-    if (this.opts.yaxis.left.enabled) {
-      this._setAxis('left');
-    }
-
-    if (this.opts.yaxis.right.enabled) {
-      this._setAxis('right');
-    }
-
-    if (this.opts.xaxis.top.enabled) {
-      this._setAxis('top');
-    }
-
-    if (this.opts.xaxis.bottom.enabled) {
-      this._setAxis('bottom');
-    }
-
-    if (this.opts.yaxis.left.enabled || this.opts.yaxis.right.enabled) {
-      this._setYGrid();
-    }
-
-    if (this.opts.xaxis.top.enabled || this.opts.xaxis.bottom.enabled) {
-      this._addBottomDomain();
-    }
+    this._initAxesModel();
+    _.each(this.status.get('axes'), this._renderAxis, this);
   },
 
-  _setAxis: function(orient) {
-    var params = {
-      'bottom': {
-        axis: 'xaxis',
-        translate: h_getTranslate(0, this.opts.height),
-        textAnchor: 'middle',
-      },
-      'top': {
-        axis: 'xaxis',
-        translate: h_getTranslate(0, 0),
-        textAnchor: 'middle'
-      },
-      'left': {
-        axis: 'yaxis',
-        translate: h_getTranslate(0, 0),
-        textAnchor: 'start'
-      },
-      'right': {
-        axis: 'yaxis',
-        translate: h_getTranslate(this.opts.width + this.opts.margin.right, 0),
-        textAnchor: 'end'
-      }
+  _renderAxis: function(model, orient) {
+    switch(orient) {
+      // case 'top': this._renderTop(model); break;
+      case 'bottom': this._renderBottom(model); break;
+      case 'left': this._renderLeft(model); break;
+      case 'right': this._renderRight(model); break;}
+    this._afterAxisChanges();
+  },
+
+  _renderTop: function(model) {
+  },
+
+  _renderBottom: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.xscale)
+      .orient('bottom')
+      .tickSize(this.opts.height)
+      .tickFormat(this.opts.xaxis.bottom.tickFormat);
+
+    model.el = this.svg.append('g')
+      .attr('class', 'xaxis bottom')
+      .call(model.axis);
+  },
+
+  _renderLeft: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.yscale)
+      .orient('left')
+      .tickSize(-this.opts.width)
+      .tickPadding(this.opts.margin.left)
+      .tickFormat(this.opts.yaxis.left.tickFormat),
+
+    model.el = this.svg.append('g')
+      .attr('class', 'yaxis left')
+      .call(model.axis);
+  },
+
+  _renderRight: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.yscale)
+      .orient('right')
+      .tickSize(this.opts.width)
+      .tickPadding(0) // defaults to 3
+      .tickFormat(this.opts.yaxis.right.tickFormat);
+
+    model.el = this.svg.append('g')
+      .attr('class', 'yaxis right')
+      .call(model.axis);
+  },
+
+  /**
+   * Update given axis when the scales changes.
+   */
+  _updateAxis: function(model, orient) {
+    var scale = (orient === 'top' || orient === 'bottom') ?
+      this.xscale : this.yscale;
+
+    model.el.transition()
+      .duration(500)
+      .ease('linear')
+      .call(model.axis.scale(scale));
+
+    this._afterAxisChanges(model);
+  },
+
+  /**
+   * Set axes object in status model.
+   */
+  _initAxesModel: function() {
+    var self = this,
+        axes = {};
+
+    var axesEnabled = {
+      top: this.opts.xaxis.top.enabled,
+      right: this.opts.yaxis.right.enabled,
+      bottom: this.opts.xaxis.bottom.enabled,
+      left: this.opts.yaxis.left.enabled
     };
 
-    var p = params[orient];
+    _.each(axesEnabled, function(enabled, orient) {
+      if (!enabled) {return;}
+      axes[orient] = {};
+    });
 
-    // Set axis
-    var axis = d3.svg.axis()
-      .scale(p.axis === 'xaxis' ? this.xscale : this.yscale)
-      .orient(orient)
-      .tickFormat(this.opts[p.axis][orient].tickFormat);
+    this.status.set({axes: axes});
+  },
 
-    if (this.opts[p.axis].ticks) {
-      axis.ticks.apply(this, this.opts[p.axis].ticks);
-    }
-
-    // Draw axis
-    var axisG = this.svg.append('g')
-      .attr('class', p.axis + ' ' + orient)
-      .attr('transform', p.translate)
-      .call(axis);
-
-    if (orient === 'bottom') {
-      this.a = axis;
-      this.axis = axisG;
-    }
-
-    // Axis ticks texts
-    var axisGTexts = axisG.selectAll('text');
-    axisGTexts.style('text-anchor', p.textAnchor);
-
-    if (p.axis === 'yaxis') {
-      axisGTexts
-        .attr('x', orient === 'left' ? -this.opts.margin.left : 0)
-        .attr('y', this.opts.yaxis.textMarginTop);
-    }
-
+  /**
+   * Stuff to do when the axes have been
+   * rendered or updated.
+   */
+  _afterAxisChanges: function(model) {
+    // remove domain
     this.svg.select('.yaxis .domain').remove();
     this.svg.select('.xaxis .domain').remove();
 
-    // // Axis ticks texts
-    // if (this.opts[p.axis][orient].label) {
-    //   this._setLabel(axisG, this.opts[p.axis][orient].label, orient);
-    // }
+    this.svg.selectAll('.yaxis.left text')
+      .style('text-anchor', 'start', 'important');
+
+    this.svg.selectAll('.yaxis.right text')
+      .style('text-anchor', 'end', 'important')
+      .attr('transform', h_getTranslate(this.opts.margin.right, this.opts.yaxis.textMarginTop));
+
+    if (this.opts.yaxis.textMarginTop) {
+      this.svg.selectAll('.yaxis.left text')
+        .attr('transform', h_getTranslate(0, this.opts.yaxis.textMarginTop));
+    }
+
+    // yaxis full grid
+    if (this.opts.yaxis.fullGrid) {
+      this.svg.selectAll('.yaxis line')
+        .attr('transform', h_getTranslate(+this.opts.margin.left ,0))
+        .attr('x1', -this.opts.margin.left*2);
+    }
   },
-
-  _addBottomDomain: function() {
-    this.svg.selectAll('.xaxis')
-      .append('path')
-      .attr('class', 'xaxis-domain')
-      .attr('d', 'M{0},0H{1}'.format(-this.opts.margin.left, this.opts.fullWidth));
-  },
-
-  _setYGrid: function() {
-    this.svg.select('.yaxis')
-      .selectAll('line')
-        .attr('x1', this.opts.yaxis.fullGrid ? -this.opts.margin.left : 0)
-        .attr('x2', this.opts.yaxis.fullGrid ? this.opts.width + this.opts.margin.right : this.opts.width)
-        // add zeroline class
-        .each(function(d) {
-          if (d !== 0) {return;}
-          d3.select(this).attr('class', 'zeroline');
-        });    
-  },
-
-  _setLabel: function(axisG, label, orient) {
-    // 'top' Not supported right now
-    if (orient === 'top') {return;}
-    var params = {
-      'bottom': {
-        x: 0 - this.opts.margin.left,
-        y: this.opts.margin.bottom -7,
-        textAnchor: 'start'
-      },
-      'left': {
-        x: -this.opts.margin.left,
-        y: this.opts.yaxis.textMarginTop - 20,
-        textAnchor: 'start'
-      },
-      'right': {
-        x: 0,
-        y: this.opts.yaxis.textMarginTop - 20,
-        textAnchor: 'end'
-      }
-    };
-
-    var p = params[orient];
-
-    axisG.append('text')
-      .attr('class', 'label')
-      .attr('x', p.x)
-      .attr('y', p.y)
-      .attr('text-anchor', p.textAnchor)
-      .text(label);
-  }
 
 });

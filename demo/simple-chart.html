@@ -1,11 +1,82 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
+  body {
+    width: 500px;
+    height: 500px;
+    font-family: 'Helvetica', sans-serif;
+    font-size: 12px;
+  }
+  .serie-line {
+    fill: transparent;
+    stroke-width: 2px;
+    /*stroke: transparent;*/
+  }
+  .yaxis line,
+  .xaxis line {
+    stroke: #ddd;
+    shape-rendering: crispEdges;
+  }
 </style>
 <body>
 <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
 <script src="http://d3js.org/d3.v3.js"></script>
 <script src="charicharts.js"></script>
 <script>
+
+var color = d3.scale.category10()
+    random = d3.random.normal(0, 1),
+    data1 = getData(23);
+
+var data = [{
+  id: 1004,
+  type: 'line',
+  values: data1,
+  interpolation: 'basis',
+  color: color(0)
+}];
+
+var options = {
+  target: d3.select('body').node(),
+  margin: '10 60 25 60',
+  xaxis: {
+    scale: 'linear',
+    fit: true,
+  },
+  yaxis: {
+    fit: true,
+    textMarginTop: -10,
+    right: {
+      enabled: true
+    },
+    left: {
+    }
+  }
+};
+
+var chart = new Charicharts.Chart(options, data);
+
+setInterval(function() {
+  update(data1);
+}, 500);
+
+function update(data) {
+  data.push(randomItem(data[data.length-1].x + 1));
+  data.shift();
+  chart.update();
+}
+
+function randomItem(i) {
+  return {
+    x: i,
+    y: Math.abs(random()),
+  };
+}
+
+function getData(n) {
+  return d3.range(n).map(function(x) {
+    return randomItem(x);
+  });
+}
 
 </script>

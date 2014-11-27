@@ -19,7 +19,7 @@ Charicharts.Pie = CClass.extend({
   },
 
   defaults: {
-    margin: '0,0,0,0',
+    margin: '0 0 0 0',
     innerRadius: 0.6,
     hoverFade: 1,
     innerArrow: false,
@@ -29,7 +29,7 @@ Charicharts.Pie = CClass.extend({
   parseOptions: function(options) {
     var o = _.extend({}, this.defaults, options);
     o.margin = _.object(['top', 'right', 'bottom', 'left'],
-      o.margin.split(',').map(Number));
+      o.margin.split(' ').map(Number));
     o.fullWidth = o.target.offsetWidth;
     o.fullHeight = o.target.offsetHeight;
     o.width = o.fullWidth - o.margin.left - o.margin.right;

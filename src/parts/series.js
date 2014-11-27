@@ -15,8 +15,11 @@ var p_series = PClass.extend({
     var self = this;
     this.status.set({series: {}});
 
-    for (var i = 0; i < this.data.length; i++) {
-      this._addSerie(this.data[i]);} 
+    _.each(this.data, function(d) {
+      self._addSerie(d);
+      // setTimeout(function() {
+      // }, i*350);
+    });
 
     return {
       updateSeries: _.bind(this.updateSeries, this)
@@ -31,8 +34,7 @@ var p_series = PClass.extend({
       case 'line': this._renderLineSerie(serie); break;
       case 'bar': this._renderBarSerie(serie); break;
       // case 'stacked-bar': this._renderStackedSerie(serie); break;
-      case 'area': this._renderAreaSerie(serie); break;
-    }
+      case 'area': this._renderAreaSerie(serie); break;}
   },
 
   /**
@@ -47,8 +49,7 @@ var p_series = PClass.extend({
         case 'line': this._updateLineSerie(serie); break;
         case 'bar': this._updateBarSerie(serie); break;
         // case 'stacked-bar': this._updateStackedSerie(serie); break;
-        case 'area': this._updateAreaSerie(serie); break;
-      }
+        case 'area': this._updateAreaSerie(serie); break;}
     }, this));
   },
 
@@ -58,18 +59,31 @@ var p_series = PClass.extend({
   _renderLineSerie: function(serie) {
     var line = this._getLineFunc();
 
-    var el = this.svg.append('path')
+    var path = this.svg.append('path')
       .datum(serie.values)
-      .attr('type', 'line')
       .attr('id', 'serie' + serie.id)
       .attr('class', 'serie-line')
-      .attr('active', 1)
-      .attr('transform', 'translate(0, 0)')
       .attr('stroke', serie.color)
+      .attr('type', 'line')
+      .attr('active', 1)
       .attr('d', line.interpolate(serie.interpolation));
 
+    //   .call(transition);
+
+    // function transition(path) {
+    //   path.transition()
+    //     .duration(2000)
+    //     .attrTween('stroke-dasharray', tweenDash);
+    // }
+
+    // function tweenDash() {
+    //   var l = this.getTotalLength(),
+    //       i = d3.interpolateString('0,' + l, l + ',' + l);
+    //   return function(t) {return i(t);};
+    // }
+
     this.status.get('series')[serie.id] = {
-      el: el,
+      el: path,
       serie: serie
     };
   },
@@ -81,7 +95,7 @@ var p_series = PClass.extend({
   _updateLineSerie: function(serie) {
     var line = this._getLineFunc();
 
-    serie.el.attr('d', line.interpolate('linear'))
+    serie.el.attr('d', line.interpolate(serie.serie.interpolation))
       .attr('transform', 'translate(0,0)');
   },
 
@@ -89,15 +103,16 @@ var p_series = PClass.extend({
     var self = this;
     return d3.svg.line()
       .x(function(d) {
-        return self.xscale(d.datetime);
+        return self.xscale(d.x);
       })
       .y(function(d) {
-        return self.yscale(d.value);
+        return self.yscale(d.y);
       });
   },
 
   _renderBarSerie: function(serie) {
     var self = this;
+    var barwidth = 12;
 
     var el = this.svg.append('g')
       .attr('type', 'bar')
@@ -109,17 +124,17 @@ var p_series = PClass.extend({
       .data(serie.values)
     .enter().append('rect')
       .attr('class', function(d) {
-        return d.value < 0 ? 'bar-negative' : 'bar-positive';
+        return d.y < 0 ? 'bar-negative' : 'bar-positive';
       })
       .attr('x', function(d) {
-        return self.xscale(d.datetime) - self.opts.series.barWidth/2;
+        return self.xscale(d.x) - barwidth/2;
       })
       .attr('y', function(d) {
-        return d.value < 0 ? self.yscale(0) : self.yscale(d.value);
+        return d.y < 0 ? self.yscale(0) : self.yscale(d.y);
       })
-      .attr('width', self.opts.series.barWidth)
+      .attr('width', barwidth)
       .attr('height', function(d) {
-        return Math.abs(self.yscale(d.value) - self.yscale(0));
+        return Math.abs(self.yscale(d.y) - self.yscale(0));
       })
       .attr('fill', serie.color);
 
@@ -133,20 +148,21 @@ var p_series = PClass.extend({
     var self = this;
     var el = serie.el;
     serie = serie.serie;
+    var barwidth = 12;
 
     el.selectAll('rect')
       .data(serie.values)
       .attr('class', function(d) {
-        return d.value < 0 ? 'bar-negative' : 'bar-positive';
+        return d.y < 0 ? 'bar-negative' : 'bar-positive';
       })
       .attr('x', function(d) {
-        return self.xscale(d.datetime) - self.opts.series.barWidth/2;
+        return self.xscale(d.x) - barwidth/2;
       })
       .attr('y', function(d) {
-        return d.value < 0 ? self.yscale(0) : self.yscale(d.value) - 1;
+        return d.y < 0 ? self.yscale(0) : self.yscale(d.y) - 1;
       })
       .attr('height', function(d) {
-        return Math.abs(self.yscale(d.value) - self.yscale(0));
+        return Math.abs(self.yscale(d.y) - self.yscale(0));
       });
   },
 
@@ -154,7 +170,7 @@ var p_series = PClass.extend({
     var self = this;
     return d3.svg.area()
       .x(function(d) {
-        return self.xscale(d.datetime);
+        return self.xscale(d.x);
       })
       .y0(this.yscale(0))
       .y1(function(d) {

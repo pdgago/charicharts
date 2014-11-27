@@ -315,7 +315,7 @@ var StatusClass = Class.extend({
 /**
  * Axes Module
  * -----------
- * Add x/y axes to the given svg.
+ * Add x/y axis.
  * 
  */
 var p_axes = PClass.extend({
@@ -329,160 +329,134 @@ var p_axes = PClass.extend({
 
   _subscriptions: [{
     /**
-     * Updates the axes when the scale has been updated.
+     * Update the axes when the scales have changed.
      */
-    'Scale/update': function() {
-      // update the series
-      this.axis
-        .transition()
-        .duration(500)
-        .ease('linear')
-        .call(this.a.scale(this.xscale).orient('bottom'));
+    'Scale/updated': function() {
+      var axes = this.status.get('axes');
+      _.each(axes, this._updateAxis, this);
     }
   }],
 
   initialize: function() {
-    console.log(this.status);
-    if (this.opts.yaxis.left.enabled) {
-      this._setAxis('left');
-    }
-
-    if (this.opts.yaxis.right.enabled) {
-      this._setAxis('right');
-    }
-
-    if (this.opts.xaxis.top.enabled) {
-      this._setAxis('top');
-    }
-
-    if (this.opts.xaxis.bottom.enabled) {
-      this._setAxis('bottom');
-    }
-
-    if (this.opts.yaxis.left.enabled || this.opts.yaxis.right.enabled) {
-      this._setYGrid();
-    }
-
-    if (this.opts.xaxis.top.enabled || this.opts.xaxis.bottom.enabled) {
-      this._addBottomDomain();
-    }
+    this._initAxesModel();
+    _.each(this.status.get('axes'), this._renderAxis, this);
   },
 
-  _setAxis: function(orient) {
-    var params = {
-      'bottom': {
-        axis: 'xaxis',
-        translate: h_getTranslate(0, this.opts.height),
-        textAnchor: 'middle',
-      },
-      'top': {
-        axis: 'xaxis',
-        translate: h_getTranslate(0, 0),
-        textAnchor: 'middle'
-      },
-      'left': {
-        axis: 'yaxis',
-        translate: h_getTranslate(0, 0),
-        textAnchor: 'start'
-      },
-      'right': {
-        axis: 'yaxis',
-        translate: h_getTranslate(this.opts.width + this.opts.margin.right, 0),
-        textAnchor: 'end'
-      }
+  _renderAxis: function(model, orient) {
+    switch(orient) {
+      // case 'top': this._renderTop(model); break;
+      case 'bottom': this._renderBottom(model); break;
+      case 'left': this._renderLeft(model); break;
+      case 'right': this._renderRight(model); break;}
+    this._afterAxisChanges();
+  },
+
+  _renderTop: function(model) {
+  },
+
+  _renderBottom: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.xscale)
+      .orient('bottom')
+      .tickSize(this.opts.height)
+      .tickFormat(this.opts.xaxis.bottom.tickFormat);
+
+    model.el = this.svg.append('g')
+      .attr('class', 'xaxis bottom')
+      .call(model.axis);
+  },
+
+  _renderLeft: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.yscale)
+      .orient('left')
+      .tickSize(-this.opts.width)
+      .tickPadding(this.opts.margin.left)
+      .tickFormat(this.opts.yaxis.left.tickFormat),
+
+    model.el = this.svg.append('g')
+      .attr('class', 'yaxis left')
+      .call(model.axis);
+  },
+
+  _renderRight: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.yscale)
+      .orient('right')
+      .tickSize(this.opts.width)
+      .tickPadding(0) // defaults to 3
+      .tickFormat(this.opts.yaxis.right.tickFormat);
+
+    model.el = this.svg.append('g')
+      .attr('class', 'yaxis right')
+      .call(model.axis);
+  },
+
+  /**
+   * Update given axis when the scales changes.
+   */
+  _updateAxis: function(model, orient) {
+    var scale = (orient === 'top' || orient === 'bottom') ?
+      this.xscale : this.yscale;
+
+    model.el.transition()
+      .duration(500)
+      .ease('linear')
+      .call(model.axis.scale(scale));
+
+    this._afterAxisChanges(model);
+  },
+
+  /**
+   * Set axes object in status model.
+   */
+  _initAxesModel: function() {
+    var self = this,
+        axes = {};
+
+    var axesEnabled = {
+      top: this.opts.xaxis.top.enabled,
+      right: this.opts.yaxis.right.enabled,
+      bottom: this.opts.xaxis.bottom.enabled,
+      left: this.opts.yaxis.left.enabled
     };
 
-    var p = params[orient];
+    _.each(axesEnabled, function(enabled, orient) {
+      if (!enabled) {return;}
+      axes[orient] = {};
+    });
 
-    // Set axis
-    var axis = d3.svg.axis()
-      .scale(p.axis === 'xaxis' ? this.xscale : this.yscale)
-      .orient(orient)
-      .tickFormat(this.opts[p.axis][orient].tickFormat);
+    this.status.set({axes: axes});
+  },
 
-    if (this.opts[p.axis].ticks) {
-      axis.ticks.apply(this, this.opts[p.axis].ticks);
-    }
-
-    // Draw axis
-    var axisG = this.svg.append('g')
-      .attr('class', p.axis + ' ' + orient)
-      .attr('transform', p.translate)
-      .call(axis);
-
-    if (orient === 'bottom') {
-      this.a = axis;
-      this.axis = axisG;
-    }
-
-    // Axis ticks texts
-    var axisGTexts = axisG.selectAll('text');
-    axisGTexts.style('text-anchor', p.textAnchor);
-
-    if (p.axis === 'yaxis') {
-      axisGTexts
-        .attr('x', orient === 'left' ? -this.opts.margin.left : 0)
-        .attr('y', this.opts.yaxis.textMarginTop);
-    }
-
+  /**
+   * Stuff to do when the axes have been
+   * rendered or updated.
+   */
+  _afterAxisChanges: function(model) {
+    // remove domain
     this.svg.select('.yaxis .domain').remove();
     this.svg.select('.xaxis .domain').remove();
 
-    // // Axis ticks texts
-    // if (this.opts[p.axis][orient].label) {
-    //   this._setLabel(axisG, this.opts[p.axis][orient].label, orient);
-    // }
+    this.svg.selectAll('.yaxis.left text')
+      .style('text-anchor', 'start', 'important');
+
+    this.svg.selectAll('.yaxis.right text')
+      .style('text-anchor', 'end', 'important')
+      .attr('transform', h_getTranslate(this.opts.margin.right, this.opts.yaxis.textMarginTop));
+
+    if (this.opts.yaxis.textMarginTop) {
+      this.svg.selectAll('.yaxis.left text')
+        .attr('transform', h_getTranslate(0, this.opts.yaxis.textMarginTop));
+    }
+
+    // yaxis full grid
+    if (this.opts.yaxis.fullGrid) {
+      this.svg.selectAll('.yaxis line')
+        .attr('transform', h_getTranslate(+this.opts.margin.left ,0))
+        .attr('x1', -this.opts.margin.left*2);
+    }
   },
-
-  _addBottomDomain: function() {
-    this.svg.selectAll('.xaxis')
-      .append('path')
-      .attr('class', 'xaxis-domain')
-      .attr('d', 'M{0},0H{1}'.format(-this.opts.margin.left, this.opts.fullWidth));
-  },
-
-  _setYGrid: function() {
-    this.svg.select('.yaxis')
-      .selectAll('line')
-        .attr('x1', this.opts.yaxis.fullGrid ? -this.opts.margin.left : 0)
-        .attr('x2', this.opts.yaxis.fullGrid ? this.opts.width + this.opts.margin.right : this.opts.width)
-        // add zeroline class
-        .each(function(d) {
-          if (d !== 0) {return;}
-          d3.select(this).attr('class', 'zeroline');
-        });    
-  },
-
-  _setLabel: function(axisG, label, orient) {
-    // 'top' Not supported right now
-    if (orient === 'top') {return;}
-    var params = {
-      'bottom': {
-        x: 0 - this.opts.margin.left,
-        y: this.opts.margin.bottom -7,
-        textAnchor: 'start'
-      },
-      'left': {
-        x: -this.opts.margin.left,
-        y: this.opts.yaxis.textMarginTop - 20,
-        textAnchor: 'start'
-      },
-      'right': {
-        x: 0,
-        y: this.opts.yaxis.textMarginTop - 20,
-        textAnchor: 'end'
-      }
-    };
-
-    var p = params[orient];
-
-    axisG.append('text')
-      .attr('class', 'label')
-      .attr('x', p.x)
-      .attr('y', p.y)
-      .attr('text-anchor', p.textAnchor)
-      .text(label);
-  }
 
 });
 /**
@@ -829,18 +803,18 @@ var p_scale = PClass.extend({
     'data'
   ],
 
+  _d3Scales: {
+    'time': d3.time.scale.utc,
+    'ordinal': d3.scale.ordinal,
+    'linear': d3.scale.linear
+  },
+
   _subscriptions: [{
     /**
      * Triggered when the serie gets updated with new data.
-     * @param  {Object} data Single data object
      */
     'Serie/update': function() {
-      // Update data
-      this._dataFlattened = this._getFlattenedData();
-
-      // Update scales
-      this.xscale = this._getXScale();
-      this.yscale = this._getYScale();
+      this._setScales();
 
       // Emit them to all scopes
       this.emit({
@@ -848,84 +822,32 @@ var p_scale = PClass.extend({
         yscale: this.yscale
       });
 
-      this.trigger('Scale/update', []);
+      this.trigger('Scale/updated', []);
     }
   }],
 
-  _d3Scales: {
-    'time': d3.time.scale.utc,
-    'ordinal': d3.scale.ordinal,
-    'linear': d3.scale.linear
-  },
-
   initialize: function() {
-    this._dataFlattened = this._getFlattenedData();
-    this.xscale = this._getXScale();
-    this.yscale = this._getYScale();
-
-    return {
-      xscale: this.xscale,
-      yscale: this.yscale
-    };
+    this._setScales();
+    return {xscale: this.xscale, yscale: this.yscale};
   },
 
-  /**
-   * Get this.data flattened of all series.
-   * Handy when we need to get the extent.
-   */
-  _getFlattenedData: function() {
-    return _.flatten(_.map(this.data, function(d) {
-      return d.values;
-    }));
-  },
+  _getScale: function(position) {
+    var opts = this.opts[position + 'axis'],
+        domain = this._getExtent(position, opts.fit),
+        range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
-  /**
-   * Returns the xscale.
-   */
-  _getXScale: function() {
-    var domain = this._getDomain(this.opts.xaxis.scale, this.opts.xaxis.fit);
-    return this._d3Scales[this.opts.xaxis.scale]()
+    return this._d3Scales[opts.scale]()
       .domain(domain)
-      .range([0, this.opts.width]);
+      .range(range);
+      // .nice(); // Extends the domain so that it starts and ends on nice round values.
   },
 
-  /**
-   * Returns the yscale.
-   */
-  _getYScale: function() {
-    var domain = this._getDomain(this.opts.yaxis.scale, this.opts.yaxis.fit);
-
-    return this._d3Scales[this.opts.yaxis.scale]()
-      .domain(domain)
-      .range([this.opts.height, 0])
-      .nice(); // Extends the domain so that it starts and ends on nice round values.
-  },
-
-  _getDomain: function(scale, fit) {
-    if (scale === 'time') {
-      return this._getTimeDomain();
-    }
-
-    if (fit) {
-      return this._getLinearFitDomain();
-    } else {
-      return this._getLinearAllDomain();
-    }
-  },
-
-  _getTimeDomain: function() {
-    return d3.extent(this._dataFlattened, function(d) {
-      return d.datetime;
-    });
-  },
-
-  _getLinearAllDomain: function() {
+  _getExtent: function(position, fit) {
     var extent = d3.extent(this._dataFlattened, function(d) {
-      if (d.scrutinized) {
-        return d3.sum(_.pluck(d.scrutinized, 'value'));
-      }
-      return Number(d.value);
+      return d[position];
     });
+
+    if (fit) {return extent;}
 
     // Positive scale
     if (extent[0] >= 0) {
@@ -933,20 +855,28 @@ var p_scale = PClass.extend({
     }
 
     // Negative-Positive scale
+    // In this case min an max are the same values.
     var absX = Math.abs(extent[0]);
     var absY = Math.abs(extent[1]);
     var val = (absX > absY) ? absX : absY;
     return [-val, val];
   },
 
-  _getLinearFitDomain: function() {
-    return d3.extent(this._dataFlattened, function(d) {
-      if (d.scrutinized) {
-        return d3.sum(_.pluck(d.scrutinized, 'value'));
-      }
-      return d.value;
-    });
-  }
+  /**
+   * Get this.data flattened of all series.
+   * Handy when we need to get the extent.
+   */
+  _setFlattenedData: function() {
+    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
+      return d.values;
+    }));
+  },
+
+  _setScales: function() {
+    this._setFlattenedData();
+    this.xscale = this._getScale('x');
+    this.yscale = this._getScale('y');
+  },
 
 });
 var p_series = PClass.extend({
@@ -966,8 +896,11 @@ var p_series = PClass.extend({
     var self = this;
     this.status.set({series: {}});
 
-    for (var i = 0; i < this.data.length; i++) {
-      this._addSerie(this.data[i]);} 
+    _.each(this.data, function(d) {
+      self._addSerie(d);
+      // setTimeout(function() {
+      // }, i*350);
+    });
 
     return {
       updateSeries: _.bind(this.updateSeries, this)
@@ -982,8 +915,7 @@ var p_series = PClass.extend({
       case 'line': this._renderLineSerie(serie); break;
       case 'bar': this._renderBarSerie(serie); break;
       // case 'stacked-bar': this._renderStackedSerie(serie); break;
-      case 'area': this._renderAreaSerie(serie); break;
-    }
+      case 'area': this._renderAreaSerie(serie); break;}
   },
 
   /**
@@ -998,8 +930,7 @@ var p_series = PClass.extend({
         case 'line': this._updateLineSerie(serie); break;
         case 'bar': this._updateBarSerie(serie); break;
         // case 'stacked-bar': this._updateStackedSerie(serie); break;
-        case 'area': this._updateAreaSerie(serie); break;
-      }
+        case 'area': this._updateAreaSerie(serie); break;}
     }, this));
   },
 
@@ -1009,18 +940,31 @@ var p_series = PClass.extend({
   _renderLineSerie: function(serie) {
     var line = this._getLineFunc();
 
-    var el = this.svg.append('path')
+    var path = this.svg.append('path')
       .datum(serie.values)
-      .attr('type', 'line')
       .attr('id', 'serie' + serie.id)
       .attr('class', 'serie-line')
-      .attr('active', 1)
-      .attr('transform', 'translate(0, 0)')
       .attr('stroke', serie.color)
+      .attr('type', 'line')
+      .attr('active', 1)
       .attr('d', line.interpolate(serie.interpolation));
 
+    //   .call(transition);
+
+    // function transition(path) {
+    //   path.transition()
+    //     .duration(2000)
+    //     .attrTween('stroke-dasharray', tweenDash);
+    // }
+
+    // function tweenDash() {
+    //   var l = this.getTotalLength(),
+    //       i = d3.interpolateString('0,' + l, l + ',' + l);
+    //   return function(t) {return i(t);};
+    // }
+
     this.status.get('series')[serie.id] = {
-      el: el,
+      el: path,
       serie: serie
     };
   },
@@ -1032,7 +976,7 @@ var p_series = PClass.extend({
   _updateLineSerie: function(serie) {
     var line = this._getLineFunc();
 
-    serie.el.attr('d', line.interpolate('linear'))
+    serie.el.attr('d', line.interpolate(serie.serie.interpolation))
       .attr('transform', 'translate(0,0)');
   },
 
@@ -1040,15 +984,16 @@ var p_series = PClass.extend({
     var self = this;
     return d3.svg.line()
       .x(function(d) {
-        return self.xscale(d.datetime);
+        return self.xscale(d.x);
       })
       .y(function(d) {
-        return self.yscale(d.value);
+        return self.yscale(d.y);
       });
   },
 
   _renderBarSerie: function(serie) {
     var self = this;
+    var barwidth = 12;
 
     var el = this.svg.append('g')
       .attr('type', 'bar')
@@ -1060,17 +1005,17 @@ var p_series = PClass.extend({
       .data(serie.values)
     .enter().append('rect')
       .attr('class', function(d) {
-        return d.value < 0 ? 'bar-negative' : 'bar-positive';
+        return d.y < 0 ? 'bar-negative' : 'bar-positive';
       })
       .attr('x', function(d) {
-        return self.xscale(d.datetime) - self.opts.series.barWidth/2;
+        return self.xscale(d.x) - barwidth/2;
       })
       .attr('y', function(d) {
-        return d.value < 0 ? self.yscale(0) : self.yscale(d.value);
+        return d.y < 0 ? self.yscale(0) : self.yscale(d.y);
       })
-      .attr('width', self.opts.series.barWidth)
+      .attr('width', barwidth)
       .attr('height', function(d) {
-        return Math.abs(self.yscale(d.value) - self.yscale(0));
+        return Math.abs(self.yscale(d.y) - self.yscale(0));
       })
       .attr('fill', serie.color);
 
@@ -1084,20 +1029,21 @@ var p_series = PClass.extend({
     var self = this;
     var el = serie.el;
     serie = serie.serie;
+    var barwidth = 12;
 
     el.selectAll('rect')
       .data(serie.values)
       .attr('class', function(d) {
-        return d.value < 0 ? 'bar-negative' : 'bar-positive';
+        return d.y < 0 ? 'bar-negative' : 'bar-positive';
       })
       .attr('x', function(d) {
-        return self.xscale(d.datetime) - self.opts.series.barWidth/2;
+        return self.xscale(d.x) - barwidth/2;
       })
       .attr('y', function(d) {
-        return d.value < 0 ? self.yscale(0) : self.yscale(d.value) - 1;
+        return d.y < 0 ? self.yscale(0) : self.yscale(d.y) - 1;
       })
       .attr('height', function(d) {
-        return Math.abs(self.yscale(d.value) - self.yscale(0));
+        return Math.abs(self.yscale(d.y) - self.yscale(0));
       });
   },
 
@@ -1105,7 +1051,7 @@ var p_series = PClass.extend({
     var self = this;
     return d3.svg.area()
       .x(function(d) {
-        return self.xscale(d.datetime);
+        return self.xscale(d.x);
       })
       .y0(this.yscale(0))
       .y1(function(d) {
@@ -1314,15 +1260,10 @@ Charicharts.Chart = CClass.extend({
   defaults: {
     margin: '0,0,0,0',
     trail: false,
-    // Series options.
-    series: {
-      barWidth: 12,
-      stackedBarAlign: 'right'
-    },
     // Xaxis Options.
     xaxis: {
       scale: 'time',
-      fit: false,
+      fit: true,
       ticks: false,
       top: {
         enabled: false,
@@ -1335,7 +1276,7 @@ Charicharts.Chart = CClass.extend({
         enabled: true,
         label: false,
         tickFormat: function(d) {
-          return d.getMonth();
+          return d;
         }
       }  
     },
@@ -1376,7 +1317,7 @@ Charicharts.Chart = CClass.extend({
     o.yaxis.right = _.extend({}, this.defaults.yaxis.right, o.yaxis.right);
 
     o.margin = _.object(['top', 'right', 'bottom', 'left'],
-      o.margin.split(',').map(Number));
+      o.margin.split(' ').map(Number));
 
     /**
      * Axis labels padding.
@@ -1458,7 +1399,7 @@ Charicharts.Pie = CClass.extend({
   },
 
   defaults: {
-    margin: '0,0,0,0',
+    margin: '0 0 0 0',
     innerRadius: 0.6,
     hoverFade: 1,
     innerArrow: false,
@@ -1468,7 +1409,7 @@ Charicharts.Pie = CClass.extend({
   parseOptions: function(options) {
     var o = _.extend({}, this.defaults, options);
     o.margin = _.object(['top', 'right', 'bottom', 'left'],
-      o.margin.split(',').map(Number));
+      o.margin.split(' ').map(Number));
     o.fullWidth = o.target.offsetWidth;
     o.fullHeight = o.target.offsetHeight;
     o.width = o.fullWidth - o.margin.left - o.margin.right;
