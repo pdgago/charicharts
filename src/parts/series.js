@@ -8,23 +8,51 @@ var p_series = PClass.extend({
     'opts'
   ],
 
-  _subscriptions: [{
-  }],
+  _subscriptions: [],
 
   initialize: function() {
     var self = this;
     this._status = {series:{}};
-    _.each(this.data, this._addSerie, this);
+    _.each(this.data, this._renderSerie, this);
 
     return {
-      updateSeries: _.bind(this.updateSeries, this)
+      update: _.bind(this.updateSeries, this),
+      addSerie: _.bind(this.addSerie, this),
+      removeSerie: _.bind(this.removeSerie, this)
     };
   },
 
   /**
-   * Add the given series to the chart.
+   * Add the supplied serie to data array and render it.
    */
-  _addSerie: function(serie) {
+  addSerie: function(serie) {
+    this.data.push(serie);
+
+    this.emit({ 
+      data: this.data
+    });
+
+    this.trigger('Serie/update', []);
+    this._renderSerie(serie);
+  },
+
+  /**
+   * Remove a serie from the id.
+   * 
+   * @param  {Integer} id
+   */
+  removeSerie: function(id) {
+    var dataObject = _.findWhere(this.data, {id: id});
+    this.data.splice(this.data.indexOf(dataObject), 1);
+    this._status.series[id].el.remove();
+    this._status.series = _.omit(this._status.series, id);
+    this.trigger('Serie/update', []);
+  },
+
+  /**
+   * Render the given series.
+   */
+  _renderSerie: function(serie) {
     switch(serie.type) {
       case 'line': this._renderLineSerie(serie); break;
       case 'bar': this._renderBarSerie(serie); break;
@@ -58,15 +86,16 @@ var p_series = PClass.extend({
       .attr('type', 'line')
       .attr('active', 1);
 
-    var dots = this.svg.append('g')
-      .attr('id', 'serie-' + data.id + '-dots')
-      .selectAll('.dot');
-
     var serie = {
       el: el,
-      data: data,
-      dots: dots
+      data: data
     };
+
+    if (data.dots) {
+      serie.dots = this.svg.append('g')
+        .attr('id', 'serie-' + data.id + '-dots')
+        .selectAll('.dot');
+    }
 
     this._status.series[data.id] = serie;
     this._updateLineSerie(serie);
@@ -79,22 +108,24 @@ var p_series = PClass.extend({
     var line = this._getLineFunc();
     serie.el.attr('d', line.interpolate(serie.data.interpolation));
 
-    // Append dots data
-    serie.dots = serie.dots.data(
-      serie.data.values.filter(function(d) {return d.y;}));
+    // Render dots
+    if (serie.data.dots) {
+      serie.dots = serie.dots.data(
+        serie.data.values.filter(function(d) {return d.y;}));
 
-    serie.dots.enter().append('circle')
-      .attr('class', 'dot');
+      serie.dots.enter().append('circle')
+        .attr('class', 'dot');
 
-    serie.dots.exit().remove();
+      serie.dots.exit().remove();
 
-    serie.dots
-        .attr('cx', line.x())
-        .attr('cy', line.y())
-        .attr('fill', serie.data.color)
-        .attr('stroke', serie.data.color)
-        .attr('stroke-width', '2px')
-        .attr('r', this.opts.series.line.dotsRadius);
+      serie.dots
+          .attr('cx', line.x())
+          .attr('cy', line.y())
+          .attr('fill', serie.data.color)
+          .attr('stroke', serie.data.color)
+          .attr('stroke-width', '2px')
+          .attr('r', 3);
+    }
   },
 
   _getLineFunc: function() {

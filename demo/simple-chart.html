@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <style>
   body {
-    width: 500px;
+    width: 800px;
     height: 500px;
     font-family: 'Helvetica', sans-serif;
     font-size: 12px;
@@ -17,10 +17,13 @@
   .serie-line {
     fill: transparent;
     stroke-width: 2px;
-    /*stroke: transparent;*/
   }
   .dot {
     fill: #262626;
+  }
+  .trail-line {
+    stroke: white;
+    shape-rendering: crispEdges;
   }
   .yaxis line,
   .xaxis line {
@@ -46,19 +49,21 @@ var data = [{
   id: 1004,
   type: 'line',
   values: data1,
-  interpolation: 'linear',
-  color: color(0)
-}, {
+  interpolation: 'basis',
+  color: '#555'
+},{
   id: 1005,
   type: 'line',
   values: data2,
+  dots: true,
   interpolation: 'step',
-  color: '#444'
+  color: color(0)
 }];
 
 var options = {
   target: d3.select('body').node(),
-  margin: '10 60 25 60',
+  margin: '40 60 25 60',
+  trail: true,
   xaxis: {
     scale: 'linear',
     fit: true,
@@ -74,7 +79,7 @@ var options = {
   }
 };
 
-var chart = new Charicharts.Chart(options, data.reverse());
+var chart = new Charicharts.Chart(options, data);
 
 setInterval(function() {
   update(data1);
@@ -82,15 +87,16 @@ setInterval(function() {
 }, 500);
 
 function update(data) {
-  data.push(randomItem(data[data.length-1].x + 1));
+  var toNull = _.random(1, 10) <= 3;
+  data.push(randomItem(data[data.length-1].x + 1, toNull));
   data.shift();
   chart.update();
 }
 
-function randomItem(i) {
+function randomItem(i, toNull) {
   return {
     x: i,
-    y: Math.abs(random()),
+    y: toNull ?  Math.abs(random()) : Math.abs(random()),
   };
 }
 

@@ -4,14 +4,16 @@
 var PClass = Class.extend({
 
   _coreSubscriptions: [{
-    'Scope/emit': function(obj) {
-      _.extend(this, obj);
+    'Scope/emit': function(objs) {
+      _.each(objs, function(obj, name) {
+        if (!this[name]) {return;}
+        this[name] = obj;
+      }, this);
     }
   }],
 
   init: function($scope) {
     this._loadModules($scope);
-    this.status = new StatusClass();
 
     // Subscribe
     _.each(_.union(this._coreSubscriptions,

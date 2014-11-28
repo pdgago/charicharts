@@ -18,14 +18,16 @@ var p_axes = PClass.extend({
      * Update the axes when the scales have changed.
      */
     'Scale/updated': function() {
-      var axes = this.status.get('axes');
-      _.each(axes, this._updateAxis, this);
+      _.each(this._status.axes, this._updateAxis, this);
     }
   }],
 
   initialize: function() {
-    this._initAxesModel();
-    _.each(this.status.get('axes'), this._renderAxis, this);
+    this._status = {
+      axes: this._initAxesModel()
+    };
+
+    _.each(this._status.axes, this._renderAxis, this);
   },
 
   _renderAxis: function(model, orient) {
@@ -112,7 +114,7 @@ var p_axes = PClass.extend({
       axes[orient] = {};
     });
 
-    this.status.set({axes: axes});
+    return axes;
   },
 
   /**

@@ -5,7 +5,7 @@ Charicharts.Chart = CClass.extend({
     p_scale,
     p_axes,
     p_series,
-    // p_trail
+    p_trail
   ],
 
   /**
@@ -13,19 +13,14 @@ Charicharts.Chart = CClass.extend({
    * @return {Object} Chart properties
    */
   getInstanceProperties: function() {
-    return {
-      update: this.$scope.updateSeries,
-    };
+    return _.pick(this.$scope, 'update', 'addSerie', 'removeSerie');
   },
 
   defaults: {
     margin: '0,0,0,0',
     trail: false,
-    series: {
-      line: {
-        dots: true,
-        dotsRadius: 3
-      }
+    trailParser: function(x) {
+      return x;
     },
     // Xaxis Options.
     xaxis: {
@@ -75,8 +70,6 @@ Charicharts.Chart = CClass.extend({
     var o = _.extend({}, this.defaults, options);
     
     // TODO => Use deep extend to clone defaults and supplied options.
-    o.series = _.extend({}, this.defaults.series, o.series);
-    o.series.line = _.extend({}, this.defaults.series.line, o.series);
     o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);
     o.xaxis.bottom = _.extend({}, this.defaults.xaxis.bottom, o.xaxis.bottom);
     o.xaxis.top = _.extend({}, this.defaults.xaxis.top, o.xaxis.top);
