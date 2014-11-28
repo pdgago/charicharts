@@ -7,14 +7,24 @@
     font-family: 'Helvetica', sans-serif;
     font-size: 12px;
   }
+  svg,
+  body {
+    background: #262626;
+  }
+  text {
+    fill: #999;
+  }
   .serie-line {
     fill: transparent;
     stroke-width: 2px;
     /*stroke: transparent;*/
   }
+  .dot {
+    fill: #262626;
+  }
   .yaxis line,
   .xaxis line {
-    stroke: #ddd;
+    stroke: #333;
     shape-rendering: crispEdges;
   }
 </style>
@@ -26,14 +36,24 @@
 
 var color = d3.scale.category10()
     random = d3.random.normal(0, 1),
-    data1 = getData(23);
+    data1 = getData(23)
+    data2 = getData(23);
+
+setNull(data1, 4, 6, 14, 15, 16);
+setNull(data2, 0, 1, 5, 7);
 
 var data = [{
   id: 1004,
   type: 'line',
   values: data1,
-  interpolation: 'basis',
+  interpolation: 'linear',
   color: color(0)
+}, {
+  id: 1005,
+  type: 'line',
+  values: data2,
+  interpolation: 'step',
+  color: '#444'
 }];
 
 var options = {
@@ -54,10 +74,11 @@ var options = {
   }
 };
 
-var chart = new Charicharts.Chart(options, data);
+var chart = new Charicharts.Chart(options, data.reverse());
 
 setInterval(function() {
   update(data1);
+  update(data2);
 }, 500);
 
 function update(data) {
@@ -77,6 +98,12 @@ function getData(n) {
   return d3.range(n).map(function(x) {
     return randomItem(x);
   });
+}
+
+function setNull(arr) {
+  for (var i = 1; i < arguments.length; i++) {
+    arr[arguments[i]].y = null
+  };
 }
 
 </script>

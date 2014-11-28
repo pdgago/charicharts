@@ -21,6 +21,12 @@ Charicharts.Chart = CClass.extend({
   defaults: {
     margin: '0,0,0,0',
     trail: false,
+    series: {
+      line: {
+        dots: true,
+        dotsRadius: 3
+      }
+    },
     // Xaxis Options.
     xaxis: {
       scale: 'time',
@@ -70,6 +76,7 @@ Charicharts.Chart = CClass.extend({
     
     // TODO => Use deep extend to clone defaults and supplied options.
     o.series = _.extend({}, this.defaults.series, o.series);
+    o.series.line = _.extend({}, this.defaults.series.line, o.series);
     o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);
     o.xaxis.bottom = _.extend({}, this.defaults.xaxis.bottom, o.xaxis.bottom);
     o.xaxis.top = _.extend({}, this.defaults.xaxis.top, o.xaxis.top);
