@@ -64,12 +64,18 @@ var options = {
   target: d3.select('body').node(),
   margin: '40 60 25 60',
   trail: true,
-  trailParser: function(x) {
-    return Math.round(x);
+  trailParser: function(date) {
+    date.setMinutes(0,0,0);
+    return date;
   },
   xaxis: {
-    scale: 'linear',
+    scale: 'time',
     fit: true,
+    bottom: {
+      tickFormat: function(d) {
+        return d.getHours();
+      }
+    }
   },
   yaxis: {
     fit: true,
@@ -84,28 +90,18 @@ var options = {
 
 var chart = new Charicharts.Chart(options, data);
 
-setInterval(function() {
-  update(data1);
-  update(data2);
-}, 500);
-
-function update(data) {
-  var toNull = _.random(1, 10) <= 3;
-  data.push(randomItem(data[data.length-1].x + 1, toNull));
-  data.shift();
-  chart.update();
-}
-
-function randomItem(i, toNull) {
+function randomItem(i) {
+  var date = new Date();
+  date.setHours(i, 0, 0);
   return {
-    x: i,
-    y: toNull ?  Math.abs(random()) : Math.abs(random()),
+    x: date,
+    y: Math.abs(random()),
   };
 }
 
 function getData(n) {
-  return d3.range(n).map(function(x) {
-    return randomItem(x);
+  return d3.range(n).map(function(i) {
+    return randomItem(i);
   });
 }
 

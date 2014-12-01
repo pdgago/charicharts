@@ -87,18 +87,33 @@ var p_trail = PClass.extend({
       xvalue = brush.extent()[0];
     }
 
+    var isDate = !!xvalue.getMonth;
+
     // if the seleted xvalue is outside the domain,
     // select range ones.
-    if (xvalue > xdomain[1]) {
-      xvalue = xdomain[1];
-    } else if (xvalue < xdomain[0]) {
-      xvalue = xdomain[0];
+    if (isDate) {
+      if (Date.parse(xvalue) > Date.parse(xdomain[1])) {
+        xvalue = xdomain[1];
+      } else if (Date.parse(xvalue) < Date.parse(xdomain[0])) {
+        xvalue = xdomain[0];
+      }
+    } else {
+      if (xvalue > xdomain[1]) {
+        xvalue = xdomain[1];
+      } else if (xvalue < xdomain[0]) {
+        xvalue = xdomain[0];
+      }
     }
 
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
     xvalue = this.opts.trailParser(xvalue);
-    if (this._status.xvalue === xvalue) {return;}
+
+    if ((isDate && Date.parse(this._status.xvalue) === Date.parse(xvalue)) ||
+      this._status.xvalue === xvalue) {
+      return;
+    }
+
     this._moveToValue(xvalue);
   },
 
