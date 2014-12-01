@@ -30,6 +30,9 @@
     stroke: #333;
     shape-rendering: crispEdges;
   }
+  .yaxis .zeroline {
+    stroke: #666;
+  }
   .trail-arrow {
     fill: #fff;
   }
@@ -52,7 +55,7 @@ var data = [{
   id: 1004,
   type: 'line',
   values: data1,
-  interpolation: 'basis',
+  interpolation: 'cardinal',
   color: '#555'
 },{
   id: 1005,
@@ -69,7 +72,7 @@ var options = {
   trail: {
     enabled: true,
     beforeMove: function(date) {
-      date.setMinutes(0,0,0);
+      date.setMinutes(0, 0, 0);
       return date;
     },
     initXvalue: function() {
@@ -86,7 +89,7 @@ var options = {
     }
   },
   yaxis: {
-    fit: true,
+    fit: false,
     textMarginTop: -10,
     right: {
       enabled: true
@@ -105,7 +108,7 @@ function randomItem(i) {
   date.setHours(i, 0, 0);
   return {
     x: date,
-    y: Math.abs(random()),
+    y: random(),
   };
 }
 

@@ -141,9 +141,15 @@ var p_axes = PClass.extend({
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {
       this.svg.selectAll('.yaxis line')
-        .attr('transform', h_getTranslate(+this.opts.margin.left ,0))
-        .attr('x1', -this.opts.margin.left*2);
+        .attr('transform', h_getTranslate(+this.opts.margin.left , 0))
+        .attr('x1', -this.opts.margin.left * 2);
     }
+
+    // add zeroline
+    this.svg.selectAll('.yaxis line').each(function(d,i) {
+      if (d !== 0) {return;}
+      d3.select(this).attr('class', 'zeroline');
+    });
   },
 
 });
