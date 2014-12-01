@@ -13,6 +13,10 @@ var p_series = PClass.extend({
   initialize: function() {
     var self = this;
     this._status = {series:{}};
+
+    // before rendering the series, we need to group the bars ones.
+    // those are going to be rendered together so they can be
+    // stacked or grouped.
     _.each(this.data, this._renderSerie, this);
 
     return {
@@ -56,7 +60,6 @@ var p_series = PClass.extend({
     switch(serie.type) {
       case 'line': this._renderLineSerie(serie); break;
       case 'bar': this._renderBarSerie(serie); break;
-      case 'stacked-bar': this._renderStackedSerie(serie); break;
       case 'area': this._renderAreaSerie(serie); break;}
   },
 
@@ -69,7 +72,6 @@ var p_series = PClass.extend({
       switch(serie.el.attr('type')) {
         case 'line': this._updateLineSerie(serie); break;
         case 'bar': this._updateBarSerie(serie); break;
-        case 'stacked-bar': this._updateStackedSerie(serie); break;
         case 'area': this._updateAreaSerie(serie); break;}
     }, this));
   },
@@ -134,6 +136,69 @@ var p_series = PClass.extend({
       .defined(function(d) {return !!d.y;})
       .x(function(d) {return self.xscale(d.x);})
       .y(function(d) {return self.yscale(d.y);});
+  },
+
+  /**
+   * Render bar serie. By default it renders bars stacked.
+   */
+  _renderBarSerie: function(serie) {
+    var self = this;
+
+    console.log(serie.data);
+    var groupedYBars = _.groupBy(_.flatten(_.pluck(serie.data, 'values')), 'x');
+    _.each(groupedYBars, function(d, i) {
+      var y0 = 0;
+      var y0Bottom = 0;
+      _.each(d, function(row) {
+        if (row.y < 0) {
+          row.y0 = y0Bottom;
+          y0Bottom = row.y - y0Bottom;
+          row.y1 = y0Bottom;
+        } else {
+          row.y0 = y0;
+          row.y1 = y0 += row.y;
+        }
+        return row;
+      });
+      return d;
+    });
+
+    var bars = this.svg.selectAll('.serie-bar')
+        .data(serie.data)
+      .enter().append('g')
+        .attr('class', 'serie-bar')
+        .style('fill', function(d) {
+          return d.color;
+        });
+
+    var rects = bars.selectAll('rect')
+        .data(function(d) {return d.values;})
+      .enter().append('rect')
+        .attr('x', function(d) {
+          return self.xscale(d.x);
+        })
+        .attr('y', function(d) {
+          return self.yscale(d.y1);
+        })
+        .attr('width', 12)
+        .attr('height', function(d) {
+          return self.yscale(d.y0) - self.yscale(d.y1);
+
+          // var a = self.yscale(d.y0) - self.yscale(d.y1);
+          // var b = self.yscale(d.y1) - self.yscale(d.y0);
+          // if (a > 0) {
+          //   return a;
+          // } else { 
+          //   return b;
+          // }
+        });
+  },
+
+  /**
+   * Update bar serie.
+   */
+  _updateBarSerie: function(serie) {
+
   }
 
 });

@@ -43,10 +43,12 @@
 <script src="charicharts.js"></script>
 <script>
 
-var color = d3.scale.category10()
+var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(23)
-    data2 = getData(23);
+    data1 = getData(23),
+    data2 = getData(23),
+    data3 = getData(23),
+    data4 = getData(23);
 
 setNull(data1, 4, 6, 14, 15, 16);
 setNull(data2, 0, 1, 5, 7);
@@ -64,13 +66,25 @@ var data = [{
   dots: true,
   interpolation: 'step',
   color: color(0)
+},{
+  type: 'bar',
+  grouped: true, // by default bars are stacked, if not grouped
+  data: [{
+    id: 1006,
+    color: color(1),
+    values: data3
+  },{
+    id: 1007,
+    color: color(2),
+    values: data4
+  }],
 }];
 
 var options = {
   target: d3.select('body').node(),
   margin: '40 60 25 60',
   trail: {
-    enabled: true,
+    enabled: false,
     beforeMove: function(date) {
       date.setMinutes(0, 0, 0);
       return date;
@@ -99,9 +113,9 @@ var options = {
 
 var chart = new Charicharts.Chart(options, data);
 
-chart.on('Trail/changed', function(data, d) {
-  console.log(data, d);
-});
+// chart.on('Trail/changed', function(data, d) {
+//   console.log(data, d);
+// });
 
 function randomItem(i) {
   var date = new Date();
