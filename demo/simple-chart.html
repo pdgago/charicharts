@@ -63,9 +63,11 @@ var data = [{
 var options = {
   target: d3.select('body').node(),
   margin: '40 60 25 60',
-  trail: true,
-  trailParser: function(x) {
-    return Math.round(x);
+  trail: {
+    enabled: true,
+    beforeMove: function(x) {
+      return Math.round(x);
+    }
   },
   xaxis: {
     scale: 'linear',
@@ -76,18 +78,20 @@ var options = {
     textMarginTop: -10,
     right: {
       enabled: true
-    },
-    left: {
     }
   }
 };
 
 var chart = new Charicharts.Chart(options, data);
 
-setInterval(function() {
-  update(data1);
-  update(data2);
-}, 500);
+chart.on('Trail/changed', function(data, x) {
+  console.log(data, x);
+});
+
+// setInterval(function() {
+//   update(data1);
+//   update(data2);
+// }, 500);
 
 function update(data) {
   var toNull = _.random(1, 10) <= 3;

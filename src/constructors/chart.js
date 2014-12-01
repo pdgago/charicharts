@@ -18,9 +18,14 @@ Charicharts.Chart = CClass.extend({
 
   defaults: {
     margin: '0,0,0,0',
-    trail: false,
-    trailParser: function(x) {
-      return x;
+    trail: {
+      enabled: false,
+      beforeMove: function(xvalue) {
+        return xvalue;
+      },
+      initXvalue: function(xscale) {
+        return xscale.domain()[1];
+      }
     },
     // Xaxis Options.
     xaxis: {
@@ -70,6 +75,7 @@ Charicharts.Chart = CClass.extend({
     var o = _.extend({}, this.defaults, options);
     
     // TODO => Use deep extend to clone defaults and supplied options.
+    o.trail = _.extend({}, this.defaults.trail, o.trail);
     o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);
     o.xaxis.bottom = _.extend({}, this.defaults.xaxis.bottom, o.xaxis.bottom);
     o.xaxis.top = _.extend({}, this.defaults.xaxis.top, o.xaxis.top);

@@ -30,6 +30,9 @@
     stroke: #333;
     shape-rendering: crispEdges;
   }
+  .trail-arrow {
+    fill: #fff;
+  }
 </style>
 <body>
 <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
@@ -63,10 +66,15 @@ var data = [{
 var options = {
   target: d3.select('body').node(),
   margin: '40 60 25 60',
-  trail: true,
-  trailParser: function(date) {
-    date.setMinutes(0,0,0);
-    return date;
+  trail: {
+    enabled: true,
+    beforeMove: function(date) {
+      date.setMinutes(0,0,0);
+      return date;
+    },
+    initXvalue: function() {
+      return new Date(); // Initial position to current hour
+    }
   },
   xaxis: {
     scale: 'time',
@@ -82,13 +90,15 @@ var options = {
     textMarginTop: -10,
     right: {
       enabled: true
-    },
-    left: {
     }
   }
 };
 
 var chart = new Charicharts.Chart(options, data);
+
+chart.on('Trail/changed', function(data, d) {
+  console.log(data, d);
+});
 
 function randomItem(i) {
   var date = new Date();

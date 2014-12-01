@@ -1044,14 +1044,21 @@ var p_trail = PClass.extend({
 
   _subscriptions: [{
     'Scale/updated': function() {
-      // move to xposition
+      if (this._status.x) {
+        this._moveToValue(this._status.xvalue);
+      }
     }
   }],
 
   initialize: function() {
-    if (!this.opts.trail) {return;}
-    this._status = {xvalue: null};
+    var self = this;
+    if (!this.opts.trail.enabled) {return;}
+    this._status = {xvalue: null, x: null};
     this._renderTrail();
+
+    setTimeout(function() {
+      self._moveToValue(self.opts.trail.initXvalue(self.xscale));
+    }, 0);
   },
 
   _renderTrail: function() {
@@ -1061,7 +1068,6 @@ var p_trail = PClass.extend({
     // Append marker definition
     var markerdef = this.svg.append('svg:marker')
       .attr('id', 'trailArrow')
-      .attr('class', 'trail-arrow')
       .attr('viewBox','0 0 20 20')
       .attr('refX','15')
       .attr('refY','11')
@@ -1070,6 +1076,7 @@ var p_trail = PClass.extend({
       .attr('markerHeight','11')
       .attr('orient','auto')
       .append('svg:path')
+        .attr('class', 'trail-arrow')
         .attr('d','M 0 0 L 20 10 L 0 20 z')
         .attr('fill', '#777');
 
@@ -1112,19 +1119,28 @@ var p_trail = PClass.extend({
     });
   },
 
+  /**
+   * Triggered when the user moves the trail.
+   * @param  {Event} event d3 brush event
+   */
   _onBrush: function(event) {
-    var xdomain = this.xscale.domain();
-    var xvalue;
-
+    var x;
     if (d3.event.sourceEvent) {
-      xvalue = this.xscale.invert(d3.mouse(event)[0]);
+      x = this.xscale.invert(d3.mouse(event)[0]);
     } else {
-      xvalue = brush.extent()[0];
+      x = brush.extent()[0];
     }
+    this._moveToValue(x);
+  },
 
-    var isDate = !!xvalue.getMonth;
+  /**
+   * Moves the trail to supplied xvalue.
+   */
+  _moveToValue: function(xvalue) {
+    var xdomain = this.xscale.domain(),
+        isDate = !!xvalue.getMonth;
 
-    // if the seleted xvalue is outside the domain,
+    // if the seleted x is outside the domain,
     // select range ones.
     if (isDate) {
       if (Date.parse(xvalue) > Date.parse(xdomain[1])) {
@@ -1142,22 +1158,14 @@ var p_trail = PClass.extend({
 
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
-    xvalue = this.opts.trailParser(xvalue);
-
-    if ((isDate && Date.parse(this._status.xvalue) === Date.parse(xvalue)) ||
-      this._status.xvalue === xvalue) {
-      return;
-    }
-
-    this._moveToValue(xvalue);
-  },
-
-  _moveToValue: function(xvalue) {
+    xvalue = this.opts.trail.beforeMove(xvalue);
+    var x = Math.round(this.xscale(xvalue) -1);
+    if (x === this._status.x) {return;} // Return if it's already selected
+    var data = this._getDataFromValue(xvalue);
+    this._status.x = x;
     this._status.xvalue = xvalue;
-    var xdata = this._getDataFromValue(xvalue);
-    var xposition = Math.round(this.xscale(xvalue)) - 1;
-    this._moveTrail(xposition);
-    this.trigger('Trail/changed', [xdata, xvalue]);
+    this._moveTrail(x);
+    this.trigger('Trail/changed', [data, xvalue]);
   },
 
   _getDataFromValue: function(xvalue) {
@@ -1198,9 +1206,14 @@ Charicharts.Chart = CClass.extend({
 
   defaults: {
     margin: '0,0,0,0',
-    trail: false,
-    trailParser: function(x) {
-      return x;
+    trail: {
+      enabled: false,
+      beforeMove: function(xvalue) {
+        return xvalue;
+      },
+      initXvalue: function(xscale) {
+        return xscale.domain()[1];
+      }
     },
     // Xaxis Options.
     xaxis: {
@@ -1250,6 +1263,7 @@ Charicharts.Chart = CClass.extend({
     var o = _.extend({}, this.defaults, options);
     
     // TODO => Use deep extend to clone defaults and supplied options.
+    o.trail = _.extend({}, this.defaults.trail, o.trail);
     o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);
     o.xaxis.bottom = _.extend({}, this.defaults.xaxis.bottom, o.xaxis.bottom);
     o.xaxis.top = _.extend({}, this.defaults.xaxis.top, o.xaxis.top);
