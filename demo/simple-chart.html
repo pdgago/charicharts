@@ -88,10 +88,10 @@ chart.on('Trail/changed', function(data, x) {
   console.log(data, x);
 });
 
-// setInterval(function() {
-//   update(data1);
-//   update(data2);
-// }, 500);
+setInterval(function() {
+  update(data1);
+  update(data2);
+}, 500);
 
 function update(data) {
   var toNull = _.random(1, 10) <= 3;
