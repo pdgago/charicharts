@@ -7,6 +7,7 @@ Charicharts.PercentageBar = CClass.extend({
 
   getInstanceProperties: function() {
     var methods = {};
+
     return methods;
   },
 
