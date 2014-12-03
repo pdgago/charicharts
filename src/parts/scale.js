@@ -24,8 +24,10 @@ var p_scale = PClass.extend({
 
       // Emit them to all scopes
       this.emit({
-        xscale: this.xscale,
-        yscale: this.yscale
+        scale: {
+          x: this.xscale,
+          y: this.yscale
+        }
       });
 
       this.trigger('Scale/updated', []);
@@ -34,7 +36,12 @@ var p_scale = PClass.extend({
 
   initialize: function() {
     this._setScales();
-    return {xscale: this.xscale, yscale: this.yscale};
+    return {
+      scale: {
+        x: this.xscale,
+        y: this.yscale
+      }
+    };
   },
 
   _getScale: function(position) {

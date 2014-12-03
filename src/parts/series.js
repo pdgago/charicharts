@@ -1,8 +1,7 @@
 var p_series = PClass.extend({
 
   deps: [
-    'xscale',
-    'yscale',
+    'scale',
   ],
 
   _subscriptions: [],
@@ -131,8 +130,8 @@ var p_series = PClass.extend({
     var self = this;
     return d3.svg.line()
       .defined(function(d) {return !!d.y;})
-      .x(function(d) {return self.xscale(d.x);})
-      .y(function(d) {return self.yscale(d.y);});
+      .x(function(d) {return self.scale.x(d.x);})
+      .y(function(d) {return self.scale.y(d.y);});
   },
 
   /**
@@ -171,17 +170,17 @@ var p_series = PClass.extend({
         .data(function(d) {return d.values;})
       .enter().append('rect')
         .attr('x', function(d) {
-          return self.xscale(d.x);
+          return self.scale.x(d.x);
         })
         .attr('y', function(d) {
-          return self.yscale(d.y1);
+          return self.scale.y(d.y1);
         })
         .attr('width', 12)
         .attr('height', function(d) {
-          return self.yscale(d.y0) - self.yscale(d.y1);
+          return self.scale.y(d.y0) - self.scale.y(d.y1);
 
-          // var a = self.yscale(d.y0) - self.yscale(d.y1);
-          // var b = self.yscale(d.y1) - self.yscale(d.y0);
+          // var a = self.scale.y(d.y0) - self.scale.y(d.y1);
+          // var b = self.scale.y(d.y1) - self.scale.y(d.y0);
           // if (a > 0) {
           //   return a;
           // } else {
