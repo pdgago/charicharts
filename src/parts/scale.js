@@ -83,7 +83,7 @@ var p_scale = PClass.extend({
    */
   _setFlattenedData: function() {
     this._dataFlattened = _.flatten(_.map(this.data, function(d) {
-      if (d.type === 'bar') {
+      if (!d.values) {
         return _.flatten(_.pluck(d.data, 'values'));
       } else {
         return d.values;
