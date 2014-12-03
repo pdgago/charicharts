@@ -16,9 +16,11 @@ var p_series = PClass.extend({
     _.each(this.data, this._renderSerie, this);
 
     return {
-      update: _.bind(this.updateSeries, this),
-      addSerie: _.bind(this.addSerie, this),
-      removeSerie: _.bind(this.removeSerie, this)
+      series: {
+        update: _.bind(this.updateSeries, this),
+        add: _.bind(this.addSerie, this),
+        remove: _.bind(this.removeSerie, this)
+      }
     };
   },
 

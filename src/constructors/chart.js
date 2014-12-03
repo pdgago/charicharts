@@ -13,7 +13,7 @@ Charicharts.Chart = CClass.extend({
    * @return {Object} Chart properties
    */
   getInstanceProperties: function() {
-    return _.pick(this.$scope, 'update', 'addSerie', 'removeSerie');
+    return _.pick(this.$scope, 'series');
   },
 
   defaults: {

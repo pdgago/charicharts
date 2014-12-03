@@ -5,6 +5,7 @@ var PClass = Class.extend({
 
   _coreSubscriptions: [{
     'Scope/emit': function(objs) {
+      // console.log(this);
       _.each(objs, function(obj, name) {
         if (!this[name]) {return;}
         this[name] = obj;

@@ -20,6 +20,10 @@ var CClass = Class.extend({
     });
   },
 
+  update: function() {
+    console.log('ok');
+  },
+
   _loadModules: function() {
     // Generate injector
     var caller = this._generateInjector(this.$scope);
