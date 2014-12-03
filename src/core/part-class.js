@@ -4,13 +4,7 @@
 var PClass = Class.extend({
 
   _coreSubscriptions: [{
-    'Scope/emit': function(objs) {
-      // console.log(this);
-      _.each(objs, function(obj, name) {
-        if (!this[name]) {return;}
-        this[name] = obj;
-      }, this);
-    }
+
   }],
 
   init: function($scope) {
@@ -48,16 +42,6 @@ var PClass = Class.extend({
     _.each(subscription, _.bind(function(callback, name) {
       this.on(name, _.bind(callback, this));
     },this));
-  },
-
-  /**
-   * Update scope variables in every PClass child
-   * for the given objects.
-   *
-   * @param  {Array} objs
-   */
-  emit: function(objs) {
-    this.trigger('Scope/emit', [objs]);
   }
 
 });

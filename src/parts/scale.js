@@ -20,31 +20,33 @@ var p_scale = PClass.extend({
      * Triggered when the serie gets updated with new data.
      */
     'Serie/update': function() {
-      this._setScales();
-
-      // Emit them to all scopes
-      this.emit({
-        scale: {
-          x: this.xscale,
-          y: this.yscale
-        }
-      });
-
+      this._updateScales();
       this.trigger('Scale/updated', []);
     }
   }],
 
   initialize: function() {
-    this._setScales();
-    return {
+    this._status = {
+      // Current scale
       scale: {
-        x: this.xscale,
-        y: this.yscale
+        x: null,
+        y: null
       }
+    };
+
+    this._updateScales();
+    return {
+      scale: this._status.scale
     };
   },
 
-  _getScale: function(position) {
+  _updateScales: function() {
+    this._setFlattenedData();
+    this._status.scale.x = this._updateScale('x');
+    this._status.scale.y = this._updateScale('y');
+  },
+
+  _updateScale: function(position) {
     var opts = this.opts[position + 'axis'],
         domain = this._getExtent(position, opts.fit),
         range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
@@ -87,12 +89,6 @@ var p_scale = PClass.extend({
         return d.values;
       }
     }));
-  },
-
-  _setScales: function() {
-    this._setFlattenedData();
-    this.xscale = this._getScale('x');
-    this.yscale = this._getScale('y');
-  },
+  }
 
 });

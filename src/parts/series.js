@@ -29,11 +29,6 @@ var p_series = PClass.extend({
    */
   addSerie: function(serie) {
     this.data.push(serie);
-
-    this.emit({
-      data: this.data
-    });
-
     this.trigger('Serie/update', []);
     this._renderSerie(serie);
   },
