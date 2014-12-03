@@ -136,17 +136,36 @@ var p_series = PClass.extend({
    */
   _renderBarSerie: function(serie) {
     var self = this,
-        positiveStacks = {},
-        negativeStacks = {};
+        grouped = serie.grouped,
+        // TODO 12 not reasonable. how can we define it?
+        barWidth =  12/(!grouped ? serie.data.length : 1);
 
-    _.each(serie.data, function(serie) {
-      _.each(serie.values, function(d) {
-          var stacks = d.y >= 0 ? positiveStacks : negativeStacks;
-          d.y0 = (stacks[d.x] || 0);
-          d.y1 = d.y0 + d.y;
-          stacks[d.x] = d.y1;
+    // Stacked data
+    if (grouped) {
+      var positiveStacks = {},
+          negativeStacks = {};
+
+      _.each(serie.data, function(serie) {
+        _.each(serie.values, function(d) {
+            var stacks = d.y >= 0 ? positiveStacks : negativeStacks;
+
+            d.y0 = (stacks[d.x] || 0);
+            d.y1 = d.y0 + d.y;
+            stacks[d.x] = d.y1;
+        });
       });
-    });
+    // Data side by side
+    } else {
+      var xStack = {};
+      _.each(serie.data, function(serie) {
+        _.each(serie.values, function(d) {
+            d.y0 = 0;
+            d.y1 = d.y;
+            d.w = (xStack[d.x] || 0) + barWidth;
+            xStack[d.x] = d.w;
+        });
+      });
+    }
 
     var bars = this.svg.selectAll('.serie-bar')
         .data(serie.data)
@@ -160,12 +179,12 @@ var p_series = PClass.extend({
         .data(function(d) {return d.values;})
       .enter().append('rect')
         .attr('x', function(d) {
-          return self.scale.x(d.x);
+          return self.scale.x(d.x) + (d.w || 0);
         })
         .attr('y', function(d) {
           return self.scale.y(d.y0 < d.y1 ? d.y1 : d.y0);
         })
-        .attr('width', 12)
+        .attr('width', barWidth)
         .attr('height', function(d) {
           return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
         });
