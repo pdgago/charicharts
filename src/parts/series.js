@@ -1,11 +1,8 @@
 var p_series = PClass.extend({
 
   deps: [
-    'data',
-    'svg',
     'xscale',
     'yscale',
-    'opts'
   ],
 
   _subscriptions: [],
@@ -32,7 +29,7 @@ var p_series = PClass.extend({
   addSerie: function(serie) {
     this.data.push(serie);
 
-    this.emit({ 
+    this.emit({
       data: this.data
     });
 
@@ -42,7 +39,7 @@ var p_series = PClass.extend({
 
   /**
    * Remove a serie from the id.
-   * 
+   *
    * @param  {Integer} id
    */
   removeSerie: function(id) {
@@ -144,7 +141,6 @@ var p_series = PClass.extend({
   _renderBarSerie: function(serie) {
     var self = this;
 
-    console.log(serie.data);
     var groupedYBars = _.groupBy(_.flatten(_.pluck(serie.data, 'values')), 'x');
     _.each(groupedYBars, function(d, i) {
       var y0 = 0;
@@ -188,7 +184,7 @@ var p_series = PClass.extend({
           // var b = self.yscale(d.y1) - self.yscale(d.y0);
           // if (a > 0) {
           //   return a;
-          // } else { 
+          // } else {
           //   return b;
           // }
         });

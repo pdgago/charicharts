@@ -2,14 +2,11 @@
  * Percentage Bar
  * --------------
  * Add a percentage bar to the supplied svg.
- * 
+ *
  */
 var p_percentage_bar = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'data'
   ],
 
   initialize: function() {

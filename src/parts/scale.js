@@ -2,13 +2,11 @@
  * Scale Module
  * ------------
  * Set X/Y scales from the given data.
- * 
+ *
  */
 var p_scale = PClass.extend({
 
   deps: [
-    'opts',
-    'data'
   ],
 
   _d3Scales: {

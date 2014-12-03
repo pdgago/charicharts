@@ -2,13 +2,11 @@
  * Pie Inner Arrow
  * ---------------
  * Add an inner arrow into the scope pie.
- * 
+ *
  */
 var p_pie_inner_arrow = PClass.extend({
 
   deps: [
-    'opts',
-    'svg',
     'path',
     'arc'
   ],

@@ -2,13 +2,11 @@
  * Axes Module
  * -----------
  * Add x/y axis.
- * 
+ *
  */
 var p_axes = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
     'xscale',
     'yscale'
   ],

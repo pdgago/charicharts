@@ -1,10 +1,7 @@
 var p_trail = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
     'xscale',
-    'data'
   ],
 
   _subscriptions: [{
@@ -143,7 +140,7 @@ var p_trail = PClass.extend({
 
   /**
    * Move the trail to the given x position.
-   * 
+   *
    * @param  {integer} x
    */
   _moveTrail: function(x) {

@@ -34,7 +34,6 @@ Charicharts.PercentageBar = CClass.extend({
 
     o.height = o.fullHeight - o.margin.top - o.margin.bottom;
     o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
-    console.log(o);
     return o;
   }
 

@@ -27,6 +27,11 @@ var PClass = Class.extend({
    * Load dependencies modules.
    */
   _loadModules: function($scope) {
+    // Populate core modules
+    this['svg'] = $scope['svg'];
+    this['opts'] = $scope['opts'];
+    this['data'] = $scope['data'];
+
     for (var i = this.deps.length - 1; i >= 0; i--) {
       this[this.deps[i]] = $scope[this.deps[i]];
     }
@@ -47,7 +52,7 @@ var PClass = Class.extend({
   /**
    * Update scope variables in every PClass child
    * for the given objects.
-   * 
+   *
    * @param  {Array} objs
    */
   emit: function(objs) {

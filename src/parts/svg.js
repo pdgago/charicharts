@@ -2,12 +2,11 @@
  * Svg Module
  * ----------
  * Append a svg to the given opts.target.
- * 
+ *
  */
 var p_svg = PClass.extend({
 
   deps: [
-    'opts'
   ],
 
   initialize: function() {
