@@ -32,7 +32,9 @@ var p_pie_inner_arrow = PClass.extend({
     }, 0);
 
     return {
-      moveArrowToId: _.bind(this.moveArrowToId, this)
+      pie_inner_arrow: {
+        moveArrowToId: _.bind(this.moveArrowToId, this)
+      }
     };
   },
 

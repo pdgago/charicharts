@@ -31,7 +31,9 @@ var p_pie = PClass.extend({
     this._setEvents();
 
     return {
-      update: _.bind(this.update, this),
+      series: {
+        update: _.bind(this.update, this)
+      },
       pie: {
         path: this.path,
         arc: this.arc

@@ -8,12 +8,9 @@ Charicharts.Pie = CClass.extend({
 
   getInstanceProperties: function() {
     var methods = {
-      update: this.$scope.update
+      update: this.$scope.series.update,
+      moveArrowToId: this.$scope.moveArrowToId
     };
-
-    if (this.$scope.moveArrowToId) {
-      methods.moveArrowToId = this.$scope.moveArrowToId;
-    }
 
     return methods;
   },
