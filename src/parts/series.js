@@ -135,24 +135,17 @@ var p_series = PClass.extend({
    * Render bar serie. By default it renders bars stacked.
    */
   _renderBarSerie: function(serie) {
-    var self = this;
+    var self = this,
+        positiveStacks = {},
+        negativeStacks = {};
 
-    var groupedYBars = _.groupBy(_.flatten(_.pluck(serie.data, 'values')), 'x');
-    _.each(groupedYBars, function(d, i) {
-      var y0 = 0;
-      var y0Bottom = 0;
-      _.each(d, function(row) {
-        if (row.y < 0) {
-          row.y0 = y0Bottom;
-          y0Bottom = row.y - y0Bottom;
-          row.y1 = y0Bottom;
-        } else {
-          row.y0 = y0;
-          row.y1 = y0 += row.y;
-        }
-        return row;
+    _.each(serie.data, function(serie) {
+      _.each(serie.values, function(d) {
+          var stacks = d.y >= 0 ? positiveStacks : negativeStacks;
+          d.y0 = (stacks[d.x] || 0);
+          d.y1 = d.y0 + d.y;
+          stacks[d.x] = d.y1;
       });
-      return d;
     });
 
     var bars = this.svg.selectAll('.serie-bar')
@@ -170,19 +163,11 @@ var p_series = PClass.extend({
           return self.scale.x(d.x);
         })
         .attr('y', function(d) {
-          return self.scale.y(d.y1);
+          return self.scale.y(d.y0 < d.y1 ? d.y1 : d.y0);
         })
         .attr('width', 12)
         .attr('height', function(d) {
-          return self.scale.y(d.y0) - self.scale.y(d.y1);
-
-          // var a = self.scale.y(d.y0) - self.scale.y(d.y1);
-          // var b = self.scale.y(d.y1) - self.scale.y(d.y0);
-          // if (a > 0) {
-          //   return a;
-          // } else {
-          //   return b;
-          // }
+          return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
         });
   },
 
