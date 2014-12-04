@@ -96,6 +96,36 @@ var p_series = PClass.extend({
     this._updateLineSerie(serie);
   },
 
+  _renderAreaSerie: function(serie) {
+    var self = this;
+
+    // Render the two lines
+    this._renderLineSerie({
+      id: serie.data[0].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[0].values
+    });
+
+    this._renderLineSerie({
+      id: serie.data[1].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[1].values
+    });
+
+    // Draw an area between one and the other Y
+    var area = d3.svg.area()
+      .x(function(d) { return self.scale.x(d.x); })
+      .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
+      .y1(function(d) { return self.scale.y(d.y); });
+
+    this.svg.append('path')
+        .datum(serie.data[0].values)
+        .attr('class', 'area')
+        .attr('d', area)
+        .attr('fill', serie.color || '#ccc')
+        .attr('opacity', serie.bgOpacity || 0.4);
+  },
+
   /**
    * Update line serie.
    */
