@@ -4,12 +4,7 @@
 var PClass = Class.extend({
 
   _coreSubscriptions: [{
-    'Scope/emit': function(objs) {
-      _.each(objs, function(obj, name) {
-        if (!this[name]) {return;}
-        this[name] = obj;
-      }, this);
-    }
+
   }],
 
   init: function($scope) {
@@ -27,6 +22,11 @@ var PClass = Class.extend({
    * Load dependencies modules.
    */
   _loadModules: function($scope) {
+    // Populate core modules
+    this['svg'] = $scope['svg'];
+    this['opts'] = $scope['opts'];
+    this['data'] = $scope['data'];
+
     for (var i = this.deps.length - 1; i >= 0; i--) {
       this[this.deps[i]] = $scope[this.deps[i]];
     }
@@ -42,16 +42,6 @@ var PClass = Class.extend({
     _.each(subscription, _.bind(function(callback, name) {
       this.on(name, _.bind(callback, this));
     },this));
-  },
-
-  /**
-   * Update scope variables in every PClass child
-   * for the given objects.
-   * 
-   * @param  {Array} objs
-   */
-  emit: function(objs) {
-    this.trigger('Scope/emit', [objs]);
   }
 
 });

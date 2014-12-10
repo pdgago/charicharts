@@ -2,14 +2,11 @@
  * Pie Module
  * ----------
  * Draw a pie into the scope svg with the scope data.
- * 
+ *
  */
 var p_pie = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'data'
   ],
 
   _subscriptions: [{
@@ -34,9 +31,13 @@ var p_pie = PClass.extend({
     this._setEvents();
 
     return {
-      update: _.bind(this.update, this),
-      path: this.path,
-      arc: this.arc
+      series: {
+        update: _.bind(this.update, this)
+      },
+      pie: {
+        path: this.path,
+        arc: this.arc
+      }
     };
   },
 

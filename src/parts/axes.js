@@ -2,15 +2,12 @@
  * Axes Module
  * -----------
  * Add x/y axis.
- * 
+ *
  */
 var p_axes = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'xscale',
-    'yscale'
+    'scale'
   ],
 
   _subscriptions: [{
@@ -44,7 +41,7 @@ var p_axes = PClass.extend({
 
   _renderBottom: function(model) {
     model.axis = d3.svg.axis()
-      .scale(this.xscale)
+      .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
       .tickFormat(this.opts.xaxis.bottom.tickFormat);
@@ -56,7 +53,7 @@ var p_axes = PClass.extend({
 
   _renderLeft: function(model) {
     model.axis = d3.svg.axis()
-      .scale(this.yscale)
+      .scale(this.scale.y)
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
@@ -69,7 +66,7 @@ var p_axes = PClass.extend({
 
   _renderRight: function(model) {
     model.axis = d3.svg.axis()
-      .scale(this.yscale)
+      .scale(this.scale.y)
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
@@ -85,7 +82,7 @@ var p_axes = PClass.extend({
    */
   _updateAxis: function(model, orient) {
     var scale = (orient === 'top' || orient === 'bottom') ?
-      this.xscale : this.yscale;
+      this.scale.x : this.scale.y;
 
     model.el.transition()
       .duration(500)

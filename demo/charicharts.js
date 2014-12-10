@@ -61,20 +61,20 @@ function h_getAngle(x, y) {
 /* jshint ignore:start */
 (function(){
   var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
- 
+
   // The base Class implementation (does nothing)
   this.Class = function(){};
- 
+
   // Create a new Class that inherits from this class
   Class.extend = function(prop) {
     var _super = this.prototype;
-   
+
     // Instantiate a base class (but only create the instance,
     // don't run the init constructor)
     initializing = true;
     var prototype = new this();
     initializing = false;
-   
+
     // Copy the properties over onto the new prototype
     for (var name in prop) {
       // Check if we're overwriting an existing function
@@ -83,22 +83,22 @@ function h_getAngle(x, y) {
         (function(name, fn){
           return function() {
             var tmp = this._super;
-           
+
             // Add a new ._super() method that is the same method
             // but on the super-class
             this._super = _super[name];
-           
+
             // The method only need to be bound temporarily, so we
             // remove it when we're done executing
-            var ret = fn.apply(this, arguments);        
+            var ret = fn.apply(this, arguments);
             this._super = tmp;
-           
+
             return ret;
           };
         })(name, prop[name]) :
         prop[name];
     }
-   
+
     // The dummy class constructor
     function Class() {
       // All construction is actually done in the init method
@@ -106,16 +106,16 @@ function h_getAngle(x, y) {
         return this.init.apply(this, arguments);
       }
     }
-   
+
     // Populate our constructed prototype object
     Class.prototype = prototype;
-   
+
     // Enforce the constructor to be what we expect
     Class.prototype.constructor = Class;
- 
+
     // And make this class extendable
     Class.extend = arguments.callee;
-   
+
     return Class;
   };
 }).call(window);
@@ -126,7 +126,7 @@ function h_getAngle(x, y) {
 var CClass = Class.extend({
 
   init: function(opts, data) {
-    // Set scope
+    // Set scope with core objects populated
     this.$scope = {
       opts: this.parseOptions(opts),
       data: data
@@ -136,6 +136,7 @@ var CClass = Class.extend({
     _.extend(this.$scope, charichartsEvents());
     this._loadModules(this._modules);
 
+    // Core methods exposed
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
       unbind: this.$scope.unbind
@@ -243,12 +244,7 @@ var charichartsEvents = function() {
 var PClass = Class.extend({
 
   _coreSubscriptions: [{
-    'Scope/emit': function(objs) {
-      _.each(objs, function(obj, name) {
-        if (!this[name]) {return;}
-        this[name] = obj;
-      }, this);
-    }
+
   }],
 
   init: function($scope) {
@@ -266,6 +262,11 @@ var PClass = Class.extend({
    * Load dependencies modules.
    */
   _loadModules: function($scope) {
+    // Populate core modules
+    this['svg'] = $scope['svg'];
+    this['opts'] = $scope['opts'];
+    this['data'] = $scope['data'];
+
     for (var i = this.deps.length - 1; i >= 0; i--) {
       this[this.deps[i]] = $scope[this.deps[i]];
     }
@@ -281,16 +282,6 @@ var PClass = Class.extend({
     _.each(subscription, _.bind(function(callback, name) {
       this.on(name, _.bind(callback, this));
     },this));
-  },
-
-  /**
-   * Update scope variables in every PClass child
-   * for the given objects.
-   * 
-   * @param  {Array} objs
-   */
-  emit: function(objs) {
-    this.trigger('Scope/emit', [objs]);
   }
 
 });
@@ -298,15 +289,12 @@ var PClass = Class.extend({
  * Axes Module
  * -----------
  * Add x/y axis.
- * 
+ *
  */
 var p_axes = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'xscale',
-    'yscale'
+    'scale'
   ],
 
   _subscriptions: [{
@@ -340,7 +328,7 @@ var p_axes = PClass.extend({
 
   _renderBottom: function(model) {
     model.axis = d3.svg.axis()
-      .scale(this.xscale)
+      .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
       .tickFormat(this.opts.xaxis.bottom.tickFormat);
@@ -352,7 +340,7 @@ var p_axes = PClass.extend({
 
   _renderLeft: function(model) {
     model.axis = d3.svg.axis()
-      .scale(this.yscale)
+      .scale(this.scale.y)
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
@@ -365,7 +353,7 @@ var p_axes = PClass.extend({
 
   _renderRight: function(model) {
     model.axis = d3.svg.axis()
-      .scale(this.yscale)
+      .scale(this.scale.y)
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
@@ -381,7 +369,7 @@ var p_axes = PClass.extend({
    */
   _updateAxis: function(model, orient) {
     var scale = (orient === 'top' || orient === 'bottom') ?
-      this.xscale : this.yscale;
+      this.scale.x : this.scale.y;
 
     model.el.transition()
       .duration(500)
@@ -454,14 +442,11 @@ var p_axes = PClass.extend({
  * Percentage Bar
  * --------------
  * Add a percentage bar to the supplied svg.
- * 
+ *
  */
 var p_percentage_bar = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'data'
   ],
 
   initialize: function() {
@@ -578,15 +563,12 @@ var p_percentage_bar = PClass.extend({
  * Pie Inner Arrow
  * ---------------
  * Add an inner arrow into the scope pie.
- * 
+ *
  */
 var p_pie_inner_arrow = PClass.extend({
 
   deps: [
-    'opts',
-    'svg',
-    'path',
-    'arc'
+    'pie',
   ],
 
   _subscriptions: [{
@@ -606,12 +588,14 @@ var p_pie_inner_arrow = PClass.extend({
 
     // Move arrow to first piece onload
     setTimeout(function() {
-      var d = self.path.data()[0];
+      var d = self.pie.path.data()[0];
       self.moveArrowToId(d.data.id);
     }, 0);
 
     return {
-      moveArrowToId: _.bind(this.moveArrowToId, this)
+      pie_inner_arrow: {
+        moveArrowToId: _.bind(this.moveArrowToId, this)
+      }
     };
   },
 
@@ -650,7 +634,7 @@ var p_pie_inner_arrow = PClass.extend({
    * Move arrow to the given data object.
    */
   _moveArrow: function(d) {
-    var coords = this.arc.centroid(d),
+    var coords = this.pie.arc.centroid(d),
         angle = h_getAngle.apply(this, coords),
         rotation = angle * (180/Math.PI);
 
@@ -668,7 +652,7 @@ var p_pie_inner_arrow = PClass.extend({
    */
   moveArrowToId: function(id) {
     var self = this;
-    this.path.each(function(d) {
+    this.pie.path.each(function(d) {
       if (d.data.id !== id) {return;}
       self._moveArrow(d);
     });
@@ -687,14 +671,11 @@ var p_pie_inner_arrow = PClass.extend({
  * Pie Module
  * ----------
  * Draw a pie into the scope svg with the scope data.
- * 
+ *
  */
 var p_pie = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'data'
   ],
 
   _subscriptions: [{
@@ -719,9 +700,13 @@ var p_pie = PClass.extend({
     this._setEvents();
 
     return {
-      update: _.bind(this.update, this),
-      path: this.path,
-      arc: this.arc
+      series: {
+        update: _.bind(this.update, this)
+      },
+      pie: {
+        path: this.path,
+        arc: this.arc
+      }
     };
   },
 
@@ -785,13 +770,11 @@ var p_pie = PClass.extend({
  * Scale Module
  * ------------
  * Set X/Y scales from the given data.
- * 
+ *
  */
 var p_scale = PClass.extend({
 
   deps: [
-    'opts',
-    'data'
   ],
 
   _d3Scales: {
@@ -805,24 +788,33 @@ var p_scale = PClass.extend({
      * Triggered when the serie gets updated with new data.
      */
     'Serie/update': function() {
-      this._setScales();
-
-      // Emit them to all scopes
-      this.emit({
-        xscale: this.xscale,
-        yscale: this.yscale
-      });
-
+      this._updateScales();
       this.trigger('Scale/updated', []);
     }
   }],
 
   initialize: function() {
-    this._setScales();
-    return {xscale: this.xscale, yscale: this.yscale};
+    this._status = {
+      // Current scale
+      scale: {
+        x: null,
+        y: null
+      }
+    };
+
+    this._updateScales();
+    return {
+      scale: this._status.scale
+    };
   },
 
-  _getScale: function(position) {
+  _updateScales: function() {
+    this._setFlattenedData();
+    this._status.scale.x = this._updateScale('x');
+    this._status.scale.y = this._updateScale('y');
+  },
+
+  _updateScale: function(position) {
     var opts = this.opts[position + 'axis'],
         domain = this._getExtent(position, opts.fit),
         range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
@@ -859,29 +851,19 @@ var p_scale = PClass.extend({
    */
   _setFlattenedData: function() {
     this._dataFlattened = _.flatten(_.map(this.data, function(d) {
-      if (d.type === 'bar') {
+      if (!d.values) {
         return _.flatten(_.pluck(d.data, 'values'));
       } else {
         return d.values;
       }
     }));
-  },
-
-  _setScales: function() {
-    this._setFlattenedData();
-    this.xscale = this._getScale('x');
-    this.yscale = this._getScale('y');
-  },
+  }
 
 });
 var p_series = PClass.extend({
 
   deps: [
-    'data',
-    'svg',
-    'xscale',
-    'yscale',
-    'opts'
+    'scale',
   ],
 
   _subscriptions: [],
@@ -896,9 +878,11 @@ var p_series = PClass.extend({
     _.each(this.data, this._renderSerie, this);
 
     return {
-      update: _.bind(this.updateSeries, this),
-      addSerie: _.bind(this.addSerie, this),
-      removeSerie: _.bind(this.removeSerie, this)
+      series: {
+        update: _.bind(this.updateSeries, this),
+        add: _.bind(this.addSerie, this),
+        remove: _.bind(this.removeSerie, this)
+      }
     };
   },
 
@@ -907,18 +891,13 @@ var p_series = PClass.extend({
    */
   addSerie: function(serie) {
     this.data.push(serie);
-
-    this.emit({ 
-      data: this.data
-    });
-
     this.trigger('Serie/update', []);
     this._renderSerie(serie);
   },
 
   /**
    * Remove a serie from the id.
-   * 
+   *
    * @param  {Integer} id
    */
   removeSerie: function(id) {
@@ -979,6 +958,36 @@ var p_series = PClass.extend({
     this._updateLineSerie(serie);
   },
 
+  _renderAreaSerie: function(serie) {
+    var self = this;
+
+    // Render the two lines
+    this._renderLineSerie({
+      id: serie.data[0].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[0].values
+    });
+
+    this._renderLineSerie({
+      id: serie.data[1].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[1].values
+    });
+
+    // Draw an area between one and the other Y
+    var area = d3.svg.area()
+      .x(function(d) { return self.scale.x(d.x); })
+      .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
+      .y1(function(d) { return self.scale.y(d.y); });
+
+    this.svg.append('path')
+        .datum(serie.data[0].values)
+        .attr('class', 'area')
+        .attr('d', area)
+        .attr('fill', serie.color || '#ccc')
+        .attr('opacity', serie.bgOpacity || 0.4);
+  },
+
   /**
    * Update line serie.
    */
@@ -1010,34 +1019,45 @@ var p_series = PClass.extend({
     var self = this;
     return d3.svg.line()
       .defined(function(d) {return !!d.y;})
-      .x(function(d) {return self.xscale(d.x);})
-      .y(function(d) {return self.yscale(d.y);});
+      .x(function(d) {return self.scale.x(d.x);})
+      .y(function(d) {return self.scale.y(d.y);});
   },
 
   /**
    * Render bar serie. By default it renders bars stacked.
    */
   _renderBarSerie: function(serie) {
-    var self = this;
+    var self = this,
+        grouped = serie.grouped,
+        // TODO 12 not reasonable. how can we define it?
+        barWidth =  12/(!grouped ? serie.data.length : 1);
 
-    console.log(serie.data);
-    var groupedYBars = _.groupBy(_.flatten(_.pluck(serie.data, 'values')), 'x');
-    _.each(groupedYBars, function(d, i) {
-      var y0 = 0;
-      var y0Bottom = 0;
-      _.each(d, function(row) {
-        if (row.y < 0) {
-          row.y0 = y0Bottom;
-          y0Bottom = row.y - y0Bottom;
-          row.y1 = y0Bottom;
-        } else {
-          row.y0 = y0;
-          row.y1 = y0 += row.y;
-        }
-        return row;
+    // Stacked data
+    if (grouped) {
+      var positiveStacks = {},
+          negativeStacks = {};
+
+      _.each(serie.data, function(serie) {
+        _.each(serie.values, function(d) {
+            var stacks = d.y >= 0 ? positiveStacks : negativeStacks;
+
+            d.y0 = (stacks[d.x] || 0);
+            d.y1 = d.y0 + d.y;
+            stacks[d.x] = d.y1;
+        });
       });
-      return d;
-    });
+    // Data side by side
+    } else {
+      var xStack = {};
+      _.each(serie.data, function(serie) {
+        _.each(serie.values, function(d) {
+            d.y0 = 0;
+            d.y1 = d.y;
+            d.w = (xStack[d.x] || 0) + barWidth;
+            xStack[d.x] = d.w;
+        });
+      });
+    }
 
     var bars = this.svg.selectAll('.serie-bar')
         .data(serie.data)
@@ -1051,22 +1071,14 @@ var p_series = PClass.extend({
         .data(function(d) {return d.values;})
       .enter().append('rect')
         .attr('x', function(d) {
-          return self.xscale(d.x);
+          return self.scale.x(d.x) + (d.w || 0);
         })
         .attr('y', function(d) {
-          return self.yscale(d.y1);
+          return self.scale.y(d.y0 < d.y1 ? d.y1 : d.y0);
         })
-        .attr('width', 12)
+        .attr('width', barWidth)
         .attr('height', function(d) {
-          return self.yscale(d.y0) - self.yscale(d.y1);
-
-          // var a = self.yscale(d.y0) - self.yscale(d.y1);
-          // var b = self.yscale(d.y1) - self.yscale(d.y0);
-          // if (a > 0) {
-          //   return a;
-          // } else { 
-          //   return b;
-          // }
+          return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
         });
   },
 
@@ -1082,12 +1094,11 @@ var p_series = PClass.extend({
  * Svg Module
  * ----------
  * Append a svg to the given opts.target.
- * 
+ *
  */
 var p_svg = PClass.extend({
 
   deps: [
-    'opts'
   ],
 
   initialize: function() {
@@ -1112,10 +1123,7 @@ var p_svg = PClass.extend({
 var p_trail = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'xscale',
-    'data'
+    'scale',
   ],
 
   _subscriptions: [{
@@ -1133,7 +1141,7 @@ var p_trail = PClass.extend({
     this._renderTrail();
 
     setTimeout(function() {
-      self._moveToValue(self.opts.trail.initXvalue(self.xscale));
+      self._moveToValue(self.opts.trail.initXvalue(self.scale.x));
     }, 0);
   },
 
@@ -1166,7 +1174,7 @@ var p_trail = PClass.extend({
         .attr('marker-start', 'url(#trailArrow)');
 
     this.brush = d3.svg.brush()
-      .x(this.xscale)
+      .x(this.scale.x)
       .extent([0, 0]);
 
     this.bisector = d3.bisector(function(d) {
@@ -1202,7 +1210,7 @@ var p_trail = PClass.extend({
   _onBrush: function(event) {
     var x;
     if (d3.event.sourceEvent) {
-      x = this.xscale.invert(d3.mouse(event)[0]);
+      x = this.scale.x.invert(d3.mouse(event)[0]);
     } else {
       x = brush.extent()[0];
     }
@@ -1213,7 +1221,7 @@ var p_trail = PClass.extend({
    * Moves the trail to supplied xvalue.
    */
   _moveToValue: function(xvalue) {
-    var xdomain = this.xscale.domain(),
+    var xdomain = this.scale.x.domain(),
         isDate = !!xvalue.getMonth;
 
     // if the seleted x is outside the domain,
@@ -1235,7 +1243,7 @@ var p_trail = PClass.extend({
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
     xvalue = this.opts.trail.beforeMove(xvalue);
-    var x = Math.round(this.xscale(xvalue) -1);
+    var x = Math.round(this.scale.x(xvalue) -1);
     if (x === this._status.x) {return;} // Return if it's already selected
     var data = this._getDataFromValue(xvalue);
     this._status.x = x;
@@ -1254,7 +1262,7 @@ var p_trail = PClass.extend({
 
   /**
    * Move the trail to the given x position.
-   * 
+   *
    * @param  {integer} x
    */
   _moveTrail: function(x) {
@@ -1277,7 +1285,7 @@ Charicharts.Chart = CClass.extend({
    * @return {Object} Chart properties
    */
   getInstanceProperties: function() {
-    return _.pick(this.$scope, 'update', 'addSerie', 'removeSerie');
+    return _.pick(this.$scope, 'series');
   },
 
   defaults: {
@@ -1309,7 +1317,7 @@ Charicharts.Chart = CClass.extend({
         tickFormat: function(d) {
           return d;
         }
-      }  
+      }
     },
     // Yaxis Options.
     yaxis: {
@@ -1337,7 +1345,7 @@ Charicharts.Chart = CClass.extend({
 
   parseOptions: function(options) {
     var o = _.extend({}, this.defaults, options);
-    
+
     // TODO => Use deep extend to clone defaults and supplied options.
     o.trail = _.extend({}, this.defaults.trail, o.trail);
     o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);
@@ -1377,6 +1385,7 @@ Charicharts.PercentageBar = CClass.extend({
 
   getInstanceProperties: function() {
     var methods = {};
+
     return methods;
   },
 
@@ -1404,7 +1413,6 @@ Charicharts.PercentageBar = CClass.extend({
 
     o.height = o.fullHeight - o.margin.top - o.margin.bottom;
     o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
-    console.log(o);
     return o;
   }
 
@@ -1418,15 +1426,7 @@ Charicharts.Pie = CClass.extend({
   ],
 
   getInstanceProperties: function() {
-    var methods = {
-      update: this.$scope.update
-    };
-
-    if (this.$scope.moveArrowToId) {
-      methods.moveArrowToId = this.$scope.moveArrowToId;
-    }
-
-    return methods;
+    return _.pick(this.$scope, 'series', 'pie_inner_arrow');
   },
 
   defaults: {

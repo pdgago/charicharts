@@ -1,11 +1,7 @@
 var p_series = PClass.extend({
 
   deps: [
-    'data',
-    'svg',
-    'xscale',
-    'yscale',
-    'opts'
+    'scale',
   ],
 
   _subscriptions: [],
@@ -20,9 +16,11 @@ var p_series = PClass.extend({
     _.each(this.data, this._renderSerie, this);
 
     return {
-      update: _.bind(this.updateSeries, this),
-      addSerie: _.bind(this.addSerie, this),
-      removeSerie: _.bind(this.removeSerie, this)
+      series: {
+        update: _.bind(this.updateSeries, this),
+        add: _.bind(this.addSerie, this),
+        remove: _.bind(this.removeSerie, this)
+      }
     };
   },
 
@@ -31,18 +29,13 @@ var p_series = PClass.extend({
    */
   addSerie: function(serie) {
     this.data.push(serie);
-
-    this.emit({ 
-      data: this.data
-    });
-
     this.trigger('Serie/update', []);
     this._renderSerie(serie);
   },
 
   /**
    * Remove a serie from the id.
-   * 
+   *
    * @param  {Integer} id
    */
   removeSerie: function(id) {
@@ -103,6 +96,36 @@ var p_series = PClass.extend({
     this._updateLineSerie(serie);
   },
 
+  _renderAreaSerie: function(serie) {
+    var self = this;
+
+    // Render the two lines
+    this._renderLineSerie({
+      id: serie.data[0].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[0].values
+    });
+
+    this._renderLineSerie({
+      id: serie.data[1].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[1].values
+    });
+
+    // Draw an area between one and the other Y
+    var area = d3.svg.area()
+      .x(function(d) { return self.scale.x(d.x); })
+      .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
+      .y1(function(d) { return self.scale.y(d.y); });
+
+    this.svg.append('path')
+        .datum(serie.data[0].values)
+        .attr('class', 'area')
+        .attr('d', area)
+        .attr('fill', serie.color || '#ccc')
+        .attr('opacity', serie.bgOpacity || 0.4);
+  },
+
   /**
    * Update line serie.
    */
@@ -134,34 +157,45 @@ var p_series = PClass.extend({
     var self = this;
     return d3.svg.line()
       .defined(function(d) {return !!d.y;})
-      .x(function(d) {return self.xscale(d.x);})
-      .y(function(d) {return self.yscale(d.y);});
+      .x(function(d) {return self.scale.x(d.x);})
+      .y(function(d) {return self.scale.y(d.y);});
   },
 
   /**
    * Render bar serie. By default it renders bars stacked.
    */
   _renderBarSerie: function(serie) {
-    var self = this;
+    var self = this,
+        grouped = serie.grouped,
+        // TODO 12 not reasonable. how can we define it?
+        barWidth =  12/(!grouped ? serie.data.length : 1);
 
-    console.log(serie.data);
-    var groupedYBars = _.groupBy(_.flatten(_.pluck(serie.data, 'values')), 'x');
-    _.each(groupedYBars, function(d, i) {
-      var y0 = 0;
-      var y0Bottom = 0;
-      _.each(d, function(row) {
-        if (row.y < 0) {
-          row.y0 = y0Bottom;
-          y0Bottom = row.y - y0Bottom;
-          row.y1 = y0Bottom;
-        } else {
-          row.y0 = y0;
-          row.y1 = y0 += row.y;
-        }
-        return row;
+    // Stacked data
+    if (grouped) {
+      var positiveStacks = {},
+          negativeStacks = {};
+
+      _.each(serie.data, function(serie) {
+        _.each(serie.values, function(d) {
+            var stacks = d.y >= 0 ? positiveStacks : negativeStacks;
+
+            d.y0 = (stacks[d.x] || 0);
+            d.y1 = d.y0 + d.y;
+            stacks[d.x] = d.y1;
+        });
       });
-      return d;
-    });
+    // Data side by side
+    } else {
+      var xStack = {};
+      _.each(serie.data, function(serie) {
+        _.each(serie.values, function(d) {
+            d.y0 = 0;
+            d.y1 = d.y;
+            d.w = (xStack[d.x] || 0) + barWidth;
+            xStack[d.x] = d.w;
+        });
+      });
+    }
 
     var bars = this.svg.selectAll('.serie-bar')
         .data(serie.data)
@@ -175,22 +209,14 @@ var p_series = PClass.extend({
         .data(function(d) {return d.values;})
       .enter().append('rect')
         .attr('x', function(d) {
-          return self.xscale(d.x);
+          return self.scale.x(d.x) + (d.w || 0);
         })
         .attr('y', function(d) {
-          return self.yscale(d.y1);
+          return self.scale.y(d.y0 < d.y1 ? d.y1 : d.y0);
         })
-        .attr('width', 12)
+        .attr('width', barWidth)
         .attr('height', function(d) {
-          return self.yscale(d.y0) - self.yscale(d.y1);
-
-          // var a = self.yscale(d.y0) - self.yscale(d.y1);
-          // var b = self.yscale(d.y1) - self.yscale(d.y0);
-          // if (a > 0) {
-          //   return a;
-          // } else { 
-          //   return b;
-          // }
+          return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
         });
   },
 

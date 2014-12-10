@@ -2,15 +2,12 @@
  * Pie Inner Arrow
  * ---------------
  * Add an inner arrow into the scope pie.
- * 
+ *
  */
 var p_pie_inner_arrow = PClass.extend({
 
   deps: [
-    'opts',
-    'svg',
-    'path',
-    'arc'
+    'pie',
   ],
 
   _subscriptions: [{
@@ -30,12 +27,14 @@ var p_pie_inner_arrow = PClass.extend({
 
     // Move arrow to first piece onload
     setTimeout(function() {
-      var d = self.path.data()[0];
+      var d = self.pie.path.data()[0];
       self.moveArrowToId(d.data.id);
     }, 0);
 
     return {
-      moveArrowToId: _.bind(this.moveArrowToId, this)
+      pie_inner_arrow: {
+        moveArrowToId: _.bind(this.moveArrowToId, this)
+      }
     };
   },
 
@@ -74,7 +73,7 @@ var p_pie_inner_arrow = PClass.extend({
    * Move arrow to the given data object.
    */
   _moveArrow: function(d) {
-    var coords = this.arc.centroid(d),
+    var coords = this.pie.arc.centroid(d),
         angle = h_getAngle.apply(this, coords),
         rotation = angle * (180/Math.PI);
 
@@ -92,7 +91,7 @@ var p_pie_inner_arrow = PClass.extend({
    */
   moveArrowToId: function(id) {
     var self = this;
-    this.path.each(function(d) {
+    this.pie.path.each(function(d) {
       if (d.data.id !== id) {return;}
       self._moveArrow(d);
     });

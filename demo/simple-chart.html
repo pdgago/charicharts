@@ -85,7 +85,7 @@ var options = {
 var chart = new Charicharts.Chart(options, data);
 
 chart.on('Trail/changed', function(data, x) {
-  console.log(data, x);
+  // console.log(data, x);
 });
 
 setInterval(function() {
@@ -97,7 +97,7 @@ function update(data) {
   var toNull = _.random(1, 10) <= 3;
   data.push(randomItem(data[data.length-1].x + 1, toNull));
   data.shift();
-  chart.update();
+  chart.series.update();
 }
 
 function randomItem(i, toNull) {

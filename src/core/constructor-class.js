@@ -4,7 +4,7 @@
 var CClass = Class.extend({
 
   init: function(opts, data) {
-    // Set scope
+    // Set scope with core objects populated
     this.$scope = {
       opts: this.parseOptions(opts),
       data: data
@@ -14,6 +14,7 @@ var CClass = Class.extend({
     _.extend(this.$scope, charichartsEvents());
     this._loadModules(this._modules);
 
+    // Core methods exposed
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
       unbind: this.$scope.unbind

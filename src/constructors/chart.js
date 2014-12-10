@@ -13,7 +13,7 @@ Charicharts.Chart = CClass.extend({
    * @return {Object} Chart properties
    */
   getInstanceProperties: function() {
-    return _.pick(this.$scope, 'update', 'addSerie', 'removeSerie');
+    return _.pick(this.$scope, 'series');
   },
 
   defaults: {
@@ -45,7 +45,7 @@ Charicharts.Chart = CClass.extend({
         tickFormat: function(d) {
           return d;
         }
-      }  
+      }
     },
     // Yaxis Options.
     yaxis: {
@@ -73,7 +73,7 @@ Charicharts.Chart = CClass.extend({
 
   parseOptions: function(options) {
     var o = _.extend({}, this.defaults, options);
-    
+
     // TODO => Use deep extend to clone defaults and supplied options.
     o.trail = _.extend({}, this.defaults.trail, o.trail);
     o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);

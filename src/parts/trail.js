@@ -1,10 +1,7 @@
 var p_trail = PClass.extend({
 
   deps: [
-    'svg',
-    'opts',
-    'xscale',
-    'data'
+    'scale',
   ],
 
   _subscriptions: [{
@@ -22,7 +19,7 @@ var p_trail = PClass.extend({
     this._renderTrail();
 
     setTimeout(function() {
-      self._moveToValue(self.opts.trail.initXvalue(self.xscale));
+      self._moveToValue(self.opts.trail.initXvalue(self.scale.x));
     }, 0);
   },
 
@@ -55,7 +52,7 @@ var p_trail = PClass.extend({
         .attr('marker-start', 'url(#trailArrow)');
 
     this.brush = d3.svg.brush()
-      .x(this.xscale)
+      .x(this.scale.x)
       .extent([0, 0]);
 
     this.bisector = d3.bisector(function(d) {
@@ -91,7 +88,7 @@ var p_trail = PClass.extend({
   _onBrush: function(event) {
     var x;
     if (d3.event.sourceEvent) {
-      x = this.xscale.invert(d3.mouse(event)[0]);
+      x = this.scale.x.invert(d3.mouse(event)[0]);
     } else {
       x = brush.extent()[0];
     }
@@ -102,7 +99,7 @@ var p_trail = PClass.extend({
    * Moves the trail to supplied xvalue.
    */
   _moveToValue: function(xvalue) {
-    var xdomain = this.xscale.domain(),
+    var xdomain = this.scale.x.domain(),
         isDate = !!xvalue.getMonth;
 
     // if the seleted x is outside the domain,
@@ -124,7 +121,7 @@ var p_trail = PClass.extend({
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
     xvalue = this.opts.trail.beforeMove(xvalue);
-    var x = Math.round(this.xscale(xvalue) -1);
+    var x = Math.round(this.scale.x(xvalue) -1);
     if (x === this._status.x) {return;} // Return if it's already selected
     var data = this._getDataFromValue(xvalue);
     this._status.x = x;
@@ -143,7 +140,7 @@ var p_trail = PClass.extend({
 
   /**
    * Move the trail to the given x position.
-   * 
+   *
    * @param  {integer} x
    */
   _moveTrail: function(x) {
