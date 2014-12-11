@@ -17,13 +17,13 @@ Charicharts.Chart = CClass.extend({
   },
 
   defaults: {
-    margin: '0,0,0,0',
+    margin: '0 0 0 0',
     trail: {
       enabled: false,
-      beforeMove: function(xvalue) {
+      parseStep: function(xvalue) {
         return xvalue;
       },
-      initXvalue: function(xscale) {
+      initXValue: function(xscale) {
         return xscale.domain()[1];
       }
     },

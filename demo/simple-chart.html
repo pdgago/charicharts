@@ -65,7 +65,7 @@ var options = {
   margin: '40 60 25 60',
   trail: {
     enabled: true,
-    beforeMove: function(x) {
+    parseStep: function(x) {
       return Math.round(x);
     }
   },
@@ -84,14 +84,33 @@ var options = {
 
 var chart = new Charicharts.Chart(options, data);
 
-chart.on('Trail/changed', function(data, x) {
+chart.on('Trail/moved', function(data, x) {
   // console.log(data, x);
 });
 
-setInterval(function() {
-  update(data1);
-  update(data2);
-}, 500);
+// setInterval(function() {
+//   update(data1);
+//   update(data2);
+// }, 500);
+
+setTimeout(function() {
+  var data = [{
+    id: 1004,
+    type: 'line',
+    values: getData(23),
+    interpolation: 'basis',
+    color: '#555'
+  },{
+    id: 1005,
+    type: 'line',
+    values: getData(23),
+    dots: true,
+    interpolation: 'step',
+    color: color(0)
+  }];
+
+  chart.series.update(data);
+}, 1000);
 
 function update(data) {
   var toNull = _.random(1, 10) <= 3;

@@ -19,7 +19,7 @@ var p_trail = PClass.extend({
     this._renderTrail();
 
     setTimeout(function() {
-      self._moveToValue(self.opts.trail.initXvalue(self.scale.x));
+      self._moveToValue(self.opts.trail.initXValue(self.scale.x));
     }, 0);
   },
 
@@ -120,14 +120,14 @@ var p_trail = PClass.extend({
 
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
-    xvalue = this.opts.trail.beforeMove(xvalue);
+    xvalue = this.opts.trail.parseStep(xvalue);
     var x = Math.round(this.scale.x(xvalue) -1);
     if (x === this._status.x) {return;} // Return if it's already selected
     var data = this._getDataFromValue(xvalue);
     this._status.x = x;
     this._status.xvalue = xvalue;
     this._moveTrail(x);
-    this.trigger('Trail/changed', [data, xvalue]);
+    this.trigger('Trail/moved', [data, xvalue]);
   },
 
   _getDataFromValue: function(xvalue) {

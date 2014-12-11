@@ -3,18 +3,9 @@
  */
 var PClass = Class.extend({
 
-  _coreSubscriptions: [{
-
-  }],
-
   init: function($scope) {
     this._loadModules($scope);
-
-    // Subscribe
-    _.each(_.union(this._coreSubscriptions,
-      this._subscriptions), this._subscribe, this);
-
-    // Initialize P Module
+    _.each(this._subscriptions, this._subscribe, this);
     return this.initialize();
   },
 
@@ -23,16 +14,15 @@ var PClass = Class.extend({
    */
   _loadModules: function($scope) {
     // Populate core modules
-    this['svg'] = $scope['svg'];
-    this['opts'] = $scope['opts'];
-    this['data'] = $scope['data'];
+    this.svg = $scope.svg;
+    this.opts = $scope.opts;
+    this.data = $scope.data;
+    this.on = $scope.on;
+    this.trigger = $scope.trigger;
 
     for (var i = this.deps.length - 1; i >= 0; i--) {
       this[this.deps[i]] = $scope[this.deps[i]];
     }
-
-    this.on = $scope.on;
-    this.trigger = $scope.trigger;
   },
 
   /**

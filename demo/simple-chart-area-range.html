@@ -74,11 +74,11 @@ var options = {
   margin: '40 60 25 60',
   trail: {
     enabled: false,
-    beforeMove: function(date) {
+    parseStep: function(date) {
       date.setMinutes(0, 0, 0);
       return date;
     },
-    initXvalue: function() {
+    initXValue: function() {
       return new Date(); // Initial position to current hour
     }
   },
@@ -103,7 +103,7 @@ var options = {
 
 var chart = new Charicharts.Chart(options, data);
 
-// chart.on('Trail/changed', function(data, d) {
+// chart.on('Trail/moved', function(data, d) {
 //   console.log(data, d);
 // });
 
