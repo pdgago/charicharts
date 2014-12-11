@@ -37,10 +37,10 @@ var p_percentage_bar = PClass.extend({
   },
 
   _renderHorizontal: function() {
-    var total = d3.sum(_.pluck(this.data, 'value'));
+    var total = d3.sum(_.pluck(this.status.data, 'value'));
     var x0 = 0;
 
-    var data = _.map(this.data,
+    var data = _.map(this.status.data,
       function(d) {
         var v = {
           x0: x0,
@@ -68,10 +68,10 @@ var p_percentage_bar = PClass.extend({
   },
 
   _renderVertical: function() {
-    var total = d3.sum(_.pluck(this.data, 'value'));
+    var total = d3.sum(_.pluck(this.status.data, 'value'));
     var y0 = 0;
 
-    var data = _.map(this.data,
+    var data = _.map(this.status.data,
       function(d) {
         var v = {
           y0: y0,

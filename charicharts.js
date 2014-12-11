@@ -129,7 +129,9 @@ var CClass = Class.extend({
     // Set scope with core objects populated
     this.$scope = {
       opts: this.parseOptions(opts),
-      data: data
+      status: {
+        data: data
+      }
     };
 
     // Set events module into the $scope.
@@ -139,7 +141,8 @@ var CClass = Class.extend({
     // Core methods exposed
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
-      unbind: this.$scope.unbind
+      unbind: this.$scope.unbind,
+      update: _.bind(this.updateData, this)
     });
   },
 
@@ -147,6 +150,11 @@ var CClass = Class.extend({
     for (var i = 0; i < this.modules.length; i++) {
       _.extend(this.$scope, new this.modules[i](this.$scope));
     }
+  },
+
+  updateData: function(data) {
+    this.$scope.status.data = data;
+    this.$scope.trigger('Data/update', []);
   }
 
 });
@@ -231,9 +239,9 @@ var PClass = Class.extend({
     // Populate core modules
     this.svg = this._$scope.svg;
     this.opts = this._$scope.opts;
-    this.data = this._$scope.data;
     this.on = this._$scope.on;
     this.trigger = this._$scope.trigger;
+    this.status = this._$scope.status;
 
     for (var i = this.deps.length - 1; i >= 0; i--) {
       this[this.deps[i]] = this._$scope[this.deps[i]];
@@ -247,11 +255,6 @@ var PClass = Class.extend({
     _.each(subscription, _.bind(function(callback, name) {
       this.on(name, _.bind(callback, this));
     },this));
-  },
-
-  setData: function(data) {
-    this._$scope.data = data;
-    this.data = this._$scope.data;
   }
 
 });
@@ -447,10 +450,10 @@ var p_percentage_bar = PClass.extend({
   },
 
   _renderHorizontal: function() {
-    var total = d3.sum(_.pluck(this.data, 'value'));
+    var total = d3.sum(_.pluck(this.status.data, 'value'));
     var x0 = 0;
 
-    var data = _.map(this.data,
+    var data = _.map(this.status.data,
       function(d) {
         var v = {
           x0: x0,
@@ -478,10 +481,10 @@ var p_percentage_bar = PClass.extend({
   },
 
   _renderVertical: function() {
-    var total = d3.sum(_.pluck(this.data, 'value'));
+    var total = d3.sum(_.pluck(this.status.data, 'value'));
     var y0 = 0;
 
-    var data = _.map(this.data,
+    var data = _.map(this.status.data,
       function(d) {
         var v = {
           y0: y0,
@@ -685,7 +688,7 @@ var p_pie = PClass.extend({
    */
   update: function() {
     var self = this;
-    var data = this.pie(this.data);
+    var data = this.pie(this.status.data);
     this.path = this.path.data(data);
 
     this.path.enter().append('path')
@@ -782,7 +785,6 @@ var p_scale = PClass.extend({
     this._setFlattenedData();
     this._status.scale.x = this._updateScale('x');
     this._status.scale.y = this._updateScale('y');
-    console.log(this._status.scale.y.domain());
   },
 
   _updateScale: function(position) {
@@ -821,8 +823,7 @@ var p_scale = PClass.extend({
    * Handy when we need to get the extent.
    */
   _setFlattenedData: function() {
-    console.log(this.data);
-    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
+    this._dataFlattened = _.flatten(_.map(this.status.data, function(d) {
       if (!d.values) {
         return _.flatten(_.pluck(d.data, 'values'));
       } else {
@@ -838,7 +839,13 @@ var p_series = PClass.extend({
     'scale',
   ],
 
-  _subscriptions: [],
+  _subscriptions: [{
+    'Data/update': function() {
+      this.trigger('Serie/update', []);
+      this.removeSeries();
+      this.updateSeries();
+    }
+  }],
 
   initialize: function() {
     var self = this;
@@ -847,7 +854,7 @@ var p_series = PClass.extend({
     // before rendering the series, we need to group the bars ones.
     // those are going to be rendered together so they can be
     // stacked or grouped.
-    _.each(this.data, this._renderSerie, this);
+    _.each(this.status.data, this._renderSerie, this);
 
     return {
       series: {
@@ -862,9 +869,14 @@ var p_series = PClass.extend({
    * Add the supplied serie to data array and render it.
    */
   addSerie: function(serie) {
-    this.data.push(serie);
+    this.status.data.push(serie);
     this.trigger('Serie/update', []);
     this._renderSerie(serie);
+  },
+
+  removeSeries: function() {
+    this.svg.selectAll('.serie-line').remove();
+    // _.invoke(misseries, 'remove')
   },
 
   /**
@@ -873,10 +885,10 @@ var p_series = PClass.extend({
    * @param  {Integer} id
    */
   removeSerie: function(id) {
-    var dataObject = _.findWhere(this.data, {id: id});
-    this.data.splice(this.data.indexOf(dataObject), 1);
-    this._status.series[id].el.remove();
-    this._status.series = _.omit(this._status.series, id);
+    var dataObject = _.findWhere(this.status.data, {id: id});
+    this.status.data.splice(this.status.data.indexOf(dataObject), 1);
+    // this._status.series[id].el.remove();
+    // this._status.series = _.omit(this._status.series, id);
     this.trigger('Serie/update', []);
   },
 
@@ -893,11 +905,9 @@ var p_series = PClass.extend({
   /**
    * Update current series.
    */
-  updateSeries: function(data) {
-    this.setData(data);
-    this.trigger('Serie/update', []);
-    _.each(this._status.series, _.bind(function(serie) {
-      switch(serie.el.attr('type')) {
+  updateSeries: function() {
+    _.each(this.status.data, _.bind(function(serie) {
+      switch(serie.type) {
         case 'line': this._updateLineSerie(serie); break;
         case 'bar': this._updateBarSerie(serie); break;
         case 'area': this._updateAreaSerie(serie); break;}
@@ -907,27 +917,24 @@ var p_series = PClass.extend({
   /**
    * Render line serie.
    */
-  _renderLineSerie: function(data) {
-    var el = this.svg.append('path')
-      .datum(data.values)
-      .attr('id', 'serie-' + data.id)
-      .attr('class', 'serie-line')
-      .attr('stroke', data.color)
-      .attr('type', 'line')
-      .attr('active', 1);
+  _renderLineSerie: function(serie) {
+    // serie.path = this.svg.append('path')
+    //   // .datum(serie.values)
+    //   .attr('id', 'serie-' + serie.id)
+    //   .attr('class', 'serie-line')
+    //   .attr('stroke', serie.color)
+    //   .attr('type', 'line')
+    //   .attr('active', 1);
+    // // var serie = {
+    // //   el: el,
+    // //   data: data
+    // // };
 
-    var serie = {
-      el: el,
-      data: data
-    };
-
-    if (data.dots) {
-      serie.dots = this.svg.append('g')
-        .attr('id', 'serie-' + data.id + '-dots')
-        .selectAll('.dot');
-    }
-
-    this._status.series[data.id] = serie;
+    // // if (data.dots) {
+    // //   serie.dots = this.svg.append('g')
+    // //     .attr('id', 'serie-' + data.id + '-dots')
+    // //     .selectAll('.dot');
+    // // }
     this._updateLineSerie(serie);
   },
 
@@ -966,26 +973,36 @@ var p_series = PClass.extend({
    */
   _updateLineSerie: function(serie) {
     var line = this._getLineFunc();
-    serie.el.attr('d', line.interpolate(serie.data.interpolation));
+
+    var path = this.svg.append('path')
+      // .datum(serie.values)
+      .attr('id', 'serie-' + serie.id)
+      .attr('class', 'serie-line')
+      .attr('stroke', serie.color)
+      .attr('type', 'line')
+      .attr('active', 1);
+
+    path.datum(serie.values);
+    path.attr('d', line.interpolate(serie.interpolation));
 
     // Render dots
-    if (serie.data.dots) {
-      serie.dots = serie.dots.data(
-        serie.data.values.filter(function(d) {return d.y;}));
+    // if (serie.data.dots) {
+    //   serie.dots = serie.dots.data(
+    //     serie.data.values.filter(function(d) {return d.y;}));
 
-      serie.dots.enter().append('circle')
-        .attr('class', 'dot');
+    //   serie.dots.enter().append('circle')
+    //     .attr('class', 'dot');
 
-      serie.dots.exit().remove();
+    //   serie.dots.exit().remove();
 
-      serie.dots
-          .attr('cx', line.x())
-          .attr('cy', line.y())
-          .attr('fill', serie.data.color)
-          .attr('stroke', serie.data.color)
-          .attr('stroke-width', '2px')
-          .attr('r', 3);
-    }
+    //   serie.dots
+    //       .attr('cx', line.x())
+    //       .attr('cy', line.y())
+    //       .attr('fill', serie.data.color)
+    //       .attr('stroke', serie.data.color)
+    //       .attr('stroke-width', '2px')
+    //       .attr('r', 3);
+    // }
   },
 
   _getLineFunc: function() {
@@ -1226,7 +1243,7 @@ var p_trail = PClass.extend({
   },
 
   _getDataFromValue: function(xvalue) {
-    return _.map(this.data, function(d) {
+    return _.map(this.status.data, function(d) {
       return _.extend(
         d.values[this.bisector(d.values, xvalue)],
         {id: d.id});

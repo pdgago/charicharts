@@ -131,7 +131,7 @@ var p_trail = PClass.extend({
   },
 
   _getDataFromValue: function(xvalue) {
-    return _.map(this.data, function(d) {
+    return _.map(this.status.data, function(d) {
       return _.extend(
         d.values[this.bisector(d.values, xvalue)],
         {id: d.id});

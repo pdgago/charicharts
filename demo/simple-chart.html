@@ -109,7 +109,12 @@ setTimeout(function() {
     color: color(0)
   }];
 
-  chart.series.update(data);
+  console.log(chart);
+  chart.update(data);
+
+  // chart.series.removeAll()
+  // chart.series[0].update(values)
+  // chart.series[0].remove()
 }, 1000);
 
 function update(data) {

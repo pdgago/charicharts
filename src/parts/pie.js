@@ -46,7 +46,7 @@ var p_pie = PClass.extend({
    */
   update: function() {
     var self = this;
-    var data = this.pie(this.data);
+    var data = this.pie(this.status.data);
     this.path = this.path.data(data);
 
     this.path.enter().append('path')

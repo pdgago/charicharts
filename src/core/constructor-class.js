@@ -7,7 +7,9 @@ var CClass = Class.extend({
     // Set scope with core objects populated
     this.$scope = {
       opts: this.parseOptions(opts),
-      data: data
+      status: {
+        data: data
+      }
     };
 
     // Set events module into the $scope.
@@ -17,7 +19,8 @@ var CClass = Class.extend({
     // Core methods exposed
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
-      unbind: this.$scope.unbind
+      unbind: this.$scope.unbind,
+      update: _.bind(this.updateData, this)
     });
   },
 
@@ -25,6 +28,11 @@ var CClass = Class.extend({
     for (var i = 0; i < this.modules.length; i++) {
       _.extend(this.$scope, new this.modules[i](this.$scope));
     }
+  },
+
+  updateData: function(data) {
+    this.$scope.status.data = data;
+    this.$scope.trigger('Data/update', []);
   }
 
 });

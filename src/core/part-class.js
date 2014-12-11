@@ -17,9 +17,9 @@ var PClass = Class.extend({
     // Populate core modules
     this.svg = this._$scope.svg;
     this.opts = this._$scope.opts;
-    this.data = this._$scope.data;
     this.on = this._$scope.on;
     this.trigger = this._$scope.trigger;
+    this.status = this._$scope.status;
 
     for (var i = this.deps.length - 1; i >= 0; i--) {
       this[this.deps[i]] = this._$scope[this.deps[i]];
@@ -33,11 +33,6 @@ var PClass = Class.extend({
     _.each(subscription, _.bind(function(callback, name) {
       this.on(name, _.bind(callback, this));
     },this));
-  },
-
-  setData: function(data) {
-    this._$scope.data = data;
-    this.data = this._$scope.data;
   }
 
 });
