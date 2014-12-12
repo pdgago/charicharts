@@ -44,6 +44,7 @@ var p_scale = PClass.extend({
     this._setFlattenedData();
     this._status.scale.x = this._updateScale('x');
     this._status.scale.y = this._updateScale('y');
+    console.log(this._status.scale.y.domain());
   },
 
   _updateScale: function(position) {
@@ -82,6 +83,7 @@ var p_scale = PClass.extend({
    * Handy when we need to get the extent.
    */
   _setFlattenedData: function() {
+    console.log(this.data);
     this._dataFlattened = _.flatten(_.map(this.data, function(d) {
       if (!d.values) {
         return _.flatten(_.pluck(d.data, 'values'));

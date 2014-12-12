@@ -59,7 +59,8 @@ var p_series = PClass.extend({
   /**
    * Update current series.
    */
-  updateSeries: function() {
+  updateSeries: function(data) {
+    this.setData(data);
     this.trigger('Serie/update', []);
     _.each(this._status.series, _.bind(function(serie) {
       switch(serie.el.attr('type')) {

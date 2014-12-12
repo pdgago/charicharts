@@ -218,7 +218,8 @@ var charichartsEvents = function() {
 var PClass = Class.extend({
 
   init: function($scope) {
-    this._loadModules($scope);
+    this._$scope = $scope;
+    this._loadModules();
     _.each(this._subscriptions, this._subscribe, this);
     return this.initialize();
   },
@@ -226,16 +227,16 @@ var PClass = Class.extend({
   /**
    * Load dependencies modules.
    */
-  _loadModules: function($scope) {
+  _loadModules: function() {
     // Populate core modules
-    this.svg = $scope.svg;
-    this.opts = $scope.opts;
-    this.data = $scope.data;
-    this.on = $scope.on;
-    this.trigger = $scope.trigger;
+    this.svg = this._$scope.svg;
+    this.opts = this._$scope.opts;
+    this.data = this._$scope.data;
+    this.on = this._$scope.on;
+    this.trigger = this._$scope.trigger;
 
     for (var i = this.deps.length - 1; i >= 0; i--) {
-      this[this.deps[i]] = $scope[this.deps[i]];
+      this[this.deps[i]] = this._$scope[this.deps[i]];
     }
   },
 
@@ -246,6 +247,11 @@ var PClass = Class.extend({
     _.each(subscription, _.bind(function(callback, name) {
       this.on(name, _.bind(callback, this));
     },this));
+  },
+
+  setData: function(data) {
+    this._$scope.data = data;
+    this.data = this._$scope.data;
   }
 
 });
@@ -776,6 +782,7 @@ var p_scale = PClass.extend({
     this._setFlattenedData();
     this._status.scale.x = this._updateScale('x');
     this._status.scale.y = this._updateScale('y');
+    console.log(this._status.scale.y.domain());
   },
 
   _updateScale: function(position) {
@@ -814,6 +821,7 @@ var p_scale = PClass.extend({
    * Handy when we need to get the extent.
    */
   _setFlattenedData: function() {
+    console.log(this.data);
     this._dataFlattened = _.flatten(_.map(this.data, function(d) {
       if (!d.values) {
         return _.flatten(_.pluck(d.data, 'values'));
@@ -885,7 +893,8 @@ var p_series = PClass.extend({
   /**
    * Update current series.
    */
-  updateSeries: function() {
+  updateSeries: function(data) {
+    this.setData(data);
     this.trigger('Serie/update', []);
     _.each(this._status.series, _.bind(function(serie) {
       switch(serie.el.attr('type')) {

@@ -4,7 +4,8 @@
 var PClass = Class.extend({
 
   init: function($scope) {
-    this._loadModules($scope);
+    this._$scope = $scope;
+    this._loadModules();
     _.each(this._subscriptions, this._subscribe, this);
     return this.initialize();
   },
@@ -12,16 +13,16 @@ var PClass = Class.extend({
   /**
    * Load dependencies modules.
    */
-  _loadModules: function($scope) {
+  _loadModules: function() {
     // Populate core modules
-    this.svg = $scope.svg;
-    this.opts = $scope.opts;
-    this.data = $scope.data;
-    this.on = $scope.on;
-    this.trigger = $scope.trigger;
+    this.svg = this._$scope.svg;
+    this.opts = this._$scope.opts;
+    this.data = this._$scope.data;
+    this.on = this._$scope.on;
+    this.trigger = this._$scope.trigger;
 
     for (var i = this.deps.length - 1; i >= 0; i--) {
-      this[this.deps[i]] = $scope[this.deps[i]];
+      this[this.deps[i]] = this._$scope[this.deps[i]];
     }
   },
 
@@ -32,6 +33,11 @@ var PClass = Class.extend({
     _.each(subscription, _.bind(function(callback, name) {
       this.on(name, _.bind(callback, this));
     },this));
+  },
+
+  setData: function(data) {
+    this._$scope.data = data;
+    this.data = this._$scope.data;
   }
 
 });
