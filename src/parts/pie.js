@@ -24,7 +24,7 @@ var p_pie = PClass.extend({
       .outerRadius(this.opts.radius);
 
     // Paths
-    this.path = this.svg.selectAll('path');
+    this.path = this.$svg.selectAll('path');
     this.update();
 
     // Set events
@@ -46,7 +46,7 @@ var p_pie = PClass.extend({
    */
   update: function() {
     var self = this;
-    var data = this.pie(this.status.data);
+    var data = this.pie(this.data);
     this.path = this.path.data(data);
 
     this.path.enter().append('path')
@@ -91,7 +91,7 @@ var p_pie = PClass.extend({
       self.trigger('Pie-piece/mouseover', [d]);
     });
 
-    this.svg.on('mouseleave', function() {
+    this.$svg.on('mouseleave', function() {
       self.path.style('opacity', 1);
     });
   }

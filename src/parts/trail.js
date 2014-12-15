@@ -24,11 +24,11 @@ var p_trail = PClass.extend({
   },
 
   _renderTrail: function() {
-    var trail = this.svg.append('g')
+    var trail = this.$svg.append('g')
       .attr('class', 'trail');
 
     // Append marker definition
-    var markerdef = this.svg.append('svg:marker')
+    var markerdef = this.$svg.append('svg:marker')
       .attr('id', 'trailArrow')
       .attr('viewBox','0 0 20 20')
       .attr('refX','15')
@@ -60,7 +60,7 @@ var p_trail = PClass.extend({
     }).left;
 
     // Append slider zone
-    this.sliderZone = this.svg.append('g')
+    this.sliderZone = this.$svg.append('g')
       .attr('transform', h_getTranslate(0,0))
       .attr('class', 'trail-slider-zone')
       .call(this.brush);
@@ -70,7 +70,7 @@ var p_trail = PClass.extend({
       .attr('width', this.opts.width)
       .style('cursor', 'pointer');
 
-    this.svg.selectAll('.extent,.resize').remove();
+    this.$svg.selectAll('.extent,.resize').remove();
     this._setEvents();
   },
 
@@ -131,7 +131,7 @@ var p_trail = PClass.extend({
   },
 
   _getDataFromValue: function(xvalue) {
-    return _.map(this.status.data, function(d) {
+    return _.map(this.data, function(d) {
       return _.extend(
         d.values[this.bisector(d.values, xvalue)],
         {id: d.id});

@@ -10,10 +10,10 @@ var p_svg = PClass.extend({
   ],
 
   initialize: function() {
-    this.svg = this.drawSvg();
+    this.$svg = this.drawSvg();
 
     return {
-      svg: this.svg
+      $svg: this.$svg
     };
   },
 
