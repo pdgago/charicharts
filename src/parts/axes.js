@@ -43,9 +43,19 @@ var p_axes = PClass.extend({
       .tickFormat(this.opts.xaxis.bottom.tickFormat);
 
     model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks || []);
+
     model.el = this.$svg.append('g')
       .attr('class', 'xaxis bottom')
       .call(model.axis);
+
+    model.el.selectAll('.tick text').attr('transform', h_getTranslate(0,4));
+
+    model.el.append('rect')
+      .attr('class', 'baseline')
+      .attr('y', this.opts.height)
+      .attr('x', -this.opts.margin.left)
+      .attr('height', 1)
+      .attr('width', this.opts.fullWidth);
 
     this._renderXLabel('bottom');
   },
@@ -59,6 +69,7 @@ var p_axes = PClass.extend({
       .tickFormat(this.opts.yaxis.left.tickFormat);
 
     model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis left')
       .call(model.axis);
@@ -75,6 +86,7 @@ var p_axes = PClass.extend({
       .tickFormat(this.opts.yaxis.right.tickFormat);
 
     model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis right')
       .call(model.axis);
@@ -105,10 +117,10 @@ var p_axes = PClass.extend({
         axes = {};
 
     var axesEnabled = {
-      top: this.opts.xaxis.top.enabled,
+      left: this.opts.yaxis.left.enabled,
       right: this.opts.yaxis.right.enabled,
-      bottom: this.opts.xaxis.bottom.enabled,
-      left: this.opts.yaxis.left.enabled
+      top: this.opts.xaxis.top.enabled,
+      bottom: this.opts.xaxis.bottom.enabled
     };
 
     _.each(axesEnabled, function(enabled, orient) {
@@ -124,7 +136,7 @@ var p_axes = PClass.extend({
     this.$svg.select('.xaxis.' + orient).append('text')
       .attr('class', 'label')
       .attr('transform', h_getTranslate(-this.opts.margin.left, this.opts.height))
-      .attr('y', 12)
+      .attr('y', 16)
       .attr('x', 0)
       .attr('text-anchor', 'start')
       .text(this.opts.xaxis[orient].label);
