@@ -88,7 +88,7 @@ var options = {
   target: d3.select('body').node(),
   margin: '40 60 25 60',
   trail: {
-    enabled: false,
+    enabled: true,
     parseStep: function(date) {
       date.setMinutes(0, 0, 0);
       return date;
@@ -101,6 +101,7 @@ var options = {
     scale: 'time',
     fit: true,
     bottom: {
+      label: 'Hours',
       tickFormat: function(d) {
         return d.getHours();
       }
@@ -110,8 +111,12 @@ var options = {
     fit: false,
     fullGrid: true,
     textMarginTop: -10,
+    left: {
+      label: 'Dollars'
+    },
     right: {
-      enabled: true
+      enabled: true,
+      label: 'Space'
     }
   }
 };

@@ -40,10 +40,10 @@ var p_axes = PClass.extend({
       .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
-      .ticks.apply(this, this.opts.xaxis.ticks || [])
       .tickFormat(this.opts.xaxis.bottom.tickFormat);
 
-    model.el = this.svg.append('g')
+    model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks || []);
+    model.el = this.$svg.append('g')
       .attr('class', 'xaxis bottom')
       .call(model.axis);
 
@@ -56,10 +56,10 @@ var p_axes = PClass.extend({
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
-      .ticks.apply(this, this.opts.yaxis.ticks || [])
-      .tickFormat(this.opts.yaxis.left.tickFormat),
+      .tickFormat(this.opts.yaxis.left.tickFormat);
 
-    model.el = this.svg.append('g')
+    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+    model.el = this.$svg.append('g')
       .attr('class', 'yaxis left')
       .call(model.axis);
 
@@ -72,14 +72,14 @@ var p_axes = PClass.extend({
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
-      .ticks.apply(this, this.opts.yaxis.ticks || [])
       .tickFormat(this.opts.yaxis.right.tickFormat);
 
-    model.el = this.svg.append('g')
+    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+    model.el = this.$svg.append('g')
       .attr('class', 'yaxis right')
       .call(model.axis);
 
-    this._renderXLabel('right');
+    this._renderYLabel('right');
   },
 
   /**
@@ -121,23 +121,27 @@ var p_axes = PClass.extend({
 
   _renderXLabel: function(orient) {
     if (!this.opts.xaxis[orient].label) {return;}
-    this.svg.select('.xaxis').append('text')
+    this.$svg.select('.xaxis.' + orient).append('text')
       .attr('class', 'label')
-      .attr('transform', h_getTranslate(0, 0))
-      .attr('y', this.opts.margin.bottom - 7)
-      .attr('x', 0 -this.opts.margin.left)
+      .attr('transform', h_getTranslate(-this.opts.margin.left, this.opts.height))
+      .attr('y', 12)
+      .attr('x', 0)
       .attr('text-anchor', 'start')
       .text(this.opts.xaxis[orient].label);
   },
 
   _renderYLabel: function(orient) {
     if (!this.opts.yaxis[orient].label) {return;}
-    this.svg.select('.yaxis').append('text')
+
+    console.log(h_getTranslate(orient === 'left' ? -this.opts.margin.left :
+        this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop));
+
+    this.$svg.select('.yaxis.' + orient).append('text')
       .attr('class', 'label')
-      .attr('transform', h_getTranslate(0, 0))
-      .attr('y', this.opts.yaxis.textMarginTop - 20)
-      .attr('x', orient === 'left' ? -this.opts.margin.left :
-        this.opts.width + this.opts.margin.right)
+      .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
+        this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop))
+      .attr('y', -20)
+      .attr('x', 0)
       .attr('text-anchor', orient === 'left' ? 'start' : 'end')
       .text(this.opts.yaxis[orient].label);
   },
@@ -148,30 +152,30 @@ var p_axes = PClass.extend({
    */
   _afterAxisChanges: function(model) {
     // remove domain
-    this.svg.select('.yaxis .domain').remove();
-    this.svg.select('.xaxis .domain').remove();
+    this.$svg.select('.yaxis .domain').remove();
+    this.$svg.select('.xaxis .domain').remove();
 
-    this.svg.selectAll('.yaxis.left text')
+    this.$svg.selectAll('.yaxis.left .tick text')
       .style('text-anchor', 'start', 'important');
 
-    this.svg.selectAll('.yaxis.right text')
+    this.$svg.selectAll('.yaxis.right .tick text')
       .style('text-anchor', 'end', 'important')
       .attr('transform', h_getTranslate(this.opts.margin.right, this.opts.yaxis.textMarginTop));
 
     if (this.opts.yaxis.textMarginTop) {
-      this.svg.selectAll('.yaxis.left text')
+      this.$svg.selectAll('.yaxis.left .tick text')
         .attr('transform', h_getTranslate(0, this.opts.yaxis.textMarginTop));
     }
 
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {
-      this.svg.selectAll('.yaxis line')
+      this.$svg.selectAll('.yaxis line')
         .attr('transform', h_getTranslate(+this.opts.margin.left , 0))
         .attr('x1', -this.opts.margin.left * 2);
     }
 
     // add zeroline
-    this.svg.selectAll('.yaxis line').each(function(d,i) {
+    this.$svg.selectAll('.yaxis line').each(function(d,i) {
       if (d !== 0) {return;}
       d3.select(this).attr('class', 'zeroline');
     });

@@ -45,7 +45,7 @@ var p_pie_inner_arrow = PClass.extend({
     var arrowSize = this.opts.radius * this.opts.innerArrowSize * (1 - this.opts.innerRadius);
 
     // Define arrow
-    this.svg.append('svg:marker')
+    this.$svg.append('svg:marker')
         .attr('id', 'innerArrow')
         .attr('viewBox', '0 {0} {1} {2}'.format(
           -(arrowSize/2), arrowSize, arrowSize))
@@ -59,7 +59,7 @@ var p_pie_inner_arrow = PClass.extend({
         .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
           -(arrowSize/2), arrowSize, arrowSize/2));
 
-    this.innerArrow = this.svg.append('svg:line')
+    this.innerArrow = this.$svg.append('svg:line')
       .attr('x1', 0)
       .attr('y1', 0)
       .attr('x2', this.opts.radius)

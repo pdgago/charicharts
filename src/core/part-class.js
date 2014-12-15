@@ -15,11 +15,11 @@ var PClass = Class.extend({
    */
   _loadModules: function() {
     // Populate core modules
-    this.svg = this._$scope.svg;
+    this.$svg = this._$scope.$svg;
     this.opts = this._$scope.opts;
     this.on = this._$scope.on;
     this.trigger = this._$scope.trigger;
-    this.status = this._$scope.status;
+    this.data = this._$scope.data;
 
     for (var i = this.deps.length - 1; i >= 0; i--) {
       this[this.deps[i]] = this._$scope[this.deps[i]];

@@ -31,16 +31,16 @@ var p_percentage_bar = PClass.extend({
       self.on('Bar-piece/mouseover', [d]);
     });
 
-    this.svg.on('mouseleave', function() {
+    this.$svg.on('mouseleave', function() {
       self.path.style('opacity', 1);
     });
   },
 
   _renderHorizontal: function() {
-    var total = d3.sum(_.pluck(this.status.data, 'value'));
+    var total = d3.sum(_.pluck(this.data, 'value'));
     var x0 = 0;
 
-    var data = _.map(this.status.data,
+    var data = _.map(this.data,
       function(d) {
         var v = {
           x0: x0,
@@ -51,7 +51,7 @@ var p_percentage_bar = PClass.extend({
         return v;
       });
 
-    this.path = this.svg.selectAll('rect')
+    this.path = this.$svg.selectAll('rect')
         .data(data)
       .enter().append('rect')
         .attr('x', function(d, i) {
@@ -68,10 +68,10 @@ var p_percentage_bar = PClass.extend({
   },
 
   _renderVertical: function() {
-    var total = d3.sum(_.pluck(this.status.data, 'value'));
+    var total = d3.sum(_.pluck(this.data, 'value'));
     var y0 = 0;
 
-    var data = _.map(this.status.data,
+    var data = _.map(this.data,
       function(d) {
         var v = {
           y0: y0,
@@ -82,7 +82,7 @@ var p_percentage_bar = PClass.extend({
         return v;
       });
 
-    this.path = this.svg.selectAll('rect')
+    this.path = this.$svg.selectAll('rect')
         .data(data)
       .enter().append('rect')
         .attr('x', 0)
@@ -104,7 +104,7 @@ var p_percentage_bar = PClass.extend({
   _renderGrid: function() {
     var separation = this.opts.fullHeight / (this.opts.gridTicks-1) - 1/this.opts.gridTicks;
 
-    this.grid = this.svg.append('g')
+    this.grid = this.$svg.append('g')
       .attr('transform', h_getTranslate(-this.opts.margin.left, -this.opts.margin.top))
       .attr('class', 'grid');
 

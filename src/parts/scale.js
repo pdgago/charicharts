@@ -82,7 +82,7 @@ var p_scale = PClass.extend({
    * Handy when we need to get the extent.
    */
   _setFlattenedData: function() {
-    this._dataFlattened = _.flatten(_.map(this.status.data, function(d) {
+    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
       if (!d.values) {
         return _.flatten(_.pluck(d.data, 'values'));
       } else {

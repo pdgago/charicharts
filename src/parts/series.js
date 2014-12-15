@@ -5,27 +5,32 @@ var p_series = PClass.extend({
   ],
 
   _subscriptions: [{
-    'Data/update': function() {
-      this.trigger('Serie/update', []);
-      this.removeSeries();
-      this.updateSeries();
-    }
+    // 'Data/update': function() {
+    //   this.trigger('Serie/update', []);
+    //   this.removeSeries();
+    //   this.updateSeries();
+    // }
   }],
 
   initialize: function() {
     var self = this;
-    this._status = {series:{}};
+
+    // Wrapper
+    this.$series = this.$svg.append('g').attr('class', 'series');
 
     // before rendering the series, we need to group the bars ones.
     // those are going to be rendered together so they can be
     // stacked or grouped.
-    _.each(this.status.data, this._renderSerie, this);
+    _.each(this.data, this._renderSerie, this);
 
     return {
       series: {
-        update: _.bind(this.updateSeries, this),
+        list: this.data,
+        update: _.bind(this.updateSerie, this),
         add: _.bind(this.addSerie, this),
-        remove: _.bind(this.removeSerie, this)
+        remove: _.bind(this.removeSerie, this),
+        removeAll: _.bind(this.removeSeries, this),
+        updateAll: _.bind(this.updateSeries, this)
       }
     };
   },
@@ -34,14 +39,9 @@ var p_series = PClass.extend({
    * Add the supplied serie to data array and render it.
    */
   addSerie: function(serie) {
-    this.status.data.push(serie);
+    this.data.push(serie);
     this.trigger('Serie/update', []);
     this._renderSerie(serie);
-  },
-
-  removeSeries: function() {
-    this.svg.selectAll('.serie-line').remove();
-    // _.invoke(misseries, 'remove')
   },
 
   /**
@@ -50,17 +50,33 @@ var p_series = PClass.extend({
    * @param  {Integer} id
    */
   removeSerie: function(id) {
-    var dataObject = _.findWhere(this.status.data, {id: id});
-    this.status.data.splice(this.status.data.indexOf(dataObject), 1);
-    // this._status.series[id].el.remove();
-    // this._status.series = _.omit(this._status.series, id);
+    var serie = _.findWhere(this.data, {id: id});
+
+    serie.path.remove();
+    this.data.splice(this.data.indexOf(serie), 1);
     this.trigger('Serie/update', []);
   },
+
+  /**
+   * Remove all series.
+   */
+  removeSeries: function() {
+    var self = this;
+
+    _.each(this.data, function(serie) {
+      serie.path.remove();
+    });
+    this.data.splice(0, this.data.length);
+  },
+
 
   /**
    * Render the given series.
    */
   _renderSerie: function(serie) {
+    // ID optional
+    serie.id = serie.id || parseInt(_.uniqueId());
+
     switch(serie.type) {
       case 'line': this._renderLineSerie(serie); break;
       case 'bar': this._renderBarSerie(serie); break;
@@ -68,39 +84,41 @@ var p_series = PClass.extend({
   },
 
   /**
-   * Update current series.
+   * Update one serie. It should
    */
-  updateSeries: function() {
-    _.each(this.status.data, _.bind(function(serie) {
-      switch(serie.type) {
-        case 'line': this._updateLineSerie(serie); break;
-        case 'bar': this._updateBarSerie(serie); break;
-        case 'area': this._updateAreaSerie(serie); break;}
-    }, this));
+  updateSerie: function(id, values) {
+
+  },
+
+  /**
+   * Update all series. Removes all current series and add new different ones.
+   */
+  updateSeries: function(series) {
+    var self = this;
+
+    // Removeall + store + render
+    this.removeSeries();
+    _.each(series, function(serie) {
+      self.addSerie(serie);
+    });
   },
 
   /**
    * Render line serie.
    */
   _renderLineSerie: function(serie) {
-    // serie.path = this.svg.append('path')
-    //   // .datum(serie.values)
-    //   .attr('id', 'serie-' + serie.id)
-    //   .attr('class', 'serie-line')
-    //   .attr('stroke', serie.color)
-    //   .attr('type', 'line')
-    //   .attr('active', 1);
-    // // var serie = {
-    // //   el: el,
-    // //   data: data
-    // // };
+    var line = this._getLineFunc(),
+        path = this.$series.append('path')
+          // .datum(serie.values)
+          .attr('id', 'serie-' + serie.id)
+          .attr('class', 'serie-line')
+          .attr('stroke', serie.color)
+          .attr('type', 'line')
+          .attr('active', 1);
 
-    // // if (data.dots) {
-    // //   serie.dots = this.svg.append('g')
-    // //     .attr('id', 'serie-' + data.id + '-dots')
-    // //     .selectAll('.dot');
-    // // }
-    this._updateLineSerie(serie);
+    path.datum(serie.values);
+    path.attr('d', line.interpolate(serie.interpolation));
+    serie.path = path;
   },
 
   _renderAreaSerie: function(serie) {
@@ -125,7 +143,7 @@ var p_series = PClass.extend({
       .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
       .y1(function(d) { return self.scale.y(d.y); });
 
-    this.svg.append('path')
+    this.$series.append('path')
         .datum(serie.data[0].values)
         .attr('class', 'area')
         .attr('d', area)
@@ -137,18 +155,7 @@ var p_series = PClass.extend({
    * Update line serie.
    */
   _updateLineSerie: function(serie) {
-    var line = this._getLineFunc();
-
-    var path = this.svg.append('path')
-      // .datum(serie.values)
-      .attr('id', 'serie-' + serie.id)
-      .attr('class', 'serie-line')
-      .attr('stroke', serie.color)
-      .attr('type', 'line')
-      .attr('active', 1);
-
-    path.datum(serie.values);
-    path.attr('d', line.interpolate(serie.interpolation));
+    this._renderLineSerie(serie);
 
     // Render dots
     // if (serie.data.dots) {
@@ -214,7 +221,7 @@ var p_series = PClass.extend({
       });
     }
 
-    var bars = this.svg.selectAll('.serie-bar')
+    var bars = this.$series.selectAll('.serie-bar')
         .data(serie.data)
       .enter().append('g')
         .attr('class', 'serie-bar')
