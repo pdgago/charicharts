@@ -133,9 +133,6 @@ var p_axes = PClass.extend({
   _renderYLabel: function(orient) {
     if (!this.opts.yaxis[orient].label) {return;}
 
-    console.log(h_getTranslate(orient === 'left' ? -this.opts.margin.left :
-        this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop));
-
     this.$svg.select('.yaxis.' + orient).append('text')
       .attr('class', 'label')
       .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
