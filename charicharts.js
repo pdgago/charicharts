@@ -300,8 +300,6 @@ var p_axes = PClass.extend({
       .attr('class', 'xaxis bottom')
       .call(model.axis);
 
-    model.el.selectAll('.tick text').attr('transform', h_getTranslate(0,4));
-
     model.el.append('rect')
       .attr('class', 'baseline')
       .attr('y', this.opts.height)
@@ -427,6 +425,9 @@ var p_axes = PClass.extend({
       this.$svg.selectAll('.yaxis.left .tick text')
         .attr('transform', h_getTranslate(0, this.opts.yaxis.textMarginTop));
     }
+
+    this.$svg.selectAll('.xaxis.bottom .tick text')
+      .attr('transform', h_getTranslate(0,4));
 
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {
