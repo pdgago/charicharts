@@ -44,6 +44,7 @@ var p_axes = PClass.extend({
       .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
+      .ticks.apply(this, this.opts.xaxis.ticks || [])
       .tickFormat(this.opts.xaxis.bottom.tickFormat);
 
     model.el = this.svg.append('g')
@@ -57,6 +58,7 @@ var p_axes = PClass.extend({
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
+      .ticks.apply(this, this.opts.yaxis.ticks || [])
       .tickFormat(this.opts.yaxis.left.tickFormat),
 
     model.el = this.svg.append('g')
@@ -70,6 +72,7 @@ var p_axes = PClass.extend({
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
+      .ticks.apply(this, this.opts.yaxis.ticks || [])
       .tickFormat(this.opts.yaxis.right.tickFormat);
 
     model.el = this.svg.append('g')
