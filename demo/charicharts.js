@@ -289,14 +289,10 @@ var p_axes = PClass.extend({
 
   _renderAxis: function(model, orient) {
     switch(orient) {
-      // case 'top': this._renderTop(model); break;
       case 'bottom': this._renderBottom(model); break;
       case 'left': this._renderLeft(model); break;
       case 'right': this._renderRight(model); break;}
     this._afterAxisChanges();
-  },
-
-  _renderTop: function(model) {
   },
 
   _renderBottom: function(model) {
@@ -304,11 +300,14 @@ var p_axes = PClass.extend({
       .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
+      .ticks.apply(this, this.opts.xaxis.ticks || [])
       .tickFormat(this.opts.xaxis.bottom.tickFormat);
 
     model.el = this.svg.append('g')
       .attr('class', 'xaxis bottom')
       .call(model.axis);
+
+    this._renderXLabel('bottom');
   },
 
   _renderLeft: function(model) {
@@ -317,11 +316,14 @@ var p_axes = PClass.extend({
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
+      .ticks.apply(this, this.opts.yaxis.ticks || [])
       .tickFormat(this.opts.yaxis.left.tickFormat),
 
     model.el = this.svg.append('g')
       .attr('class', 'yaxis left')
       .call(model.axis);
+
+    this._renderYLabel('left');
   },
 
   _renderRight: function(model) {
@@ -330,11 +332,14 @@ var p_axes = PClass.extend({
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
+      .ticks.apply(this, this.opts.yaxis.ticks || [])
       .tickFormat(this.opts.yaxis.right.tickFormat);
 
     model.el = this.svg.append('g')
       .attr('class', 'yaxis right')
       .call(model.axis);
+
+    this._renderXLabel('right');
   },
 
   /**
@@ -372,6 +377,29 @@ var p_axes = PClass.extend({
     });
 
     return axes;
+  },
+
+  _renderXLabel: function(orient) {
+    if (!this.opts.xaxis[orient].label) {return;}
+    this.svg.select('.xaxis').append('text')
+      .attr('class', 'label')
+      .attr('transform', h_getTranslate(0, 0))
+      .attr('y', this.opts.margin.bottom - 7)
+      .attr('x', 0 -this.opts.margin.left)
+      .attr('text-anchor', 'start')
+      .text(this.opts.xaxis[orient].label);
+  },
+
+  _renderYLabel: function(orient) {
+    if (!this.opts.yaxis[orient].label) {return;}
+    this.svg.select('.yaxis').append('text')
+      .attr('class', 'label')
+      .attr('transform', h_getTranslate(0, 0))
+      .attr('y', this.opts.yaxis.textMarginTop - 20)
+      .attr('x', orient === 'left' ? -this.opts.margin.left :
+        this.opts.width + this.opts.margin.right)
+      .attr('text-anchor', orient === 'left' ? 'start' : 'end')
+      .text(this.opts.yaxis[orient].label);
   },
 
   /**
