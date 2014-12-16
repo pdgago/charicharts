@@ -79,9 +79,9 @@ var p_series = PClass.extend({
     serie.id = serie.id || parseInt(_.uniqueId());
 
     switch(serie.type) {
-      case 'line': this._renderLineSerie(serie); break;
-      case 'bar': this._renderBarSerie(serie); break;
-      case 'area': this._renderAreaSerie(serie); break;}
+      case 'line': serie.path = this._renderLineSerie(serie); break;
+      case 'bar': serie.path = this._renderBarSerie(serie); break;
+      case 'area': serie.path = this._renderAreaSerie(serie); break;}
   },
 
   /**
@@ -119,7 +119,6 @@ var p_series = PClass.extend({
 
     path.datum(serie.values);
     path.attr('d', line.interpolate(serie.interpolation));
-    serie.path = path;
 
     d3.select('#serie-' + serie.id + '-dots').remove();
 
@@ -143,9 +142,14 @@ var p_series = PClass.extend({
         .attr('stroke', serie.color)
         .attr('stroke-width', '2px')
         .attr('r', 3);
+
     }
+    return path;
   },
 
+  /**
+   * TODO return area path
+   */
   _renderAreaSerie: function(serie) {
     var self = this;
 
@@ -168,7 +172,7 @@ var p_series = PClass.extend({
       .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
       .y1(function(d) { return self.scale.y(d.y); });
 
-    this.$series.append('path')
+    return this.$series.append('path')
         .datum(serie.data[0].values)
         .attr('class', 'area')
         .attr('d', area)
@@ -244,6 +248,8 @@ var p_series = PClass.extend({
         .attr('height', function(d) {
           return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
         });
+
+      return bars;
   },
 
   /**
