@@ -1111,7 +1111,8 @@ var p_series = PClass.extend({
         _.each(serie.values, function(d) {
             d.y0 = 0;
             d.y1 = d.y;
-            d.w = (xStack[d.x] || 0) + barWidth;
+            // Start with 0 and + barWidth
+            d.w = (typeof(xStack[d.x]) === 'number' ? xStack[d.x] : (- barWidth)) + barWidth;
             xStack[d.x] = d.w;
         });
       });
