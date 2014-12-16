@@ -139,7 +139,7 @@ var p_trail = PClass.extend({
         return _.extend(serie.values[self.bisector(serie.values, xvalue)],
           {id: serie.id});
       } else if (serie.type === 'bar') {
-        return _.map(d.data, function(d) {
+        return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
             {id: d.id});
         });

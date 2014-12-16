@@ -1017,6 +1017,30 @@ var p_series = PClass.extend({
     path.datum(serie.values);
     path.attr('d', line.interpolate(serie.interpolation));
     serie.path = path;
+
+    d3.select('#serie-' + serie.id + '-dots').remove();
+
+    if (serie.dots) {
+      serie.dotsGroup = this.$svg.append('g')
+        .attr('id', 'serie-' + serie.id + '-dots')
+        .selectAll('.dot');
+
+      serie.dotsGroup = serie.dotsGroup.data(
+        serie.values.filter(function(d) {return d.y;}));
+
+      serie.dotsGroup.enter().append('circle')
+        .attr('class', 'dot');
+
+      serie.dotsGroup.exit().remove();
+
+      serie.dotsGroup
+        .attr('cx', line.x())
+        .attr('cy', line.y())
+        .attr('fill', serie.color)
+        .attr('stroke', serie.color)
+        .attr('stroke-width', '2px')
+        .attr('r', 3);
+    }
   },
 
   _renderAreaSerie: function(serie) {
@@ -1047,32 +1071,6 @@ var p_series = PClass.extend({
         .attr('d', area)
         .attr('fill', serie.color || '#ccc')
         .attr('opacity', serie.bgOpacity || 0.4);
-  },
-
-  /**
-   * Update line serie.
-   */
-  _updateLineSerie: function(serie) {
-    this._renderLineSerie(serie);
-
-    // Render dots
-    // if (serie.data.dots) {
-    //   serie.dots = serie.dots.data(
-    //     serie.data.values.filter(function(d) {return d.y;}));
-
-    //   serie.dots.enter().append('circle')
-    //     .attr('class', 'dot');
-
-    //   serie.dots.exit().remove();
-
-    //   serie.dots
-    //       .attr('cx', line.x())
-    //       .attr('cy', line.y())
-    //       .attr('fill', serie.data.color)
-    //       .attr('stroke', serie.data.color)
-    //       .attr('stroke-width', '2px')
-    //       .attr('r', 3);
-    // }
   },
 
   _getLineFunc: function() {
@@ -1334,7 +1332,7 @@ var p_trail = PClass.extend({
         return _.extend(serie.values[self.bisector(serie.values, xvalue)],
           {id: serie.id});
       } else if (serie.type === 'bar') {
-        return _.map(d.data, function(d) {
+        return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
             {id: d.id});
         });
