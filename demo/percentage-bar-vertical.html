@@ -5,6 +5,15 @@
     width: 300px;
     height: 300px;
   }
+  .grid line {
+    stroke: #ddd;
+    stroke-dasharray: 10, 4;
+    shape-rendering: crispEdges;
+  }
+  .grid line:last-child {
+    stroke: #999;
+    stroke-dasharray: 0;
+  }
 </style>
 <body>
 <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
@@ -14,31 +23,25 @@
 
 var color = d3.scale.category10();
 
-var data = _.map(_.range(_.random(6,10)),
-  function(d,i) {
+var data = _.map(_.range(9), function(d, i) {
   return {
     id: i,
     value: _.random(1, 100),
     color: color(i)
-  };
+  }
 });
 
-var options = {
+var bar = new Charicharts.PercentageBar({
   target: d3.select('body').node(),
-  innerArrow: true,
-  hoverFade: 0.6,
-};
+  orientation: 'vertical',
+  margin: '10 25 0 220',
+  gridTicks: 9
+}, data);
 
-var pie = new Charicharts.Pie(options, data);
+bar.on('Bar-piece/mouseover', function(d) {
+  console.log(d);
+});
 
-setInterval(function() {
-  data[_.random(0,data.length-1)].value = _.random(1, 100);
-  // data.push({
-  //   value: _.random(1, 100),
-  //   color: color(_.random(0,10))
-  // });
-  // data.shift();
-  pie.series.update();
-}, 400);
+bar.bar.triggerMouseover(1);
 
 </script>

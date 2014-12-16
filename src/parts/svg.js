@@ -1,16 +1,30 @@
-var p_svg = ['responsive', 'fullWidth', 'fullHeight', 'target', 'gmainTranslate',
-  function(responsive, fullWidth, fullHeight, target, gmainTranslate) {
-    var m = {};
+/**
+ * Svg Module
+ * ----------
+ * Append a svg to the given opts.target.
+ *
+ */
+var p_svg = PClass.extend({
 
-    m.draw = function() {
-      return d3.select(target)
-        .append('svg')
-          .attr('width', responsive ?  '100%' : fullWidth)
-          .attr('height', fullHeight)
-        .append('g')
-          .attr('class', 'g-main')
-          .attr('transform', gmainTranslate);
+  deps: [
+  ],
+
+  initialize: function() {
+    this.$svg = this.drawSvg();
+
+    return {
+      $svg: this.$svg
     };
+  },
 
-    return m;
-  }];
+  drawSvg: function() {
+    return d3.select(this.opts.target)
+      .append('svg')
+        .attr('width', this.opts.fullWidth)
+        .attr('height', this.opts.fullHeight)
+      .append('g')
+        .attr('class', 'g-main')
+        .attr('transform', this.opts.gmainTranslate);
+  }
+
+});

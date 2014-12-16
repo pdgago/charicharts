@@ -1,107 +1,94 @@
 /**
- * Set x/y scales from the supplied options.
- * 
- * @param  {Object} opts
- *   width - range width
- *   height - range height
- *   data - series data. used to set the domains
- * @return {Array} Returns [x,y] scales
+ * Scale Module
+ * ------------
+ * Set X/Y scales from the given data.
+ *
  */
-var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
-  function(data, xaxis, yaxis, width, height) {
+var p_scale = PClass.extend({
 
-    var d3Scales = {
-      'time': d3.time.scale.utc,
-      'ordinal': d3.scale.ordinal,
-      'linear': d3.scale.linear
+  deps: [
+  ],
+
+  _d3Scales: {
+    'time': d3.time.scale.utc,
+    'ordinal': d3.scale.ordinal,
+    'linear': d3.scale.linear
+  },
+
+  _subscriptions: [{
+    /**
+     * Triggered when the serie gets updated with new data.
+     */
+    'Serie/update': function() {
+      this._updateScales();
+      this.trigger('Scale/updated', []);
+    }
+  }],
+
+  initialize: function() {
+    this._status = {
+      // Current scale
+      scale: {
+        x: null,
+        y: null
+      }
     };
 
-    var valuesArr = _.flatten(_.map(data,
-      function(d) {
-        return d.values;
-      }));
-
-    /**
-     * Returns time domain from data.
-     */
-    function getTimeDomain() {
-      return d3.extent(valuesArr, function(d) {
-        return d.datetime;
-      });
-    }
-    
-    /**
-     * Returns linear domain from 0 to max data value.
-     */
-    function getLinearAllDomain() {
-      var extent = d3.extent(valuesArr, function(d) {
-        if (d.scrutinized) {
-          return d3.sum(_.pluck(d.scrutinized, 'value'));
-        }
-        return Number(d.value);
-      });
-
-      // Positive scale
-      if (extent[0] >= 0) {
-        return [0, extent[1]];
-      }
-
-      // Negative-Positive scale
-      var absX = Math.abs(extent[0]);
-      var absY = Math.abs(extent[1]);
-      var val = (absX > absY) ? absX : absY;
-      return [-val, val];
-    }
-
-    /**
-     * Returns linear domain from min/max data values.
-     */
-    function getLinearFitDomain() {
-      return d3.extent(valuesArr, function(d) {
-        if (d.scrutinized) {
-          return d3.sum(_.pluck(d.scrutinized, 'value'));
-        }
-        return d.value;
-      });
-    }
-
-    /**
-     * Get the domain for the supplied scale type.
-     * 
-     * @param  {String}  scale
-     * @param  {Boolean} fit    Fit domain to min/max values
-     * @return {Object}  domain D3 domain
-     */
-    function getDomain(scale, fit) {
-      if (scale === 'time') {
-        return getTimeDomain();
-      }
-
-      if (fit) {
-        return getLinearFitDomain();
-      } else {
-        return getLinearAllDomain();
-      }
-    }
-
-    function getXScale() {
-      var domain = getDomain(xaxis.scale, xaxis.fit);
-      return d3Scales[xaxis.scale]()
-        .domain(domain)
-        .range([0, width]);
-    }
-
-    function getYScale() {
-      var domain = getDomain(yaxis.scale, yaxis.fit);
-
-      return d3Scales[yaxis.scale]()
-        .domain(domain)
-        .range([height, 0])
-        .nice(); // Extends the domain so that it starts and ends on nice round values.
-    }
-
+    this._updateScales();
     return {
-      getXScale: getXScale,
-      getYScale: getYScale
+      scale: this._status.scale
     };
-}];
+  },
+
+  _updateScales: function() {
+    this._setFlattenedData();
+    this._status.scale.x = this._updateScale('x');
+    this._status.scale.y = this._updateScale('y');
+  },
+
+  _updateScale: function(position) {
+    var opts = this.opts[position + 'axis'],
+        domain = this._getExtent(position, opts.fit),
+        range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
+
+    return this._d3Scales[opts.scale]()
+      .domain(domain)
+      .range(range);
+      // .nice(); // Extends the domain so that it starts and ends on nice round values.
+  },
+
+  _getExtent: function(position, fit) {
+    var extent = d3.extent(this._dataFlattened, function(d) {
+      return d[position];
+    });
+
+    if (fit) {return extent;}
+
+    // Positive scale
+    if (extent[0] >= 0) {
+      return [0, extent[1]];
+    }
+
+    // Negative-Positive scale
+    // In this case min an max are the same values.
+    var absX = Math.abs(extent[0]);
+    var absY = Math.abs(extent[1]);
+    var val = (absX > absY) ? absX : absY;
+    return [-val, val];
+  },
+
+  /**
+   * Get this.data flattened of all series.
+   * Handy when we need to get the extent.
+   */
+  _setFlattenedData: function() {
+    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
+      if (!d.values) {
+        return _.flatten(_.pluck(d.data, 'values'));
+      } else {
+        return d.values;
+      }
+    }));
+  }
+
+});
