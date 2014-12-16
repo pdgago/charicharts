@@ -140,7 +140,7 @@ var p_trail = PClass.extend({
           {id: serie.id});
       } else if (serie.type === 'bar') {
         return _.map(serie.data, function(d) {
-          return _.extend(d.values[self.bisector(.values, xvalue)],
+          return _.extend(d.values[self.bisector(d.values, xvalue)],
             {id: d.id});
         });
       }
