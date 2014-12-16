@@ -1108,12 +1108,15 @@ var p_series = PClass.extend({
     } else {
       var xStack = {};
       _.each(serie.data, function(serie) {
+        var stackSize = serie.values.length * barWidth;
+        console.log(stackSize);
         _.each(serie.values, function(d) {
             d.y0 = 0;
             d.y1 = d.y;
-            // Start with 0 and + barWidth
-            d.w = (typeof(xStack[d.x]) === 'number' ? xStack[d.x] : (- barWidth)) + barWidth;
+            // Start with -barwith/2 and + barWidth
+            d.w = (typeof(xStack[d.x]) === 'number' ? xStack[d.x] : (- stackSize/2 - barWidth)) + barWidth;
             xStack[d.x] = d.w;
+            console.log(d);
         });
       });
     }
