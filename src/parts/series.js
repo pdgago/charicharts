@@ -222,7 +222,6 @@ var p_series = PClass.extend({
             d.w = (typeof(xStack[d.x]) === 'number' ? xStack[d.x] : -barWidth*1.5);
             d.w += barWidth;
             xStack[d.x] = d.w;
-            console.log(d);
         });
       });
     }
