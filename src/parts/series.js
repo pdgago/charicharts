@@ -81,7 +81,8 @@ var p_series = PClass.extend({
     switch(serie.type) {
       case 'line': serie.path = this._renderLineSerie(serie); break;
       case 'bar': serie.path = this._renderBarSerie(serie); break;
-      case 'area': serie.path = this._renderAreaSerie(serie); break;}
+      case 'area': serie.path = this._renderAreaSerie(serie); break;
+      case 'constant': serie.path = this._renderConstantSerie(serie); break;}
   },
 
   /**
@@ -180,12 +181,76 @@ var p_series = PClass.extend({
         .attr('opacity', serie.bgOpacity || 0.4);
   },
 
-  _getLineFunc: function() {
-    var self = this;
-    return d3.svg.line()
-      .defined(function(d) {return !!d.y;})
-      .x(function(d) {return self.scale.x(d.x);})
-      .y(function(d) {return self.scale.y(d.y);});
+
+  _renderConstantSerie: function(serie) {
+    console.log(serie);
+    var self = this,
+        data = {
+          label: serie.label
+        },
+        path, group;
+
+    data[serie.cteAxis] = serie.value;
+
+    group = this.$series.append('g')
+      .datum(data);
+
+    path = group.append('svg:line')
+      .attr('id', 'serie-' + serie.id)
+      .attr('class', 'serie-line')
+      .attr('stroke', serie.color)
+      .style('stroke-width', (serie.strokeWidth || 1) + 'px')
+      .attr('type', 'line')
+      .attr('active', 1)
+      .attr('x1', function(d) {
+        return d.x ? self.scale.x(d.x) : self.scale.x.range()[0];
+      })
+      .attr('x2', function(d) {
+        return d.x ? self.scale.x(d.x) : self.scale.x.range()[1];
+      })
+      .attr('y1', function(d) {
+        return d.y ? self.scale.y(d.y) : self.scale.y.range()[0];
+      })
+      .attr('y2', function(d) {
+        return d.y ? self.scale.y(d.y) : self.scale.y.range()[1];
+      });
+
+    // Line label
+    if (data.label) {
+      group.append('text')
+        .attr('transform', function(d) {
+          var x = serie.cteAxis === 'x' ? self.scale.x(d.x) : self.scale.x.range()[0],
+              y = serie.cteAxis === 'y' ? self.scale.y(d.y) : self.scale.y.range()[0];
+
+          // Don't step onto the line
+          if (serie.cteAxis === 'x') {
+            x -= serie.strokeWidth;
+          } else {
+            y -= serie.strokeWidth;
+          }
+
+          // Offsets
+          if (data.label.offset) {
+            if (typeof data.label.offset.y === 'string' && data.label.offset.y.match('%')) {
+              y += self.opts.height * (parseInt(data.label.offset.y)/100);
+            } else if (typeof data.label.offset.y === 'number') {
+              y += data.label.offset.y;
+            }
+
+            if (typeof data.label.offset.x === 'string' && data.label.offset.x.match('%')) {
+              x += self.opts.height * (parseInt(data.label.offset.x)/100);
+            } else if (typeof data.label.offset.x === 'number') {
+              x += data.label.offset.x;
+            }
+          }
+
+          return 'translate(' + x + ',' + y + ') ' +
+            'rotate(' + (serie.cteAxis === 'y' ? '0' : '-90') + ')';
+        })
+        .text(data.label.text);
+    }
+
+    return path;
   },
 
   /**
@@ -249,6 +314,14 @@ var p_series = PClass.extend({
         });
 
       return bars;
+  },
+
+  _getLineFunc: function() {
+    var self = this;
+    return d3.svg.line()
+      .defined(function(d) {return !!d.y;})
+      .x(function(d) {return self.scale.x(d.x);})
+      .y(function(d) {return self.scale.y(d.y);});
   },
 
   /**

@@ -83,10 +83,18 @@ var p_scale = PClass.extend({
    */
   _setFlattenedData: function() {
     this._dataFlattened = _.flatten(_.map(this.data, function(d) {
-      if (!d.values) {
+      // Single value
+      if (d.value) {
+        return [d.value];
+      // More than one values array for the series
+      } else if (d.data) {
         return _.flatten(_.pluck(d.data, 'values'));
-      } else {
+      // Single values array for the series
+      } else if (d.values) {
         return d.values;
+      // Error warn
+      } else {
+        console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
     }));
   }
