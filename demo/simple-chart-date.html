@@ -45,30 +45,30 @@
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(23),
-    data2 = getData(23),
-    data3 = getData(23),
-    data4 = getData(23);
+    data1 = getData(2),
+    data2 = getData(2),
+    data3 = getData(2),
+    data4 = getData(2);
 
 setNull(data1, 4, 6, 14, 15, 16);
 setNull(data2, 0, 1, 5, 7);
 
 var data = [
-{
-  id: 1004,
-  type: 'line',
-  values: data1,
-  interpolation: 'cardinal',
-  color: '#555'
-},
-{
-  id: 1005,
-  type: 'line',
-  values: data2,
-  dots: true,
-  interpolation: 'step',
-  color: color(0)
-},
+// {
+//   id: 1004,
+//   type: 'line',
+//   values: data1,
+//   interpolation: 'cardinal',
+//   color: '#555'
+// },
+// {
+//   id: 1005,
+//   type: 'line',
+//   values: data2,
+//   dots: true,
+//   interpolation: 'step',
+//   color: color(0)
+// },
 {
   type: 'bar',
   grouped: false, // by default bars are stacked, if not grouped
