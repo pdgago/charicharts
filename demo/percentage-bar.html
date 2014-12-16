@@ -16,6 +16,7 @@ var color = d3.scale.category10();
 
 var data = _.map(_.range(8), function(d, i) {
   return {
+    id: i,
     value: _.random(1, 100),
     color: color(i)
   }

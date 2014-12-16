@@ -25,6 +25,7 @@ var color = d3.scale.category10();
 
 var data = _.map(_.range(9), function(d, i) {
   return {
+    id: i,
     value: _.random(1, 100),
     color: color(i)
   }
@@ -36,5 +37,11 @@ var bar = new Charicharts.PercentageBar({
   margin: '10 25 0 220',
   gridTicks: 9
 }, data);
+
+bar.on('Bar-piece/mouseover', function(d) {
+  console.log(d);
+});
+
+bar.bar.triggerMouseover(1);
 
 </script>

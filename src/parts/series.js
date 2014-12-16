@@ -30,7 +30,8 @@ var p_series = PClass.extend({
         add: _.bind(this.addSerie, this),
         remove: _.bind(this.removeSerie, this),
         removeAll: _.bind(this.removeSeries, this),
-        updateAll: _.bind(this.updateSeries, this)
+        updateAll: _.bind(this.updateSeries, this),
+        toggle: _.bind(this.toggleSerie, this)
       }
     };
   },
@@ -248,7 +249,20 @@ var p_series = PClass.extend({
    * Update bar serie.
    */
   _updateBarSerie: function(serie) {
+  },
 
+  /**
+   * Toggle a serie.
+   */
+  toggleSerie: function(id) {
+    var path = this.$svg.select('#serie-' + id);
+    if (path.empty()) {return;}
+    var active = Number(path.attr('active')) ? 0 : 1;
+    path.attr('active', active);
+
+    path.transition()
+      .duration(200)
+      .style('opacity', path.attr('active'));
   }
 
 });

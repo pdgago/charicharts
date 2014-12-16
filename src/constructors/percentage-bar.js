@@ -6,15 +6,13 @@ Charicharts.PercentageBar = CClass.extend({
   ],
 
   getInstanceProperties: function() {
-    var methods = {};
-
-    return methods;
+    return _.pick(this.$scope, 'bar');
   },
 
   defaults: {
     margin: '0 0 0 0',
     orientation: 'horizontal',
-    hoverFade: 0.6,
+    hoverFade: 1,
     gridTicks: 0
   },
 

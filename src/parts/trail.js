@@ -133,11 +133,17 @@ var p_trail = PClass.extend({
   _getDataFromValue: function(xvalue) {
     var self = this;
 
-    return _.map(this.data, function(d) {
-      if (!d.values) {return;}
-      return _.extend(
-        d.values[self.bisector(d.values, xvalue)],
-        {id: d.id});
+    return _.map(this.data, function(serie) {
+      if (serie.type === 'line') {
+        if (!serie.values) {return;}
+        return _.extend(serie.values[self.bisector(serie.values, xvalue)],
+          {id: serie.id});
+      } else if (serie.type === 'bar') {
+        return _.map(d.data, function(d) {
+          return _.extend(d.values[self.bisector(d.values, xvalue)],
+            {id: d.id});
+        });
+      }
     });
   },
 

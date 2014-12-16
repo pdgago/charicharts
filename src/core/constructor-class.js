@@ -17,6 +17,7 @@ var CClass = Class.extend({
     // Core methods exposed
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
+      trigger: this.$scope.trigger,
       unbind: this.$scope.unbind
     });
   },

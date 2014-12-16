@@ -9,6 +9,10 @@ var p_percentage_bar = PClass.extend({
   deps: [
   ],
 
+  _subscriptions: [{
+  }],
+
+
   initialize: function() {
     this.opts.gridTicks && this._renderGrid();
 
@@ -19,16 +23,17 @@ var p_percentage_bar = PClass.extend({
     this._setEvents();
 
     return {
-      path: this.path
+      bar: {
+        path: this.path,
+        triggerMouseover: _.bind(this.triggerMouseover, this)
+      }
     };
   },
 
   _setEvents: function() {
     var self = this;
-    this.path.on('mouseover', function(d) {
-      self.path.style('opacity', self.opts.hoverFade);
-      d3.select(this).style('opacity', 1);
-      self.on('Bar-piece/mouseover', [d]);
+    this.path.on('mousemove', function(d) {
+      self._onMouseover(this, d);
     });
 
     this.$svg.on('mouseleave', function() {
@@ -42,11 +47,10 @@ var p_percentage_bar = PClass.extend({
 
     var data = _.map(this.data,
       function(d) {
-        var v = {
+        var v = _.extend(d, {
           x0: x0,
-          x1: d.value * 100 / total,
-          color: d.color
-        };
+          x1: d.value * 100 / total
+        });
         x0 += v.x1;
         return v;
       });
@@ -69,15 +73,16 @@ var p_percentage_bar = PClass.extend({
 
   _renderVertical: function() {
     var total = d3.sum(_.pluck(this.data, 'value'));
+    var height = (this.opts.margin.top + this.opts.margin.bottom) * 100 / this.opts.height;
+    var heightPercent = 100 - height;
     var y0 = 0;
 
     var data = _.map(this.data,
       function(d) {
-        var v = {
+        var v = _.extend(d, {
           y0: y0,
-          y1: d.value * 100 / total,
-          color: d.color
-        };
+          y1: d.value * heightPercent / total
+        });
         y0 += v.y1;
         return v;
       });
@@ -106,7 +111,7 @@ var p_percentage_bar = PClass.extend({
 
     this.grid = this.$svg.append('g')
       .attr('transform', h_getTranslate(-this.opts.margin.left, -this.opts.margin.top))
-      .attr('class', 'grid');
+      .attr('class', 'bargrid');
 
     for (var i = 0; i < this.opts.gridTicks; i++) {
       this.grid.append('line')
@@ -116,6 +121,29 @@ var p_percentage_bar = PClass.extend({
         .attr('y2', separation*i)
         .attr('stroke', 'red');
     }
+  },
+
+  _onMouseover: function(path, d) {
+    this.path.style('opacity', this.opts.hoverFade);
+    d3.select(path).style('opacity', 1);
+    var mouse;
+
+    try {
+      mouse = d3.mouse(path);
+    } catch(e) {
+      mouse = h_getCentroid(d3.select(path));
+    }
+
+    this.trigger('Bar-piece/mouseover', [d, mouse]);
+  },
+
+  triggerMouseover: function(id) {
+    var self = this;
+
+    this.path.each(function(d) {
+      if (d.id !== id) {return;}
+      self._onMouseover(this, d);
+    });
   }
 
 });

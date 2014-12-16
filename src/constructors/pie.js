@@ -7,7 +7,7 @@ Charicharts.Pie = CClass.extend({
   ],
 
   getInstanceProperties: function() {
-    return _.pick(this.$scope, 'series', 'pie_inner_arrow');
+    return _.pick(this.$scope, 'series', 'innerArrow');
   },
 
   defaults: {

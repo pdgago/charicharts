@@ -139,6 +139,7 @@ var CClass = Class.extend({
     // Core methods exposed
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
+      trigger: this.$scope.trigger,
       unbind: this.$scope.unbind
     });
   },
@@ -456,6 +457,10 @@ var p_percentage_bar = PClass.extend({
   deps: [
   ],
 
+  _subscriptions: [{
+  }],
+
+
   initialize: function() {
     this.opts.gridTicks && this._renderGrid();
 
@@ -466,16 +471,17 @@ var p_percentage_bar = PClass.extend({
     this._setEvents();
 
     return {
-      path: this.path
+      bar: {
+        path: this.path,
+        triggerMouseover: _.bind(this.triggerMouseover, this)
+      }
     };
   },
 
   _setEvents: function() {
     var self = this;
-    this.path.on('mouseover', function(d) {
-      self.path.style('opacity', self.opts.hoverFade);
-      d3.select(this).style('opacity', 1);
-      self.on('Bar-piece/mouseover', [d]);
+    this.path.on('mousemove', function(d) {
+      self._onMouseover(this, d);
     });
 
     this.$svg.on('mouseleave', function() {
@@ -489,11 +495,10 @@ var p_percentage_bar = PClass.extend({
 
     var data = _.map(this.data,
       function(d) {
-        var v = {
+        var v = _.extend(d, {
           x0: x0,
-          x1: d.value * 100 / total,
-          color: d.color
-        };
+          x1: d.value * 100 / total
+        });
         x0 += v.x1;
         return v;
       });
@@ -516,15 +521,16 @@ var p_percentage_bar = PClass.extend({
 
   _renderVertical: function() {
     var total = d3.sum(_.pluck(this.data, 'value'));
+    var height = (this.opts.margin.top + this.opts.margin.bottom) * 100 / this.opts.height;
+    var heightPercent = 100 - height;
     var y0 = 0;
 
     var data = _.map(this.data,
       function(d) {
-        var v = {
+        var v = _.extend(d, {
           y0: y0,
-          y1: d.value * 100 / total,
-          color: d.color
-        };
+          y1: d.value * heightPercent / total
+        });
         y0 += v.y1;
         return v;
       });
@@ -553,7 +559,7 @@ var p_percentage_bar = PClass.extend({
 
     this.grid = this.$svg.append('g')
       .attr('transform', h_getTranslate(-this.opts.margin.left, -this.opts.margin.top))
-      .attr('class', 'grid');
+      .attr('class', 'bargrid');
 
     for (var i = 0; i < this.opts.gridTicks; i++) {
       this.grid.append('line')
@@ -563,6 +569,29 @@ var p_percentage_bar = PClass.extend({
         .attr('y2', separation*i)
         .attr('stroke', 'red');
     }
+  },
+
+  _onMouseover: function(path, d) {
+    this.path.style('opacity', this.opts.hoverFade);
+    d3.select(path).style('opacity', 1);
+    var mouse;
+
+    try {
+      mouse = d3.mouse(path);
+    } catch(e) {
+      mouse = h_getCentroid(d3.select(path));
+    }
+
+    this.trigger('Bar-piece/mouseover', [d, mouse]);
+  },
+
+  triggerMouseover: function(id) {
+    var self = this;
+
+    this.path.each(function(d) {
+      if (d.id !== id) {return;}
+      self._onMouseover(this, d);
+    });
   }
 
 });
@@ -596,12 +625,12 @@ var p_pie_inner_arrow = PClass.extend({
     // Move arrow to first piece onload
     setTimeout(function() {
       var d = self.pie.path.data()[0];
-      self.moveArrowToId(d.data.id);
+      self.moveToId(d.data.id);
     }, 0);
 
     return {
-      pie_inner_arrow: {
-        moveArrowToId: _.bind(this.moveArrowToId, this)
+      innerArrow: {
+        moveTo: _.bind(this.moveToId, this)
       }
     };
   },
@@ -651,17 +680,16 @@ var p_pie_inner_arrow = PClass.extend({
       .attr('transform', 'translate(0) rotate('+ rotation +')');
 
     this._current = d;
-    this.trigger('Pie-arrow/moved', [d]);
   },
 
   /**
    * Move arrow to the given piece id;
    */
-  moveArrowToId: function(id) {
+  moveToId: function(id) {
     var self = this;
     this.pie.path.each(function(d) {
       if (d.data.id !== id) {return;}
-      self._moveArrow(d);
+      self.trigger('Pie-piece/mouseover', [d]);
     });
   },
 
@@ -670,7 +698,7 @@ var p_pie_inner_arrow = PClass.extend({
    */
   _update: function() {
     if (!this._current) {return;}
-    this.moveArrowToId(this._current.data.id);
+    this.moveToId(this._current.data.id);
   }
 
 });
@@ -899,7 +927,8 @@ var p_series = PClass.extend({
         add: _.bind(this.addSerie, this),
         remove: _.bind(this.removeSerie, this),
         removeAll: _.bind(this.removeSeries, this),
-        updateAll: _.bind(this.updateSeries, this)
+        updateAll: _.bind(this.updateSeries, this),
+        toggle: _.bind(this.toggleSerie, this)
       }
     };
   },
@@ -1117,7 +1146,20 @@ var p_series = PClass.extend({
    * Update bar serie.
    */
   _updateBarSerie: function(serie) {
+  },
 
+  /**
+   * Toggle a serie.
+   */
+  toggleSerie: function(id) {
+    var path = this.$svg.select('#serie-' + id);
+    if (path.empty()) {return;}
+    var active = Number(path.attr('active')) ? 0 : 1;
+    path.attr('active', active);
+
+    path.transition()
+      .duration(200)
+      .style('opacity', path.attr('active'));
   }
 
 });
@@ -1286,11 +1328,17 @@ var p_trail = PClass.extend({
   _getDataFromValue: function(xvalue) {
     var self = this;
 
-    return _.map(this.data, function(d) {
-      if (!d.values) {return;}
-      return _.extend(
-        d.values[self.bisector(d.values, xvalue)],
-        {id: d.id});
+    return _.map(this.data, function(serie) {
+      if (serie.type === 'line') {
+        if (!serie.values) {return;}
+        return _.extend(serie.values[self.bisector(serie.values, xvalue)],
+          {id: serie.id});
+      } else if (serie.type === 'bar') {
+        return _.map(d.data, function(d) {
+          return _.extend(d.values[self.bisector(d.values, xvalue)],
+            {id: d.id});
+        });
+      }
     });
   },
 
@@ -1418,15 +1466,13 @@ Charicharts.PercentageBar = CClass.extend({
   ],
 
   getInstanceProperties: function() {
-    var methods = {};
-
-    return methods;
+    return _.pick(this.$scope, 'bar');
   },
 
   defaults: {
     margin: '0 0 0 0',
     orientation: 'horizontal',
-    hoverFade: 0.6,
+    hoverFade: 1,
     gridTicks: 0
   },
 
@@ -1460,7 +1506,7 @@ Charicharts.Pie = CClass.extend({
   ],
 
   getInstanceProperties: function() {
-    return _.pick(this.$scope, 'series', 'pie_inner_arrow');
+    return _.pick(this.$scope, 'series', 'innerArrow');
   },
 
   defaults: {

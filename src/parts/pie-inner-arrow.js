@@ -28,12 +28,12 @@ var p_pie_inner_arrow = PClass.extend({
     // Move arrow to first piece onload
     setTimeout(function() {
       var d = self.pie.path.data()[0];
-      self.moveArrowToId(d.data.id);
+      self.moveToId(d.data.id);
     }, 0);
 
     return {
-      pie_inner_arrow: {
-        moveArrowToId: _.bind(this.moveArrowToId, this)
+      innerArrow: {
+        moveTo: _.bind(this.moveToId, this)
       }
     };
   },
@@ -83,17 +83,16 @@ var p_pie_inner_arrow = PClass.extend({
       .attr('transform', 'translate(0) rotate('+ rotation +')');
 
     this._current = d;
-    this.trigger('Pie-arrow/moved', [d]);
   },
 
   /**
    * Move arrow to the given piece id;
    */
-  moveArrowToId: function(id) {
+  moveToId: function(id) {
     var self = this;
     this.pie.path.each(function(d) {
       if (d.data.id !== id) {return;}
-      self._moveArrow(d);
+      self.trigger('Pie-piece/mouseover', [d]);
     });
   },
 
@@ -102,7 +101,7 @@ var p_pie_inner_arrow = PClass.extend({
    */
   _update: function() {
     if (!this._current) {return;}
-    this.moveArrowToId(this._current.data.id);
+    this.moveToId(this._current.data.id);
   }
 
 });
