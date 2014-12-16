@@ -1108,12 +1108,12 @@ var p_series = PClass.extend({
     } else {
       var xStack = {};
       _.each(serie.data, function(serie) {
-        // var stackSize = serie.values.length * barWidth;
+        var stackSize = serie.values.length * barWidth;
         _.each(serie.values, function(d) {
             d.y0 = 0;
             d.y1 = d.y;
-            // Start with -barwith/2 and + barWidth
-            d.w = (typeof(xStack[d.x]) === 'number' ? xStack[d.x] : - barWidth*2) + barWidth;
+            d.w = (typeof(xStack[d.x]) === 'number' ? xStack[d.x] : -barWidth*1.5);
+            d.w += barWidth;
             xStack[d.x] = d.w;
             console.log(d);
         });
