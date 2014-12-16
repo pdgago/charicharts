@@ -99,9 +99,10 @@ var p_axes = PClass.extend({
     var scale = (orient === 'top' || orient === 'bottom') ?
       this.scale.x : this.scale.y;
 
-    model.el.transition()
-      .duration(500)
-      .ease('linear')
+    model.el
+      // .transition()
+      // .duration(500)
+      // .ease('linear')
       .call(model.axis.scale(scale));
 
     this._afterAxisChanges(model);

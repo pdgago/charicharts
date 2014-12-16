@@ -49,22 +49,31 @@ var color = d3.scale.category10(),
     data1 = getData(23),
     data2 = getData(23),
     data3 = getData(23),
-    data4 = getData(23);
+    data4 = getData(23),
+    dataNulls1 = getData(23),
+    dataNulls2 = getData(23);
 
-setNull(data1, 4, 6, 14, 15, 16);
-setNull(data2, 0, 1, 5, 7);
+setNull(dataNulls1, 4, 6, 14, 15, 16);
+setNull(dataNulls2, 0, 1, 5, 7);
 
 var data = [
 {
-  type: 'arearange',
-  color: color(0),
-  displayLines: true,
+  type: 'area',
+  stacking: true,
   data: [{
-    id: 1006,
-    values: data3
+    type: 'line',
+    values: data1,
+    dots: false,
+    interpolation: 'linear',
+    color: color(0),
+    // opacity: 0.3
   },{
-    id: 1007,
-    values: data4
+    type: 'line',
+    values: data2,
+    dots: false,
+    interpolation: 'linear',
+    color: color(1),
+    // opacity: 1
   }],
 }
 ];
@@ -112,7 +121,7 @@ function randomItem(i) {
   date.setHours(i, 0, 0);
   return {
     x: date,
-    y: _.random(-80, 80),
+    y: _.random(-20, 80),
   };
 }
 

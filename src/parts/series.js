@@ -75,13 +75,11 @@ var p_series = PClass.extend({
    * Render the given series.
    */
   _renderSerie: function(serie) {
-    // ID optional
-    serie.id = serie.id || parseInt(_.uniqueId());
-
     switch(serie.type) {
       case 'line': serie.path = this._renderLineSerie(serie); break;
       case 'bar': serie.path = this._renderBarSerie(serie); break;
-      case 'area': serie.path = this._renderAreaSerie(serie); break;
+      case 'arearange': serie.path = this._renderAreaRangeSerie(serie); break;
+      case 'area': serie.path = this._renderStackedAreaSerie(serie); break;
       case 'constant': serie.path = this._renderConstantSerie(serie); break;}
   },
 
@@ -109,6 +107,9 @@ var p_series = PClass.extend({
    * Render line serie.
    */
   _renderLineSerie: function(serie) {
+    // ID optional
+    serie.id = serie.id || parseInt(_.uniqueId());
+
     var line = this._getLineFunc(),
         path = this.$series.append('path')
           // .datum(serie.values)
@@ -116,6 +117,7 @@ var p_series = PClass.extend({
           .attr('class', 'serie-line')
           .attr('stroke', serie.color)
           .attr('type', 'line')
+          .style('opacity', serie.opacity || null)
           .attr('active', 1);
 
     path.datum(serie.values);
@@ -145,13 +147,16 @@ var p_series = PClass.extend({
         .attr('r', 3);
 
     }
+
+    serie.path = path;
+
     return path;
   },
 
   /**
    * TODO return area path
    */
-  _renderAreaSerie: function(serie) {
+  _renderAreaRangeSerie: function(serie) {
     var self = this;
 
     // Render the two lines
@@ -173,22 +178,83 @@ var p_series = PClass.extend({
       .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
       .y1(function(d) { return self.scale.y(d.y); });
 
-    return this.$series.append('path')
-        .datum(serie.data[0].values)
-        .attr('class', 'area')
-        .attr('d', area)
-        .attr('fill', serie.color || '#ccc')
-        .attr('opacity', serie.bgOpacity || 0.4);
+    serie.path = this.$series.append('path')
+      .datum(serie.data[0].values)
+      .attr('class', 'area')
+      .attr('d', area)
+      .attr('fill', serie.color || '#ccc')
+      .attr('opacity', serie.bgOpacity || 0.4);
+
+    return serie.path;
   },
 
+  /**
+   * TODO return area path
+   * TODO Stacking false
+   */
+  _renderStackedAreaSerie: function(series) {
+    var self = this,
+        data = series.data;
+
+
+    var area = d3.svg.area()
+      .x(function(d) { return self.scale.x(d.x); })
+      .interpolate('linear');
+
+    if (series.stacking) {
+      var stack = d3.layout.stack()
+        .values(function(d) { return d.values; });
+
+      data = stack(_.map(series.data, function(serie, i) {
+        // ID optional
+        serie.id = serie.id || parseInt(_.uniqueId());
+
+        return {
+          name: serie.id,
+          color: serie.color,
+          values: serie.values
+        };
+      }));
+
+      area
+        .y0(function(d) { return self.scale.y(d.y0); })
+        .y1(function(d) { return self.scale.y(d.y + d.y0); });
+        console.log(data);
+    } else {
+      _.each(series.data, this._renderLineSerie, this);
+
+      area
+        .y0(function(d) { return self.scale.y(0); })
+        .y1(function(d) { return self.scale.y(d.y); });
+    }
+
+    // Fit to new scale
+    var extent = d3.extent(series.data[series.data.length - 1].values, function(d) {
+      return d.y0 + d.y;
+    });
+
+    this.trigger('Scale/update', [{ y: extent }]);
+
+    this.$svg.selectAll('g.areas')
+        .data(data)
+      .enter()
+        .append('g')
+        .attr('class', 'area')
+        .append('path')
+        .attr('d', function(d) { return area(d.values); })
+        .style('fill', function(d) { return d.color; })
+        .style('opacity', function(d) { return d.opacity || 0.7; });
+  },
 
   _renderConstantSerie: function(serie) {
-    console.log(serie);
     var self = this,
         data = {
           label: serie.label
         },
         path, group;
+
+    // ID optional
+    serie.id = serie.id || parseInt(_.uniqueId());
 
     data[serie.cteAxis] = serie.value;
 
@@ -261,6 +327,9 @@ var p_series = PClass.extend({
         grouped = serie.grouped,
         // TODO 12 not reasonable. how can we define it?
         barWidth =  12/(!grouped ? serie.data.length : 1);
+
+    // ID optional
+    serie.id = serie.id || parseInt(_.uniqueId());
 
     // Stacked data
     if (grouped) {

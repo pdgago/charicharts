@@ -18,11 +18,18 @@ var p_scale = PClass.extend({
   _subscriptions: [{
     /**
      * Triggered when the serie gets updated with new data.
+     * TODO serie/updated should be the message
      */
     'Serie/update': function() {
       this._updateScales();
       this.trigger('Scale/updated', []);
+    },
+
+    'Scale/update': function(opt_minExtent) {
+      this._updateScales(opt_minExtent);
+      this.trigger('Scale/updated', []);
     }
+
   }],
 
   initialize: function() {
@@ -40,15 +47,16 @@ var p_scale = PClass.extend({
     };
   },
 
-  _updateScales: function() {
+  _updateScales: function(opt_minExtent) {
+    opt_minExtent = opt_minExtent || {};
     this._setFlattenedData();
-    this._status.scale.x = this._updateScale('x');
-    this._status.scale.y = this._updateScale('y');
+    this._status.scale.x = this._updateScale('x', opt_minExtent.x);
+    this._status.scale.y = this._updateScale('y', opt_minExtent.y);
   },
 
-  _updateScale: function(position) {
+  _updateScale: function(position, opt_minExtent) {
     var opts = this.opts[position + 'axis'],
-        domain = this._getExtent(position, opts.fit),
+        domain = this._getExtent(position, opts.fit, opt_minExtent),
         range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
     return this._d3Scales[opts.scale]()
@@ -57,10 +65,19 @@ var p_scale = PClass.extend({
       // .nice(); // Extends the domain so that it starts and ends on nice round values.
   },
 
-  _getExtent: function(position, fit) {
+  _getExtent: function(position, fit, opt_minExtent) {
     var extent = d3.extent(this._dataFlattened, function(d) {
       return d[position];
     });
+
+
+    // Fix to min extent
+    if (opt_minExtent) {
+      var min = d3.min([extent[0], opt_minExtent[0]]),
+          max = d3.max([extent[1], opt_minExtent[1]]);
+
+      extent = [min, max];
+    }
 
     if (fit) {return extent;}
 
