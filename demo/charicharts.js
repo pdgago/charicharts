@@ -1,7 +1,16 @@
 /* jshint ignore:start */
 !function(context) {
-  'use strict';
+  // 'use strict';
   var Charicharts = {version: "0.0.0"};
+  if (!String.prototype.format) {
+    String.prototype.format = function() {
+      var args = arguments;
+      return this.replace(/{(\d+)}/g, function(match, number) {
+        return typeof args[number] !== 'undefined' ? args[number] : match;
+      });
+    };
+  }
+
 /* jshint ignore:end */
 /**
  * Get translate attribute from supplied width/height.
@@ -44,23 +53,113 @@ function h_getAngle(x, y) {
 
   return angle;
 }
-
-if (!String.prototype.format) {
-  String.prototype.format = function() {
-    var args = arguments;
-    return this.replace(/{(\d+)}/g, function(match, number) {
-      return typeof args[number] !== 'undefined' ? args[number] : match;
-    });
-  };
-}
-/**
- * Creates a events module for the supplied context.
- * 
- * @param {Context} context
+/* Simple JavaScript Inheritance
+ * By John Resig http://ejohn.org/
+ * MIT Licensed.
  */
-Charicharts.Events = function(context) {
+// Inspired by base2 and Prototype
+/* jshint ignore:start */
+(function(){
+  var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
+
+  // The base Class implementation (does nothing)
+  this.Class = function(){};
+
+  // Create a new Class that inherits from this class
+  Class.extend = function(prop) {
+    var _super = this.prototype;
+
+    // Instantiate a base class (but only create the instance,
+    // don't run the init constructor)
+    initializing = true;
+    var prototype = new this();
+    initializing = false;
+
+    // Copy the properties over onto the new prototype
+    for (var name in prop) {
+      // Check if we're overwriting an existing function
+      prototype[name] = typeof prop[name] == "function" &&
+        typeof _super[name] == "function" && fnTest.test(prop[name]) ?
+        (function(name, fn){
+          return function() {
+            var tmp = this._super;
+
+            // Add a new ._super() method that is the same method
+            // but on the super-class
+            this._super = _super[name];
+
+            // The method only need to be bound temporarily, so we
+            // remove it when we're done executing
+            var ret = fn.apply(this, arguments);
+            this._super = tmp;
+
+            return ret;
+          };
+        })(name, prop[name]) :
+        prop[name];
+    }
+
+    // The dummy class constructor
+    function Class() {
+      // All construction is actually done in the init method
+      if (!initializing && this.init) {
+        return this.init.apply(this, arguments);
+      }
+    }
+
+    // Populate our constructed prototype object
+    Class.prototype = prototype;
+
+    // Enforce the constructor to be what we expect
+    Class.prototype.constructor = Class;
+
+    // And make this class extendable
+    Class.extend = arguments.callee;
+
+    return Class;
+  };
+}).call(window);
+/* jshint ignore:end */
+/**
+ * Constructor Class. All charicharts constructors extends this Class.
+ */
+var CClass = Class.extend({
+
+  init: function(opts, data) {
+    // Set scope with core objects populated
+    this.$scope = {
+      opts: this.parseOptions(opts),
+      data: data
+    };
+
+    // Set events module into the $scope.
+    _.extend(this.$scope, charichartsEvents());
+    this._loadModules();
+
+    // Core methods exposed
+    return _.extend(this.getInstanceProperties(), {
+      on: this.$scope.on,
+      trigger: this.$scope.trigger,
+      unbind: this.$scope.unbind
+    });
+  },
+
+  _loadModules: function() {
+    for (var i = 0; i < this.modules.length; i++) {
+      _.extend(this.$scope, new this.modules[i](this.$scope));
+    }
+  }
+
+});
+/**
+ * Creates a events module.
+ */
+var charichartsEvents = function() {
+
+  var events = {};
+
   // Check for 'c_' cache for unit testing
-  var cache = context.c_ || {};
+  var cache = events.c_ || {};
 
   /**
    * Publish some data on a named topic.
@@ -69,13 +168,13 @@ Charicharts.Events = function(context) {
    * @param  {Array}  args  The data to publish. Each array item is converted
    *                        into an ordered arguments on the subscribed functions. 
    */
-  var trigger = function(topic, args) {
+  events.trigger = function trigger(topic, args) {
     var subs = cache[topic];
     var len = subs ? subs.length : 0;
 
     //can change loop or reverse array if the order matters
     while (len--) {
-      subs[len].apply(context, args || []);
+      subs[len].apply(events, args || []);
     }
   };
 
@@ -87,7 +186,7 @@ Charicharts.Events = function(context) {
    *                             subscribed channel, the callback will be called with the
    *                             published array as ordered arguments.
    */
-  var on = function(topic, callback) {
+  events.on = function on(topic, callback) {
     cache[topic] || (cache[topic] = []);
     cache[topic].push(callback);
     return [topic, callback]; // Array
@@ -99,7 +198,7 @@ Charicharts.Events = function(context) {
    * @param  {Array}    handle   The return value from a subscribe call.
    * @param  {Function} callback [description]
    */
-  var unbind = function(handle, callback) {
+  events.unbind = function unbind(handle, callback) {
     var subs = cache[callback ? handle : handle[0]];
     var len = subs ? subs.length : 0;
 
@@ -112,1002 +211,1026 @@ Charicharts.Events = function(context) {
     }
   };
 
-  return {
-    trigger: trigger,
-    on: on,
-    unbind: unbind
-  };
+  return events;
 };
 /**
- * Generate a injector for the given context.
- *
- * When calling a module function using the returned function,
- * that module will be able to ask for context properties.
- *
- * Injectors are specially build for the charichart parts, because they
- * need access to so many variables. This makes the code cleaner and more
- * testeable.
- *
- * @param  {Ojbect} ctx Context
+ * Part Class. All charicharts parts extends this Class.
  */
-var generateInjector = function(ctx) {
-  return function(args) {
-    var func = args[args.length-1];
-    args = args.slice(0, args.length-1).map(function(a) {
-      return ctx[a];
-    });
-    return func.apply(ctx, args);
-  };
-};
-Charicharts.Chart = Chart;
+var PClass = Class.extend({
 
-function Chart() {
-  this.init.apply(this, arguments);
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
-}
-
-Chart.prototype.init = function(opts) {
-  this._opts = this.parseOpts(opts);
-  _.extend(this, Charicharts.Events(this));
-  this.$scope = _.extend({}, this._opts);
-  this.$scope.trigger = this.trigger;
-  this.$scope.on = this.on;
-  this.call = generateInjector(this.$scope);
-  this.render();
-};
-Chart.prototype.addSerie = function(serie) {
-  var self = this;
-
-  // Map serie types with its render methods
-  var addMethods = {
-    'line': addLine,
-    'bar': addBar,
-    'stacked-bar': addStackedBar
-  };
-
-  function addLine() {
-    self.$scope.lines = self.call(p_line).drawLine(serie);
-  }
-
-  function addBar() {
-    self.$scope.bars = self.call(p_bar).drawBar(serie);
-  }
-
-  function addStackedBar() {
-    self.$scope.stackedBars = self.call(p_stacked_bar).drawBar(serie);
-  }
-
-  addMethods[serie.type]();
-};
-Chart.defaults = {
-  margin: '0,0,0,0',
-  trail: false,
-  // Series options.
-  series: {
-    barWidth: 12,
-    stackedBarAlign: 'right'
+  init: function($scope) {
+    this._$scope = $scope;
+    this._loadModules();
+    _.each(this._subscriptions, this._subscribe, this);
+    return this.initialize();
   },
-  // Xaxis Options.
-  xaxis: {
-    scale: 'time',
-    fit: false,
-    ticks: false,
-    top: {
-      enabled: false,
-      label: false,
-      tickFormat: function(d) {return d;}
-    },
-    bottom: {
-      enabled: true,
-      label: false,
-      tickFormat: function(d) {return d.getMonth();}
-    }  
-  },
-  // Yaxis Options.
-  yaxis: {
-    scale: 'linear',
-    fit: false,
-    fullGrid: true,
-    ticksMarginTop: 0,
-    ticks: false,
-    left: {
-      enabled: true,
-      label: false,
-      tickFormat: function(d) {return d;}
-    },
-    right: {
-      enabled: false,
-      label: false,
-      tickFormat: function(d) {return d;}
-    }
-  }
-};
-Chart.prototype.parseOpts = function(opts) {
-  var o = _.extend({}, Chart.defaults, opts);
-  
-  // TODO => Use deep extend to clone defaults and supplied opts.
-  o.series = _.extend({}, Chart.defaults.series, o.series);
-  o.xaxis = _.extend({}, Chart.defaults.xaxis, o.xaxis);
-  o.xaxis.bottom = _.extend({}, Chart.defaults.xaxis.bottom, o.xaxis.bottom);
-  o.xaxis.top = _.extend({}, Chart.defaults.xaxis.top, o.xaxis.top);
-  o.yaxis = _.extend({}, Chart.defaults.yaxis, o.yaxis);
-  o.yaxis.left = _.extend({}, Chart.defaults.yaxis.left, o.yaxis.left);
-  o.yaxis.right = _.extend({}, Chart.defaults.yaxis.right, o.yaxis.right);
-
-  o.margin = _.object(['top', 'right', 'bottom', 'left'],
-    o.margin.split(',').map(Number));
 
   /**
-   * Axis labels padding.
-   * TODO: => Do this better.
+   * Load dependencies modules.
    */
-  if (o.yaxis.left.label || o.yaxis.right.label) {
-    o.margin.top += Math.abs(o.yaxis.textMarginTop - 30);
-  }
+  _loadModules: function() {
+    // Populate core modules
+    this.$svg = this._$scope.$svg;
+    this.opts = this._$scope.opts;
+    this.on = this._$scope.on;
+    this.trigger = this._$scope.trigger;
+    this.data = this._$scope.data;
 
-  o.fullWidth = o.target.offsetWidth;
-  o.fullHeight = o.target.offsetHeight;
-  o.width = o.fullWidth - o.margin.left - o.margin.right;
-  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
-  o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
-
-  return o;
-};
-
-Chart.prototype.render = function() {
-  var self = this;
-
-  // Draw svg
-  this.$scope.svg = this.call(p_svg).draw();
-
-  // Set scales
-  this.$scope.xscale = this.call(p_scale).getXScale();
-  this.$scope.yscale = this.call(p_scale).getYScale();
-
-  // Draw axis
-  this.call(p_axes).drawY();
-  this.call(p_axes).drawX();
-
-  _.each(this._opts.data, function(serie) {
-    self.addSerie(serie);
-  });
-
-  // temporal => mode this from here
-  this.toggleSerie = function(serieId) {
-    var el = self.$scope.svg.select('#serie' + serieId);
-    if (el.empty()) {return;}
-    var active = Number(el.attr('active')) ? 0 : 1;
-    el.attr('active', active);
-
-    el.transition()
-      .duration(200)
-      .style('opacity', el.attr('active'));
-  };
-
-  // // Draw trail (optional)
-  // // Add a trail line to the chart and trigger a 'moveTrail'
-  // // event when the user moves the trail.
-  if (this.$scope.trail) {
-    this.call(p_trail);
-  }
-};
-Chart.prototype.toggleSerie = function(serieId) {
-  var el = this.$scope.svg.select('#serie' + serieId);
-  if (el.empty()) {return;}
-  var active = Number(el.attr('active')) ? 0 : 1;
-  el.attr('active', active);
-
-  el.transition()
-    .duration(200)
-    .style('opacity', el.attr('active'));
-};
-
-/**
- * Add an trail to the supplied svg and trigger events
- * when the user moves it.
- */
-var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
-  function(svg, trigger, height, width, xscale, margin) {
-
-    var currentDate;
-
-    var trail = svg.append('g')
-      .attr('class', 'trail');
-
-    var markerDef = svg.append('svg:marker')
-      .attr('id', 'trailArrow')
-      .attr('class', 'trail-arrow')
-      .attr('viewBox','0 0 20 20')
-      .attr('refX','15')
-      .attr('refY','11')
-      .attr('markerUnits','strokeWidth')
-      .attr('markerWidth','15')
-      .attr('markerHeight','11')
-      .attr('orient','auto')
-      .append('svg:path')
-        .attr('d','M 0 0 L 20 10 L 0 20 z')
-        .attr('fill', '#777');
-
-    var trailLine = trail.append('svg:line')
-      .attr('class', 'trail-line')
-      .attr('x1', 0)
-      .attr('x2', 0)
-      .attr('y1', -margin.top + 10) // 10px padding
-      .attr('y2', height)
-      .attr('marker-start', 'url(#trailArrow)');
-
-    var brush = d3.svg.brush()
-      .x(xscale)
-      .extent([0, 0]);
-
-    var slider = svg.append('g')
-      .attr('transform', h_getTranslate(0,0))
-      .attr('class', 'trail-slider')
-      .call(brush);
-
-    slider.select('.background')
-      .attr('height', height)
-      .attr('width', width)
-      .style('cursor', 'pointer');
-
-    svg.selectAll('.extent,.resize').remove();
-
-    brush.on('brush', onBrush);
-
-
-    // quickfix: add to event loop so its call event is set.
-    setTimeout(function() {
-      slider
-        .call(brush.extent([new Date(), new Date()]))
-        .call(brush.event);
-    }, 0);
-
-    /**
-     * Triggered when the user mouseover or clicks on
-     * the slider brush.
-     * TODO: => support different date units
-     */
-    function onBrush() {
-      var xdomain = xscale.domain();
-      var date;
-
-      if (d3.event.sourceEvent) {
-        date = xscale.invert(d3.mouse(this)[0]);
-      } else {
-        date = brush.extent()[0];
-      }
-
-      if (Date.parse(date) > Date.parse(xdomain[1])) {
-        date = xdomain[1];
-      }
-
-      if (Date.parse(date) < Date.parse(xdomain[0])) {
-        date = xdomain[0];
-      }
-
-      if ((date.getMinutes()) >= -30) {
-        date.setHours(date.getHours());
-      }
-
-      date.setMinutes(0, 0);
-
-      if (Date.parse(currentDate) === Date.parse(date)) {
-        return;
-      }
-
-      currentDate = date;
-      var xtrail = Math.round(xscale(date)) - 1;
-
-      moveTrail(xtrail);
-      trigger('moveTrail', [date]);
+    for (var i = this.deps.length - 1; i >= 0; i--) {
+      this[this.deps[i]] = this._$scope[this.deps[i]];
     }
-
-    /**
-     * Move the trail to the given x position.
-     * 
-     * @param  {integer} x
-     */
-    function moveTrail(x) {
-      trailLine
-        .attr('x1', x)
-        .attr('x2', x);
-    }
-}];
-Charicharts.Pie = Pie;
-
-function Pie() {
-  this.init.apply(this, arguments);
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render', 'setInnerArrow');
-}
-
-Pie.prototype.init = function(opts) {
-  this._opts = this.parseOpts(opts);
-  _.extend(this, Charicharts.Events(this));
-  this.$scope = _.extend({}, this._opts);
-  this.$scope.trigger = this.trigger;
-  this.call = generateInjector(this.$scope);
-  this.render();
-};
-
-Pie.defaults = {
-  margin: '0,0,0,0',
-  innerRadius: 0.5,
-  outerBorder: 0.1,
-  fadeOpacity: 1,
-  innerArrow: false,
-  innerArrowSize: 0.6
-};
-Pie.prototype.setInnerArrow = function() {
-  var self = this,
-      opts = this._opts,
-      radius = this.$scope.radius * (1 - opts.outerBorder),
-      arrowSize = (radius * opts.innerArrowSize * (1 - opts.innerRadius)),
-      diameter = radius * (opts.innerRadius) * 2;
-
-  if (diameter < arrowSize) {
-    arrowSize = diameter * 0.5;
-  }
-
-  // Define arrow
-  this.$scope.svg.append('svg:marker')
-      .attr('id', 'innerArrow')
-      .attr('viewBox', '0 {0} {1} {2}'.format(
-        -(arrowSize/2), arrowSize, arrowSize))
-      .attr('refX', (radius * (1-opts.innerRadius)) + 5)
-      .attr('refY', 0)
-      .attr('fill', 'white')
-      .attr('markerWidth', arrowSize)
-      .attr('markerHeight', arrowSize)
-      .attr('orient', 'auto')
-    .append('svg:path')
-      .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
-        -(arrowSize/2), arrowSize, arrowSize/2));
-
-  // Draw arrow
-  this.$scope.innerArrow = this.$scope.svg.append('line')
-    .attr('class', 'outer-border')
-    .style('stroke', 'transparent')
-    .attr('x1', 0)
-    .attr('x2', 0)
-    .attr('y1', 0)
-    .attr('y2', 0)
-    .attr('marker-end', 'url(#innerArrow)');
-
-  // Set mouse move Event
-  this.on('mouseover', function(d) {
-    moveArrow(d);
-  });
+  },
 
   /**
-   * Moves the arrow to the given data object.
-   * 
-   * @param  {Object} d d3 data object appended to the arc.
+   * Subscribe to module events.
    */
-  function moveArrow(d) {
-    var coords = self.$scope.arc.centroid(d),
-        angle = h_getAngle(coords[0], coords[1]),
-        cos = Math.cos(angle),
-        sin = Math.sin(angle),
-        x = radius * cos,
-        y = radius * sin;
-
-    if (!x || !y) {return;}
-
-    self.$scope.innerArrow
-      .attr('x2', x)
-      .attr('y2', y);
+  _subscribe: function(subscription) {
+    _.each(subscription, _.bind(function(callback, name) {
+      this.on(name, _.bind(callback, this));
+    },this));
   }
 
-  this.moveArrowTo = function(id) {
-    self.$scope.pieces.each(function(d) {
-      if (d.data.id !== id) {return;}
-      self.$scope.trigger('mouseover', [d]);
-    });
-  };
-
-  // Select automatically first pie piece.
-  setTimeout(function() {
-    var d = self.$scope.pieces.data()[0];
-    self.$scope.trigger('mouseover', [d]);
-  }, 0);
-};
-Pie.prototype.parseOpts = function(opts) {
-  var o = _.extend({}, Pie.defaults, opts);
-
-  o.margin = _.object(['top', 'right', 'bottom', 'left'],
-    o.margin.split(',').map(Number));
-
-  o.fullWidth = o.target.offsetWidth;
-  o.fullHeight = o.target.offsetHeight;
-  o.width = o.fullWidth - o.margin.left - o.margin.right;
-  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
-  o.gmainTranslate = h_getTranslate(o.fullWidth/2, o.fullHeight/2);
-
-  return o;
-};
-Pie.prototype.render = function() {
-  var self = this;
-
-  // Pie size
-  this.$scope.radius = Math.min(this._opts.fullWidth, this._opts.fullHeight) / 2;
-
-  // Draw SVG
-  this.$scope.svg = this.call(p_svg).draw();
-
-  if (this._opts.outerBorder) {
-    this.$scope.svg.append('svg:circle')
-      .attr('class', 'outer-border')
-      .attr('fill', 'transparent')
-      .attr('cx', 0)
-      .attr('cy', 0)
-      .attr('r', this.$scope.radius);
-  }
-
-  // Pie layout
-  this.$scope.pieLayout = d3.layout.pie()
-    .sort(null)
-    .value(function(d) {return d.value;});
-
-  // Pie arc
-  var innerPadding = this._opts.outerBorder ? (1 - this._opts.outerBorder) : 1;
-  var arcRadius = this.$scope.radius * innerPadding;
-
-  this.$scope.arc = d3.svg.arc()
-    .innerRadius(arcRadius - (arcRadius * (1 - this._opts.innerRadius)))
-    .outerRadius(arcRadius); 
-
-  // Draw pie
-  this.$scope.pieces = this.$scope.svg.selectAll('path')
-      .data(this.$scope.pieLayout(this._opts.data))
-      .enter()
-    .append('path')
-    .attr('class', 'pie-piece')
-    .attr('fill', _.bind(function(d) {
-      return d.data.color;
-    }, this))
-    .attr('d', this.$scope.arc);
-
-  // Mouse over event
-  this.$scope.pieces.on('mouseover', function(d) {
-    // Fade all paths
-    self.$scope.pieces
-      .style('opacity', self._opts.fadeOpacity);
-    // Highlight hovered
-    d3.select(this).style('opacity', 1);
-    // Triger over event
-    self.$scope.trigger('mouseover', [d]);
-  });
-  
-  // Mouse leave event
-  this.$scope.svg.on('mouseleave', function(d) {
-    self.$scope.pieces
-      .style('opacity', 1);
-  });
-
-  if (this._opts.innerArrow) {
-    this.setInnerArrow();
-  }
-};
-Charicharts.Bar = Bar;
-
-function Bar() {
-  this.init.apply(this, arguments);
-  return _.omit(this, '$scope', 'call', 'parseOpts', 'render');
-}
-
-Bar.prototype.init = function(opts) {
-  this._opts = this.parseOpts(opts);
-  _.extend(this, Charicharts.Events(this));
-  this.$scope = _.extend({}, this._opts);
-  this.$scope.trigger = this.trigger;
-  this.call = generateInjector(this.$scope);
-  this.render(this._opts.type);
-};
-
-Bar.defaults = {
-  margin: '0,0,0,0',
-  type: 'percentage'
-};
-Bar.prototype.parseOpts = function(opts) {
-  var o = _.extend({}, Bar.defaults, opts);
-  o.margin = _.object(['top', 'right', 'bottom', 'left'],
-    o.margin.split(',').map(Number));
-  o.fullWidth = o.target.offsetWidth;
-  o.fullHeight = o.target.offsetHeight;
-  o.width = o.fullWidth - o.margin.left - o.margin.right;
-  o.height = o.fullHeight - o.margin.top - o.margin.bottom;
-  o.gmainTranslate = h_getTranslate(0, 0);
-  o.responsive = true;
-  return o;
-};
+});
 /**
- * Renders a percentage bar in the target.
+ * Axes Module
+ * -----------
+ * Add x/y axis.
  *
- * @param {String} type String type
  */
-Bar.prototype.render = function(type) {
-  var self = this;
+var p_axes = PClass.extend({
 
-  // Map bar types with it render methods.
-  var types = {
-    percentage: renderPercentageBar,
-    stacked: renderStackedBar
-  };
+  deps: [
+    'scale'
+  ],
 
-  function renderPercentageBar() {
-    self.$scope.svg = self.call(p_svg).draw();
+  _subscriptions: [{
+    /**
+     * Update the axes when the scales have changed.
+     */
+    'Scale/updated': function() {
+      _.each(this._status.axes, this._updateAxis, this);
+    }
+  }],
 
-    var total = d3.sum(_.pluck(self._opts.data, 'value'));
+  initialize: function() {
+    this._status = {
+      axes: this._initAxesModel()
+    };
+
+    _.each(this._status.axes, this._renderAxis, this);
+  },
+
+  _renderAxis: function(model, orient) {
+    switch(orient) {
+      case 'bottom': this._renderBottom(model); break;
+      case 'left': this._renderLeft(model); break;
+      case 'right': this._renderRight(model); break;}
+    this._afterAxisChanges();
+  },
+
+  _renderBottom: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.scale.x)
+      .orient('bottom')
+      .tickSize(this.opts.height)
+      .tickFormat(this.opts.xaxis.bottom.tickFormat);
+
+    model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks || []);
+
+    model.el = this.$svg.append('g')
+      .attr('class', 'xaxis bottom')
+      .call(model.axis);
+
+    model.el.append('rect')
+      .attr('class', 'baseline')
+      .attr('y', this.opts.height)
+      .attr('x', -this.opts.margin.left)
+      .attr('height', 1)
+      .attr('width', this.opts.fullWidth);
+
+    this._renderXLabel('bottom');
+  },
+
+  _renderLeft: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.scale.y)
+      .orient('left')
+      .tickSize(-this.opts.width)
+      .tickPadding(this.opts.margin.left)
+      .tickFormat(this.opts.yaxis.left.tickFormat);
+
+    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+
+    model.el = this.$svg.append('g')
+      .attr('class', 'yaxis left')
+      .call(model.axis);
+
+    this._renderYLabel('left');
+  },
+
+  _renderRight: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.scale.y)
+      .orient('right')
+      .tickSize(this.opts.width)
+      .tickPadding(0) // defaults to 3
+      .tickFormat(this.opts.yaxis.right.tickFormat);
+
+    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+
+    model.el = this.$svg.append('g')
+      .attr('class', 'yaxis right')
+      .call(model.axis);
+
+    this._renderYLabel('right');
+  },
+
+  /**
+   * Update given axis when the scales changes.
+   */
+  _updateAxis: function(model, orient) {
+    var scale = (orient === 'top' || orient === 'bottom') ?
+      this.scale.x : this.scale.y;
+
+    model.el.transition()
+      .duration(500)
+      .ease('linear')
+      .call(model.axis.scale(scale));
+
+    this._afterAxisChanges(model);
+  },
+
+  /**
+   * Set axes object in status model.
+   */
+  _initAxesModel: function() {
+    var self = this,
+        axes = {};
+
+    var axesEnabled = {
+      left: this.opts.yaxis.left.enabled,
+      right: this.opts.yaxis.right.enabled,
+      top: this.opts.xaxis.top.enabled,
+      bottom: this.opts.xaxis.bottom.enabled
+    };
+
+    _.each(axesEnabled, function(enabled, orient) {
+      if (!enabled) {return;}
+      axes[orient] = {};
+    });
+
+    return axes;
+  },
+
+  _renderXLabel: function(orient) {
+    if (!this.opts.xaxis[orient].label) {return;}
+    this.$svg.select('.xaxis.' + orient).append('text')
+      .attr('class', 'label')
+      .attr('transform', h_getTranslate(-this.opts.margin.left, this.opts.height))
+      .attr('y', 16)
+      .attr('x', 0)
+      .attr('text-anchor', 'start')
+      .text(this.opts.xaxis[orient].label);
+  },
+
+  _renderYLabel: function(orient) {
+    if (!this.opts.yaxis[orient].label) {return;}
+
+    this.$svg.select('.yaxis.' + orient).append('text')
+      .attr('class', 'label')
+      .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
+        this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop))
+      .attr('y', -20)
+      .attr('x', 0)
+      .attr('text-anchor', orient === 'left' ? 'start' : 'end')
+      .text(this.opts.yaxis[orient].label);
+  },
+
+  /**
+   * Stuff to do when the axes have been
+   * rendered or updated.
+   */
+  _afterAxisChanges: function(model) {
+    // remove domain
+    this.$svg.select('.yaxis .domain').remove();
+    this.$svg.select('.xaxis .domain').remove();
+
+    this.$svg.selectAll('.yaxis.left .tick text')
+      .style('text-anchor', 'start', 'important');
+
+    this.$svg.selectAll('.yaxis.right .tick text')
+      .style('text-anchor', 'end', 'important')
+      .attr('transform', h_getTranslate(this.opts.margin.right, this.opts.yaxis.textMarginTop));
+
+    if (this.opts.yaxis.textMarginTop) {
+      this.$svg.selectAll('.yaxis.left .tick text')
+        .attr('transform', h_getTranslate(0, this.opts.yaxis.textMarginTop));
+    }
+
+    this.$svg.selectAll('.xaxis.bottom .tick text')
+      .attr('transform', h_getTranslate(0,4));
+
+    // yaxis full grid
+    if (this.opts.yaxis.fullGrid) {
+      this.$svg.selectAll('.yaxis line')
+        .attr('transform', h_getTranslate(+this.opts.margin.left , 0))
+        .attr('x1', -this.opts.margin.left * 2);
+    }
+
+    // add zeroline
+    this.$svg.selectAll('.yaxis line').each(function(d,i) {
+      if (d !== 0) {return;}
+      d3.select(this).attr('class', 'zeroline');
+    });
+  },
+
+});
+
+/**
+ * Percentage Bar
+ * --------------
+ * Add a percentage bar to the supplied svg.
+ *
+ */
+var p_percentage_bar = PClass.extend({
+
+  deps: [
+  ],
+
+  _subscriptions: [{
+  }],
+
+
+  initialize: function() {
+    this.opts.gridTicks && this._renderGrid();
+
+    switch(this.opts.orientation) {
+      case 'vertical': this._renderVertical(); break;
+      case 'horizontal': this._renderHorizontal(); break;}
+
+    this._setEvents();
+
+    return {
+      bar: {
+        path: this.path,
+        triggerMouseover: _.bind(this.triggerMouseover, this)
+      }
+    };
+  },
+
+  _setEvents: function() {
+    var self = this;
+    this.path.on('mousemove', function(d) {
+      self._onMouseover(this, d);
+    });
+
+    this.$svg.on('mouseleave', function() {
+      self.path.style('opacity', 1);
+    });
+  },
+
+  _renderHorizontal: function() {
+    var total = d3.sum(_.pluck(this.data, 'value'));
     var x0 = 0;
 
-    var data = _.map(self._opts.data,
+    var data = _.map(this.data,
       function(d) {
-        var v = {
+        var v = _.extend(d, {
           x0: x0,
-          x1: d.value * 100 / total,
-          color: d.color
-        };
+          x1: d.value * 100 / total
+        });
         x0 += v.x1;
         return v;
       });
 
-    self.$scope.svg
-      .selectAll('rect')
-      .data(data)
-      .enter()
-      .append('rect')
-      .attr('x', function(d, i) {
-        return d.x0 + '%';
-      })
-      .attr('y', 0)
-      .attr('width', function(d) {
-        return d.x1 + '%';
-      })
-      .attr('height', self._opts.height)
-      .style('fill', function(d) {
-        return d.color;
-      });
-  }
-
-  function renderStackedBar() {
-  } 
-
-  var renderMethod = types[type];
-  renderMethod();
-};
-var p_axes = ['svg', 'xscale','yscale', 'xaxis', 'yaxis', 'width', 'height', 'fullWidth', 'margin',
-  function(svg, xscale, yscale, xaxis, yaxis, width, height, fullWidth, margin) {
-    'use strict';
-
-    var getX = function(orient) {
-      var opts = orient === 'bottom' ? xaxis.bottom : xaxis.top;
-
-      var axis = d3.svg.axis()
-        .scale(xscale)
-        .orient(orient)
-        .tickFormat(opts.tickFormat);
-
-      // Apply ticks [] if enabled
-      xaxis.ticks && axis.ticks.apply(axis, xaxis.ticks);
-
-      // Draw axis
-      svg.append('g')
-        .attr('class', 'xaxis ' + orient)
-        .attr('transform', h_getTranslate(0, orient === 'bottom' ? height : 0))
-        .call(axis)
-        .selectAll('text')
-          .style('text-anchor', 'middle');
-
-      svg.select('.xaxis .domain')
-        .attr('d', 'M{0},0V0H{1}V0'.format(-margin.left, fullWidth));
-
-      // Label
-      if (opts.label) {
-        svg.select('.xaxis').append('text')
-          .attr('class', 'label')
-          .attr('transform', h_getTranslate(0, 0))
-          .attr('y', margin.bottom - 7)
-          .attr('x', 0 -margin.left)
-          .attr('text-anchor', 'start')
-          .text(opts.label);
-      }
-    };
-
-    var getY = function(orient) {
-      var opts = orient === 'left' ? yaxis.left : yaxis.right;
-
-      var axis = d3.svg.axis()
-        .scale(yscale)
-        .orient('right')
-        .tickFormat(opts.tickFormat);
-
-      // Apply ticks [] if enabled
-      yaxis.ticks && axis.ticks.apply(axis, yaxis.ticks);
-
-      // Draw axis
-      svg.append('g')
-        .attr('class', 'yaxis ' + orient)
-        .attr('transform', h_getTranslate(orient === 'left' ? 0 : width + margin.right, 0))
-        .call(axis)
-        .selectAll('text')
-          .attr('x', orient === 'left' ? -margin.left : 0)
-          .attr('y', yaxis.textMarginTop)
-          .style('text-anchor', orient === 'left' ? yaxis.textAnchor : 'end');
-
-      // Grid
-      svg.select('.yaxis')
-        .selectAll('line')
-          .attr('x1', yaxis.fullGrid ? -margin.left : 0)
-          .attr('x2', yaxis.fullGrid ? width + margin.right : width)
-          // add zeroline class
-          .each(function(d) {
-            if (d !== 0) {return;}
-            d3.select(this).attr('class', 'zeroline');
-          });
-
-      // Label
-      if (opts.label) {
-        svg.select('.yaxis').append('text')
-          .attr('class', 'label')
-          .attr('transform', h_getTranslate(0, 0))
-          .attr('y', yaxis.textMarginTop - 20)
-          .attr('x', orient === 'left' ? -margin.left : width + margin.right)
-          .attr('text-anchor', orient === 'left' ? 'start' : 'end')
-          .text(opts.label);
-      }
-
-      svg.select('.yaxis .domain').remove();
-    };
-
-    return {
-      drawX: function() {
-        xaxis.bottom.enabled && getX('bottom');
-        xaxis.top.enabled && getX('top');
-      },
-
-      drawY: function() {
-        yaxis.left.enabled && getY('left');
-        yaxis.right.enabled && getY('right');
-      }
-    };
-
-}];
-/**
- * Get d3 path generator Function for bars.
- */
-var p_bar = ['svg', 'xscale', 'yscale', 'height', 'series',
-  function(svg, xscale, yscale, height, series) {
-    /**
-     * Draw a bar for the given serie.
-     */
-    function drawBar(serie) {
-      svg.append('g')
-        .attr('id', 'serie' + serie.id)
-        .attr('active', 1)
-        .attr('class', 'bar')
-        .selectAll('rect')
-        .data(serie.values)
+    this.path = this.$svg.selectAll('rect')
+        .data(data)
       .enter().append('rect')
-        .attr('class', function(d) {
-          return d.value < 0 ? 'bar-negative' : 'bar-positive';
+        .attr('x', function(d, i) {
+          return d.x0 + '%';
         })
-        .attr('x', function(d) {
-          // TODO: Linear scale support
-          return xscale(d.datetime) - series.barWidth/2;
+        .attr('y', 0)
+        .attr('width', function(d) {
+          return d.x1 + '%';
         })
-        .attr('y', function(d) {
-          return d.value < 0 ? yscale(0) : yscale(d.value) - 1;
-        })
-        .attr('width', series.barWidth)
-        .attr('height', function(d) {
-          return Math.abs(yscale(d.value) - yscale(0));
-        })
-        .attr('fill', function() {
-          return serie.color;
-        });
-    }
-
-    return {
-      drawBar: drawBar
-    };
-}];
-/**
- * Get d3 path generator Function for lines.
- * 
- * The returned function will take our data and generate the
- * necessary SVG path commands.
- * 
- * @param  {Array}    scales [x,y] scales
- * @return {Function}        D3 line path generator
- */
-var p_line = ['svg', 'xscale', 'yscale', 'data',
-  function(svg, xscale, yscale, data) {
-
-    var line = d3.svg.line()
-      .x(function(d) {
-        return xscale(d.datetime);
-      })
-      .y(function(d) {
-        return yscale(d.value);
-      });
-
-    /**
-     * Draw a line for the given serie
-     */
-    function drawLine(serie) {
-      var linePath = svg.append('path')
-        .attr('id', 'serie' + serie.id)
-        .attr('active', 1)
-        .attr('class', 'line')
-        .attr('transform', 'translate(0, 0)')
-        .attr('stroke', serie.color)
-        .attr('d', line.interpolate(serie.interpolation)(serie.values));
-
-      // var dots = svg.append('g').selectAll('dot')
-      //   .data(serie.values)
-      //   .enter().append('circle')
-      //   .attr('r', 5)
-      //   .attr('cx', function(d) {return xscale(d.datetime);})
-      //   .attr('cy', function(d) {return yscale(d.value);})
-      //   .style('fill', 'rgb(31, 119, 180)')
-      //   .attr('visibility', 'hidden')
-      //   .attr('cursor', 'pointer');
-
-      // On mouse over show tooltip
-      // puedo appendear a cada linea los circulos, ocultarlos
-      // linePath.on('mousemove', function(d) {
-      //   var mouse = d3.mouse(this);
-      //   dots
-      //     .transition()
-      //     .duration(400)
-      //     .attr('visibility', 'visible');
-      // });
-
-      // linePath.on('mouseleave', function(d) {
-      //   dots.attr('visibility', 'hidden');
-      // });
-    }
-
-    return {
-      drawLine: drawLine
-    };
-}];
-/**
- * Set x/y scales from the supplied options.
- * 
- * @param  {Object} opts
- *   width - range width
- *   height - range height
- *   data - series data. used to set the domains
- * @return {Array} Returns [x,y] scales
- */
-var p_scale = ['data', 'xaxis', 'yaxis', 'width', 'height',
-  function(data, xaxis, yaxis, width, height) {
-
-    var d3Scales = {
-      'time': d3.time.scale.utc,
-      'ordinal': d3.scale.ordinal,
-      'linear': d3.scale.linear
-    };
-
-    var valuesArr = _.flatten(_.map(data,
-      function(d) {
-        return d.values;
-      }));
-
-    /**
-     * Returns time domain from data.
-     */
-    function getTimeDomain() {
-      return d3.extent(valuesArr, function(d) {
-        return d.datetime;
-      });
-    }
-    
-    /**
-     * Returns linear domain from 0 to max data value.
-     */
-    function getLinearAllDomain() {
-      var extent = d3.extent(valuesArr, function(d) {
-        if (d.scrutinized) {
-          return d3.sum(_.pluck(d.scrutinized, 'value'));
-        }
-        return Number(d.value);
-      });
-
-      // Positive scale
-      if (extent[0] >= 0) {
-        return [0, extent[1]];
-      }
-
-      // Negative-Positive scale
-      var absX = Math.abs(extent[0]);
-      var absY = Math.abs(extent[1]);
-      var val = (absX > absY) ? absX : absY;
-      return [-val, val];
-    }
-
-    /**
-     * Returns linear domain from min/max data values.
-     */
-    function getLinearFitDomain() {
-      return d3.extent(valuesArr, function(d) {
-        if (d.scrutinized) {
-          return d3.sum(_.pluck(d.scrutinized, 'value'));
-        }
-        return d.value;
-      });
-    }
-
-    /**
-     * Get the domain for the supplied scale type.
-     * 
-     * @param  {String}  scale
-     * @param  {Boolean} fit    Fit domain to min/max values
-     * @return {Object}  domain D3 domain
-     */
-    function getDomain(scale, fit) {
-      if (scale === 'time') {
-        return getTimeDomain();
-      }
-
-      if (fit) {
-        return getLinearFitDomain();
-      } else {
-        return getLinearAllDomain();
-      }
-    }
-
-    function getXScale() {
-      var domain = getDomain(xaxis.scale, xaxis.fit);
-      return d3Scales[xaxis.scale]()
-        .domain(domain)
-        .range([0, width]);
-    }
-
-    function getYScale() {
-      var domain = getDomain(yaxis.scale, yaxis.fit);
-
-      return d3Scales[yaxis.scale]()
-        .domain(domain)
-        .range([height, 0])
-        .nice(); // Extends the domain so that it starts and ends on nice round values.
-    }
-
-    return {
-      getXScale: getXScale,
-      getYScale: getYScale
-    };
-}];
-/**
- * Get d3 path generator Function for bars.
- *
- * @param  {Array}    scales [x,y] scales
- * @return {Function}        D3 line path generator
- */
-var p_stacked_bar = ['svg', 'xscale', 'yscale', 'trigger', 'series', 'width', 'height', 'on',
-  function(svg, xscale, yscale, trigger, series, width, height, on) {
-
-    /**
-     * Draw a bar for the given serie.
-     */
-    function drawBar(serie) {
-      serie.values.forEach(function(v) {
-        var y0 = 0;
-
-        v.scrutinized.forEach(function(d) {
-          d.y0 = y0;
-          d.y1 = y0 += Math.max(0, d.value); // Math.max(0, d.value); // negatives to zero
-        });
-
-        v.total = v.scrutinized[v.scrutinized.length - 1].y1;
-      });
-
-      var stackedBar = svg.selectAll('stacked-bar')
-        .data(serie.values)
-        .enter().append('g')
-        .attr('transform', function(d) {
-          var x;
-
-          // Todo => Trick to get a single bar on the right.
-          // It's better to have it under Charichart.Bar.
-          if (series.stackedBarAlign === 'right') {
-            x = width - series.barWidth;
-          } else {
-            x = xscale(d.datetime);
-          }
-
-          return h_getTranslate(x, 0);
-        });
-
-      var bars = stackedBar.selectAll('rect')
-        .data(function(d) {
-          return d.scrutinized;
-        })
-        .enter().append('rect')
-        .attr('id', function(d) {
-          return d.id;
-        })
-        .attr('width', series.barWidth)
-        .attr('y', function(d) {
-          return yscale(d.y1);
-        })
-        .attr('height', function(d) {
-          return yscale(d.y0) - yscale(d.y1);
-        })
-        .style('cursor', 'pointer')
+        .attr('height', this.opts.fullHeight)
         .style('fill', function(d) {
           return d.color;
-        })
-        .on('mousemove', function(d) {
-          trigger('mouseoverStackbar', [d, d3.mouse(this)]);
         });
+  },
 
-      // quick thing: refactor this
-      on('stackbar-over', function(id) {
-        var el = _.filter(bars[0], function(el) {
-          return el.id === String(id);
-        })[0];
-        var centroid = h_getCentroid(d3.select(el));
-        d3.select(el).each(function(d) {
-          trigger('mouseoverStackbar', [d3.select(el).data()[0], centroid]);
+  _renderVertical: function() {
+    var total = d3.sum(_.pluck(this.data, 'value'));
+    var height = (this.opts.margin.top + this.opts.margin.bottom) * 100 / this.opts.height;
+    var heightPercent = 100 - height;
+    var y0 = 0;
+
+    var data = _.map(this.data,
+      function(d) {
+        var v = _.extend(d, {
+          y0: y0,
+          y1: d.value * heightPercent / total
         });
+        y0 += v.y1;
+        return v;
       });
 
-      /**
-       * Trigger mouseoverStackbar for the given selection.
-       * TODO => This is probably better on the user side, we could
-       * return bars array, and the user can do anything he wants.
-       * 
-       * @param  {Object} selection d3 selection
-       */
-      function triggerSelect(selection) {
-        selection.each(function(d) {
-          trigger('mouseoverStackbar', [d, h_getCentroid(selection)]);
+    this.path = this.$svg.selectAll('rect')
+        .data(data)
+      .enter().append('rect')
+        .attr('x', 0)
+        .attr('y', function(d) {
+          return d.y0 + '%';
+        })
+        .attr('width', this.opts.width)
+        .attr('height', function(d) {
+          return d.y1 + '%';
+        })
+        .style('fill', function(d) {
+          return d.color;
         });
-      }
+  },
 
-      setTimeout(function() {
-        triggerSelect(d3.select(_.last(bars[0])));
-      }, 0);
+  /**
+   * Renders grid on the background.
+   */
+  _renderGrid: function() {
+    var separation = this.opts.fullHeight / (this.opts.gridTicks-1) - 1/this.opts.gridTicks;
+
+    this.grid = this.$svg.append('g')
+      .attr('transform', h_getTranslate(-this.opts.margin.left, -this.opts.margin.top))
+      .attr('class', 'bargrid');
+
+    for (var i = 0; i < this.opts.gridTicks; i++) {
+      this.grid.append('line')
+        .attr('x1', 0)
+        .attr('x2', this.opts.fullWidth)
+        .attr('y1', separation*i)
+        .attr('y2', separation*i)
+        .attr('stroke', 'red');
+    }
+  },
+
+  _onMouseover: function(path, d) {
+    this.path.style('opacity', this.opts.hoverFade);
+    d3.select(path).style('opacity', 1);
+    var mouse;
+
+    try {
+      mouse = d3.mouse(path);
+    } catch(e) {
+      mouse = h_getCentroid(d3.select(path));
     }
 
-    return {
-      drawBar: drawBar
-    };
+    this.trigger('Bar-piece/mouseover', [d, mouse]);
+  },
+
+  triggerMouseover: function(id) {
+    var self = this;
+
+    this.path.each(function(d) {
+      if (d.id !== id) {return;}
+      self._onMouseover(this, d);
+    });
   }
-];
-var p_svg = ['responsive', 'fullWidth', 'fullHeight', 'target', 'gmainTranslate',
-  function(responsive, fullWidth, fullHeight, target, gmainTranslate) {
-    var m = {};
 
-    m.draw = function() {
-      return d3.select(target)
-        .append('svg')
-          .attr('width', responsive ?  '100%' : fullWidth)
-          .attr('height', fullHeight)
-        .append('g')
-          .attr('class', 'g-main')
-          .attr('transform', gmainTranslate);
+});
+/**
+ * Pie Inner Arrow
+ * ---------------
+ * Add an inner arrow into the scope pie.
+ *
+ */
+var p_pie_inner_arrow = PClass.extend({
+
+  deps: [
+    'pie',
+  ],
+
+  _subscriptions: [{
+    'Pie-piece/mouseover': function(d) {
+      this._moveArrow(d);
+    }
+  }, {
+    'Pie/updated': function() {
+      this._update();
+    }
+  }],
+
+  initialize: function() {
+    if (!this.opts.innerArrow) {return;}
+    var self = this;
+    this._drawArrow();
+
+    // Move arrow to first piece onload
+    setTimeout(function() {
+      var d = self.pie.path.data()[0];
+      self.moveToId(d.data.id);
+    }, 0);
+
+    return {
+      innerArrow: {
+        moveTo: _.bind(this.moveToId, this)
+      }
+    };
+  },
+
+  /**
+   * Draw the arrow!
+   */
+  _drawArrow: function() {
+    var arrowSize = this.opts.radius * this.opts.innerArrowSize * (1 - this.opts.innerRadius);
+
+    // Define arrow
+    this.$svg.append('svg:marker')
+        .attr('id', 'innerArrow')
+        .attr('viewBox', '0 {0} {1} {2}'.format(
+          -(arrowSize/2), arrowSize, arrowSize))
+        .attr('refX', (this.opts.radius * (1-this.opts.innerRadius)) + 5)
+        .attr('refY', 0)
+        .attr('fill', 'white')
+        .attr('markerWidth', arrowSize)
+        .attr('markerHeight', arrowSize)
+        .attr('orient', 'auto')
+      .append('svg:path')
+        .attr('d', 'M0,{0}L{1},0L0,{2}'.format(
+          -(arrowSize/2), arrowSize, arrowSize/2));
+
+    this.innerArrow = this.$svg.append('svg:line')
+      .attr('x1', 0)
+      .attr('y1', 0)
+      .attr('x2', this.opts.radius)
+      .attr('y2', 0)
+      .attr('class', 'inner-arrow')
+      .style('stroke', 'transparent')
+      .attr('marker-end', 'url(#innerArrow)');
+  },
+
+  /**
+   * Move arrow to the given data object.
+   */
+  _moveArrow: function(d) {
+    var coords = this.pie.arc.centroid(d),
+        angle = h_getAngle.apply(this, coords),
+        rotation = angle * (180/Math.PI);
+
+    this.innerArrow
+      .transition()
+      .duration(200)
+      .attr('transform', 'translate(0) rotate('+ rotation +')');
+
+    this._current = d;
+  },
+
+  /**
+   * Move arrow to the given piece id;
+   */
+  moveToId: function(id) {
+    var self = this;
+    this.pie.path.each(function(d) {
+      if (d.data.id !== id) {return;}
+      self.trigger('Pie-piece/mouseover', [d]);
+    });
+  },
+
+  /**
+   * Update arrow position if the path has changed.
+   */
+  _update: function() {
+    if (!this._current) {return;}
+    this.moveToId(this._current.data.id);
+  }
+
+});
+/**
+ * Pie Module
+ * ----------
+ * Draw a pie into the scope svg with the scope data.
+ *
+ */
+var p_pie = PClass.extend({
+
+  deps: [
+  ],
+
+  _subscriptions: [{
+  }],
+
+  initialize: function() {
+    // Pie layout
+    this.pie = d3.layout.pie()
+      .value(function(d) {return d.value;})
+      .sort(null);
+
+    // Pie arc
+    this.arc = d3.svg.arc()
+      .innerRadius(this.opts.radius * this.opts.innerRadius)
+      .outerRadius(this.opts.radius);
+
+    // Paths
+    this.path = this.$svg.selectAll('path');
+    this.update();
+
+    // Set events
+    this._setEvents();
+
+    return {
+      series: {
+        update: _.bind(this.update, this)
+      },
+      pie: {
+        path: this.path,
+        arc: this.arc
+      }
+    };
+  },
+
+  /**
+   * Update the pie.
+   */
+  update: function() {
+    var self = this;
+    var data = this.pie(this.data);
+    this.path = this.path.data(data);
+
+    this.path.enter().append('path')
+      .each(function(d, i) {
+        this._current = d; // store the initial values
+      })
+      .attr('class', 'pie-piece');
+
+    this.path.attr('fill', function(d) {return d.data.color;});
+    this.path.exit().remove();
+
+    var n = 0;
+    this.path.transition()
+      .duration(300)
+      .attrTween('d', arcTween)
+      .each(function() {++n;})
+      .each('end', function() {
+        if (!--n) { // when the transitions end
+          self.trigger('Pie/updated', []);
+        }
+      });
+
+    function arcTween(d) {
+      var i = d3.interpolate(this._current, d);
+      this._current = i(0);
+      return function(t) {
+        return self.arc(i(t));
+      };
+    }
+  },
+
+  /**
+   * Set pie events.
+   */
+  _setEvents: function() {
+    var self = this;
+
+    this.path.on('mouseover', function(d) {
+      self.path.exit();
+      self.path.style('opacity', self.opts.hoverFade);
+      d3.select(this).style('opacity', 1);
+      self.trigger('Pie-piece/mouseover', [d]);
+    });
+
+    this.$svg.on('mouseleave', function() {
+      self.path.style('opacity', 1);
+    });
+  }
+
+});
+/**
+ * Scale Module
+ * ------------
+ * Set X/Y scales from the given data.
+ *
+ */
+var p_scale = PClass.extend({
+
+  deps: [
+  ],
+
+  _d3Scales: {
+    'time': d3.time.scale.utc,
+    'ordinal': d3.scale.ordinal,
+    'linear': d3.scale.linear
+  },
+
+  _subscriptions: [{
+    /**
+     * Triggered when the serie gets updated with new data.
+     */
+    'Serie/update': function() {
+      this._updateScales();
+      this.trigger('Scale/updated', []);
+    }
+  }],
+
+  initialize: function() {
+    this._status = {
+      // Current scale
+      scale: {
+        x: null,
+        y: null
+      }
     };
 
-    return m;
-  }];
+    this._updateScales();
+    return {
+      scale: this._status.scale
+    };
+  },
+
+  _updateScales: function() {
+    this._setFlattenedData();
+    this._status.scale.x = this._updateScale('x');
+    this._status.scale.y = this._updateScale('y');
+  },
+
+  _updateScale: function(position) {
+    var opts = this.opts[position + 'axis'],
+        domain = this._getExtent(position, opts.fit),
+        range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
+
+    return this._d3Scales[opts.scale]()
+      .domain(domain)
+      .range(range);
+      // .nice(); // Extends the domain so that it starts and ends on nice round values.
+  },
+
+  _getExtent: function(position, fit) {
+    var extent = d3.extent(this._dataFlattened, function(d) {
+      return d[position];
+    });
+
+    if (fit) {return extent;}
+
+    // Positive scale
+    if (extent[0] >= 0) {
+      return [0, extent[1]];
+    }
+
+    // Negative-Positive scale
+    // In this case min an max are the same values.
+    var absX = Math.abs(extent[0]);
+    var absY = Math.abs(extent[1]);
+    var val = (absX > absY) ? absX : absY;
+    return [-val, val];
+  },
+
+  /**
+   * Get this.data flattened of all series.
+   * Handy when we need to get the extent.
+   */
+  _setFlattenedData: function() {
+    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
+      if (!d.values) {
+        return _.flatten(_.pluck(d.data, 'values'));
+      } else {
+        return d.values;
+      }
+    }));
+  }
+
+});
+var p_series = PClass.extend({
+
+  deps: [
+    'scale',
+  ],
+
+  _subscriptions: [{
+    // 'Data/update': function() {
+    //   this.trigger('Serie/update', []);
+    //   this.removeSeries();
+    //   this.updateSeries();
+    // }
+  }],
+
+  initialize: function() {
+    var self = this;
+
+    // Wrapper
+    this.$series = this.$svg.append('g').attr('class', 'series');
+
+    // before rendering the series, we need to group the bars ones.
+    // those are going to be rendered together so they can be
+    // stacked or grouped.
+    _.each(this.data, this._renderSerie, this);
+
+    return {
+      series: {
+        list: this.data,
+        update: _.bind(this.updateSerie, this),
+        add: _.bind(this.addSerie, this),
+        remove: _.bind(this.removeSerie, this),
+        removeAll: _.bind(this.removeSeries, this),
+        updateAll: _.bind(this.updateSeries, this),
+        toggle: _.bind(this.toggleSerie, this)
+      }
+    };
+  },
+
+  /**
+   * Add the supplied serie to data array and render it.
+   */
+  addSerie: function(serie) {
+    this.data.push(serie);
+    this.trigger('Serie/update', []);
+    this._renderSerie(serie);
+  },
+
+  /**
+   * Remove a serie from the id.
+   *
+   * @param  {Integer} id
+   */
+  removeSerie: function(id) {
+    var serie = _.findWhere(this.data, {id: id});
+
+    serie.path.remove();
+    this.data.splice(this.data.indexOf(serie), 1);
+    this.trigger('Serie/update', []);
+  },
+
+  /**
+   * Remove all series.
+   */
+  removeSeries: function() {
+    var self = this;
+
+    _.each(this.data, function(serie) {
+      serie.path.remove();
+    });
+    this.data.splice(0, this.data.length);
+  },
+
+
+  /**
+   * Render the given series.
+   */
+  _renderSerie: function(serie) {
+    // ID optional
+    serie.id = serie.id || parseInt(_.uniqueId());
+
+    switch(serie.type) {
+      case 'line': serie.path = this._renderLineSerie(serie); break;
+      case 'bar': serie.path = this._renderBarSerie(serie); break;
+      case 'area': serie.path = this._renderAreaSerie(serie); break;}
+  },
+
+  /**
+   * Update one serie. It should
+   */
+  updateSerie: function(id, values) {
+
+  },
+
+  /**
+   * Update all series. Removes all current series and add new different ones.
+   */
+  updateSeries: function(series) {
+    var self = this;
+
+    // Removeall + store + render
+    this.removeSeries();
+    _.each(series, function(serie) {
+      self.addSerie(serie);
+    });
+  },
+
+  /**
+   * Render line serie.
+   */
+  _renderLineSerie: function(serie) {
+    var line = this._getLineFunc(),
+        path = this.$series.append('path')
+          // .datum(serie.values)
+          .attr('id', 'serie-' + serie.id)
+          .attr('class', 'serie-line')
+          .attr('stroke', serie.color)
+          .attr('type', 'line')
+          .attr('active', 1);
+
+    path.datum(serie.values);
+    path.attr('d', line.interpolate(serie.interpolation));
+
+    d3.select('#serie-' + serie.id + '-dots').remove();
+
+    if (serie.dots) {
+      serie.dotsGroup = this.$svg.append('g')
+        .attr('id', 'serie-' + serie.id + '-dots')
+        .selectAll('.dot');
+
+      serie.dotsGroup = serie.dotsGroup.data(
+        serie.values.filter(function(d) {return d.y;}));
+
+      serie.dotsGroup.enter().append('circle')
+        .attr('class', 'dot');
+
+      serie.dotsGroup.exit().remove();
+
+      serie.dotsGroup
+        .attr('cx', line.x())
+        .attr('cy', line.y())
+        .attr('fill', serie.color)
+        .attr('stroke', serie.color)
+        .attr('stroke-width', '2px')
+        .attr('r', 3);
+
+    }
+    return path;
+  },
+
+  /**
+   * TODO return area path
+   */
+  _renderAreaSerie: function(serie) {
+    var self = this;
+
+    // Render the two lines
+    this._renderLineSerie({
+      id: serie.data[0].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[0].values
+    });
+
+    this._renderLineSerie({
+      id: serie.data[1].id,
+      color: !serie.displayLines ? 'transparent' : serie.color,
+      values: serie.data[1].values
+    });
+
+    // Draw an area between one and the other Y
+    var area = d3.svg.area()
+      .x(function(d) { return self.scale.x(d.x); })
+      .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
+      .y1(function(d) { return self.scale.y(d.y); });
+
+    return this.$series.append('path')
+        .datum(serie.data[0].values)
+        .attr('class', 'area')
+        .attr('d', area)
+        .attr('fill', serie.color || '#ccc')
+        .attr('opacity', serie.bgOpacity || 0.4);
+  },
+
+  _getLineFunc: function() {
+    var self = this;
+    return d3.svg.line()
+      .defined(function(d) {return !!d.y;})
+      .x(function(d) {return self.scale.x(d.x);})
+      .y(function(d) {return self.scale.y(d.y);});
+  },
+
+  /**
+   * Render bar serie. By default it renders bars stacked.
+   */
+  _renderBarSerie: function(serie) {
+    var self = this,
+        grouped = serie.grouped,
+        // TODO 12 not reasonable. how can we define it?
+        barWidth =  12/(!grouped ? serie.data.length : 1);
+
+    // Stacked data
+    if (grouped) {
+      var positiveStacks = {},
+          negativeStacks = {};
+
+      _.each(serie.data, function(serie) {
+        _.each(serie.values, function(d) {
+            var stacks = d.y >= 0 ? positiveStacks : negativeStacks;
+
+            d.y0 = (stacks[d.x] || 0);
+            d.y1 = d.y0 + d.y;
+            stacks[d.x] = d.y1;
+        });
+      });
+    // Data side by side
+    } else {
+      var xStack = {};
+      _.each(serie.data, function(serie) {
+        var stackSize = serie.values.length * barWidth;
+        _.each(serie.values, function(d) {
+            d.y0 = 0;
+            d.y1 = d.y;
+            d.w = (typeof(xStack[d.x]) === 'number' ? xStack[d.x] : -barWidth*1.5);
+            d.w += barWidth;
+            xStack[d.x] = d.w;
+        });
+      });
+    }
+
+    var bars = this.$series.selectAll('.serie-bar')
+        .data(serie.data)
+      .enter().append('g')
+        .attr('class', 'serie-bar')
+        .style('fill', function(d) {
+          return d.color;
+        });
+
+    var rects = bars.selectAll('rect')
+        .data(function(d) {return d.values;})
+      .enter().append('rect')
+        .attr('x', function(d) {
+          return self.scale.x(d.x) + (d.w || 0);
+        })
+        .attr('y', function(d) {
+          return self.scale.y(d.y0 < d.y1 ? d.y1 : d.y0);
+        })
+        .attr('width', barWidth)
+        .attr('height', function(d) {
+          return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
+        });
+
+      return bars;
+  },
+
+  /**
+   * Update bar serie.
+   */
+  _updateBarSerie: function(serie) {
+  },
+
+  /**
+   * Toggle a serie.
+   */
+  toggleSerie: function(id) {
+    var path = this.$svg.select('#serie-' + id);
+    if (path.empty()) {return;}
+    var active = Number(path.attr('active')) ? 0 : 1;
+    path.attr('active', active);
+
+    path.transition()
+      .duration(200)
+      .style('opacity', path.attr('active'));
+  }
+
+});
 /**
- * Add an trail to the supplied svg and trigger events
- * when the user moves it.
+ * Svg Module
+ * ----------
+ * Append a svg to the given opts.target.
+ *
  */
-var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
-  function(svg, trigger, height, width, xscale, margin) {
+var p_svg = PClass.extend({
 
-    var currentDate;
+  deps: [
+  ],
 
-    var trail = svg.append('g')
+  initialize: function() {
+    this.$svg = this.drawSvg();
+
+    return {
+      $svg: this.$svg
+    };
+  },
+
+  drawSvg: function() {
+    return d3.select(this.opts.target)
+      .append('svg')
+        .attr('width', this.opts.fullWidth)
+        .attr('height', this.opts.fullHeight)
+      .append('g')
+        .attr('class', 'g-main')
+        .attr('transform', this.opts.gmainTranslate);
+  }
+
+});
+var p_trail = PClass.extend({
+
+  deps: [
+    'scale',
+  ],
+
+  _subscriptions: [{
+    'Scale/updated': function() {
+      if (this._status.x) {
+        this._moveToValue(this._status.xvalue);
+      }
+    }
+  }],
+
+  initialize: function() {
+    var self = this;
+    if (!this.opts.trail.enabled) {return;}
+    this._status = {xvalue: null, x: null};
+    this._renderTrail();
+
+    setTimeout(function() {
+      self._moveToValue(self.opts.trail.initXValue(self.scale.x));
+    }, 0);
+  },
+
+  _renderTrail: function() {
+    var trail = this.$svg.append('g')
       .attr('class', 'trail');
 
-    var markerDef = svg.append('svg:marker')
+    // Append marker definition
+    var markerdef = this.$svg.append('svg:marker')
       .attr('id', 'trailArrow')
-      .attr('class', 'trail-arrow')
       .attr('viewBox','0 0 20 20')
       .attr('refX','15')
       .attr('refY','11')
@@ -1116,97 +1239,310 @@ var p_trail = ['svg', 'trigger', 'height', 'width', 'xscale', 'margin',
       .attr('markerHeight','11')
       .attr('orient','auto')
       .append('svg:path')
+        .attr('class', 'trail-arrow')
         .attr('d','M 0 0 L 20 10 L 0 20 z')
         .attr('fill', '#777');
 
-    var trailLine = trail.append('svg:line')
+    // Append trail line
+    this.trailLine = trail.append('svg:line')
       .attr('class', 'trail-line')
-      .attr('x1', 0)
-      .attr('x2', 0)
-      .attr('y1', -margin.top + 10) // 10px padding
-      .attr('y2', height)
-      .attr('marker-start', 'url(#trailArrow)');
+        .attr('x1', 0)
+        .attr('x2', 0)
+        .attr('y1', 0)
+        .attr('y2', this.opts.height)
+        .attr('marker-start', 'url(#trailArrow)');
 
-    var brush = d3.svg.brush()
-      .x(xscale)
+    this.brush = d3.svg.brush()
+      .x(this.scale.x)
       .extent([0, 0]);
 
-    var slider = svg.append('g')
-      .attr('transform', h_getTranslate(0,0))
-      .attr('class', 'trail-slider')
-      .call(brush);
+    this.bisector = d3.bisector(function(d) {
+      return d.x;
+    }).left;
 
-    slider.select('.background')
-      .attr('height', height)
-      .attr('width', width)
+    // Append slider zone
+    this.sliderZone = this.$svg.append('g')
+      .attr('transform', h_getTranslate(0,0))
+      .attr('class', 'trail-slider-zone')
+      .call(this.brush);
+
+    this.sliderZone.select('.background')
+      .attr('height', this.opts.height)
+      .attr('width', this.opts.width)
       .style('cursor', 'pointer');
 
-    svg.selectAll('.extent,.resize').remove();
+    this.$svg.selectAll('.extent,.resize').remove();
+    this._setEvents();
+  },
 
-    brush.on('brush', onBrush);
+  _setEvents: function() {
+    var self = this;
+    this.brush.on('brush', function() {
+      self._onBrush(this);
+    });
+  },
 
+  /**
+   * Triggered when the user moves the trail.
+   * @param  {Event} event d3 brush event
+   */
+  _onBrush: function(event) {
+    var x;
+    if (d3.event.sourceEvent) {
+      x = this.scale.x.invert(d3.mouse(event)[0]);
+    } else {
+      x = brush.extent()[0];
+    }
+    this._moveToValue(x);
+  },
 
-    // quickfix: add to event loop so its call event is set.
-    setTimeout(function() {
-      slider
-        .call(brush.extent([new Date(), new Date()]))
-        .call(brush.event);
-    }, 0);
+  /**
+   * Moves the trail to supplied xvalue.
+   */
+  _moveToValue: function(xvalue) {
+    var xdomain = this.scale.x.domain(),
+        isDate = !!xvalue.getMonth;
 
-    /**
-     * Triggered when the user mouseover or clicks on
-     * the slider brush.
-     * TODO: => support different date units
-     */
-    function onBrush() {
-      var xdomain = xscale.domain();
-      var date;
-
-      if (d3.event.sourceEvent) {
-        date = xscale.invert(d3.mouse(this)[0]);
-      } else {
-        date = brush.extent()[0];
+    // if the seleted x is outside the domain,
+    // select range ones.
+    if (isDate) {
+      if (Date.parse(xvalue) > Date.parse(xdomain[1])) {
+        xvalue = xdomain[1];
+      } else if (Date.parse(xvalue) < Date.parse(xdomain[0])) {
+        xvalue = xdomain[0];
       }
-
-      // If the selected date is out of the domain,
-      // select the nearest domain date.
-      if (Date.parse(date) > Date.parse(xdomain[1])) {
-        date = xdomain[1];
-      } else if (Date.parse(date) < Date.parse(xdomain[0])) {
-        date = xdomain[0];
+    } else {
+      if (xvalue > xdomain[1]) {
+        xvalue = xdomain[1];
+      } else if (xvalue < xdomain[0]) {
+        xvalue = xdomain[0];
       }
-
-      if (date.getUTCMinutes() >= 30) {
-        date.setUTCHours(date.getUTCHours()+1);
-      }
-
-      date.setUTCMinutes(0, 0); // steps to minutes
-      date = Date.parse(date);
-
-      if (currentDate === date) {
-        return;
-      }
-
-      currentDate = date;
-      var xtrail = Math.round(xscale(date)) - 1;
-      moveTrail(xtrail);
-      trigger('moveTrail', [date]);
     }
 
-    /**
-     * Move the trail to the given x position.
-     * 
-     * @param  {integer} x
-     */
-    function moveTrail(x) {
-      trailLine
-        .attr('x1', x)
-        .attr('x2', x);
+    // parse data (this way the user can filter by specific step)
+    // eg. months, years, minutes
+    xvalue = this.opts.trail.parseStep(xvalue);
+    var x = Math.round(this.scale.x(xvalue) -1);
+    if (x === this._status.x) {return;} // Return if it's already selected
+    var data = this._getDataFromValue(xvalue);
+    this._status.x = x;
+    this._status.xvalue = xvalue;
+    this._moveTrail(x);
+    this.trigger('Trail/moved', [data, xvalue]);
+  },
+
+  _getDataFromValue: function(xvalue) {
+    var self = this;
+
+    return _.map(this.data, function(serie) {
+      if (serie.type === 'line') {
+        if (!serie.values) {return;}
+        return _.extend(serie.values[self.bisector(serie.values, xvalue)],
+          {id: serie.id});
+      } else if (serie.type === 'bar') {
+        return _.map(serie.data, function(d) {
+          return _.extend(d.values[self.bisector(d.values, xvalue)],
+            {id: d.id});
+        });
+      }
+    });
+  },
+
+  /**
+   * Move the trail to the given x position.
+   *
+   * @param  {integer} x
+   */
+  _moveTrail: function(x) {
+    this.trailLine.attr('x1', x).attr('x2', x);
+  }
+
+});
+Charicharts.Chart = CClass.extend({
+
+  modules: [
+    p_svg,
+    p_scale,
+    p_axes,
+    p_series,
+    p_trail
+  ],
+
+  /**
+   * What is going to be returned to the chart instance.
+   * @return {Object} Chart properties
+   */
+  getInstanceProperties: function() {
+    return _.pick(this.$scope, 'series');
+  },
+
+  defaults: {
+    margin: '0 0 0 0',
+    trail: {
+      enabled: false,
+      parseStep: function(xvalue) {
+        return xvalue;
+      },
+      initXValue: function(xscale) {
+        return xscale.domain()[1];
+      }
+    },
+    // Xaxis Options.
+    xaxis: {
+      scale: 'time',
+      fit: true,
+      ticks: false,
+      top: {
+        enabled: false,
+        label: false,
+        tickFormat: function(d) {
+          return d;
+        }
+      },
+      bottom: {
+        enabled: true,
+        label: false,
+        tickFormat: function(d) {
+          return d;
+        }
+      }
+    },
+    // Yaxis Options.
+    yaxis: {
+      scale: 'linear',
+      fit: false,
+      fullGrid: true,
+      textMarginTop: 0,
+      ticks: false,
+      left: {
+        enabled: true,
+        label: false,
+        tickFormat: function(d) {
+          return d;
+        }
+      },
+      right: {
+        enabled: false,
+        label: false,
+        tickFormat: function(d) {
+          return d;
+        }
+      }
     }
-}];
+  },
+
+  parseOptions: function(options) {
+    var o = _.extend({}, this.defaults, options);
+
+    // TODO => Use deep extend to clone defaults and supplied options.
+    o.trail = _.extend({}, this.defaults.trail, o.trail);
+    o.xaxis = _.extend({}, this.defaults.xaxis, o.xaxis);
+    o.xaxis.bottom = _.extend({}, this.defaults.xaxis.bottom, o.xaxis.bottom);
+    o.xaxis.top = _.extend({}, this.defaults.xaxis.top, o.xaxis.top);
+    o.yaxis = _.extend({}, this.defaults.yaxis, o.yaxis);
+    o.yaxis.left = _.extend({}, this.defaults.yaxis.left, o.yaxis.left);
+    o.yaxis.right = _.extend({}, this.defaults.yaxis.right, o.yaxis.right);
+
+    o.margin = _.object(['top', 'right', 'bottom', 'left'],
+      o.margin.split(' ').map(Number));
+
+    /**
+     * Axis labels padding.
+     * TODO: => Do this better.
+     */
+    if (o.yaxis.left.label || o.yaxis.right.label) {
+      o.margin.top += Math.abs(o.yaxis.textMarginTop - 30);
+    }
+
+    o.fullWidth = o.target.offsetWidth;
+    o.fullHeight = o.target.offsetHeight;
+    o.width = o.fullWidth - o.margin.left - o.margin.right;
+    o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+    o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
+
+    return o;
+  }
+
+});
+Charicharts.PercentageBar = CClass.extend({
+
+  modules: [
+    p_svg,
+    p_percentage_bar
+  ],
+
+  getInstanceProperties: function() {
+    return _.pick(this.$scope, 'bar');
+  },
+
+  defaults: {
+    margin: '0 0 0 0',
+    orientation: 'horizontal',
+    hoverFade: 1,
+    gridTicks: 0
+  },
+
+  parseOptions: function(options) {
+    var o = _.extend({}, this.defaults, options);
+
+    o.margin = _.object(['top', 'right', 'bottom', 'left'],
+      o.margin.split(' ').map(Number));
+
+    var responsive = !o.margin.left && !o.margin.right;
+
+    o.fullWidth = responsive ? '100%' : o.target.offsetWidth;
+    o.fullHeight = o.target.offsetHeight;
+
+    if (!responsive) {
+      o.width = o.fullWidth - o.margin.left - o.margin.right;
+    }
+
+    o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+    o.gmainTranslate = h_getTranslate(o.margin.left, o.margin.top);
+    return o;
+  }
+
+});
+Charicharts.Pie = CClass.extend({
+
+  modules: [
+    p_svg,
+    p_pie,
+    p_pie_inner_arrow
+  ],
+
+  getInstanceProperties: function() {
+    return _.pick(this.$scope, 'series', 'innerArrow');
+  },
+
+  defaults: {
+    margin: '0 0 0 0',
+    innerRadius: 0.6,
+    hoverFade: 1,
+    innerArrow: false,
+    innerArrowSize: 0.5
+  },
+
+  parseOptions: function(options) {
+    var o = _.extend({}, this.defaults, options);
+    o.margin = _.object(['top', 'right', 'bottom', 'left'],
+      o.margin.split(' ').map(Number));
+    o.fullWidth = o.target.offsetWidth;
+    o.fullHeight = o.target.offsetHeight;
+    o.width = o.fullWidth - o.margin.left - o.margin.right;
+    o.height = o.fullHeight - o.margin.top - o.margin.bottom;
+    o.gmainTranslate = h_getTranslate(o.fullWidth/2, o.fullHeight/2);
+    o.radius = Math.min(o.fullWidth, o.fullHeight) / 2;
+    return o;
+  }
+
+});
 /* jshint ignore:start */
-  if (typeof define === "function" && define.amd) define(Charicharts);
-  else if (typeof module === "object" && module.exports) module.exports = Charicharts;
+  if (typeof define === 'function' && define.amd) {
+    define(Charicharts);
+  } else if (typeof module === 'object' && module.exports) {
+    module.exports = Charicharts;
+  }
   this.Charicharts = Charicharts;
 }.call(window);
 /* jshint ignore:end */

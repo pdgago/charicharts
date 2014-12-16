@@ -1,97 +1,194 @@
-var p_axes = ['svg', 'xscale','yscale', 'xaxis', 'yaxis', 'width', 'height', 'fullWidth', 'margin',
-  function(svg, xscale, yscale, xaxis, yaxis, width, height, fullWidth, margin) {
-    'use strict';
+/**
+ * Axes Module
+ * -----------
+ * Add x/y axis.
+ *
+ */
+var p_axes = PClass.extend({
 
-    var getX = function(orient) {
-      var opts = orient === 'bottom' ? xaxis.bottom : xaxis.top;
+  deps: [
+    'scale'
+  ],
 
-      var axis = d3.svg.axis()
-        .scale(xscale)
-        .orient(orient)
-        .tickFormat(opts.tickFormat);
+  _subscriptions: [{
+    /**
+     * Update the axes when the scales have changed.
+     */
+    'Scale/updated': function() {
+      _.each(this._status.axes, this._updateAxis, this);
+    }
+  }],
 
-      // Apply ticks [] if enabled
-      xaxis.ticks && axis.ticks.apply(axis, xaxis.ticks);
-
-      // Draw axis
-      svg.append('g')
-        .attr('class', 'xaxis ' + orient)
-        .attr('transform', h_getTranslate(0, orient === 'bottom' ? height : 0))
-        .call(axis)
-        .selectAll('text')
-          .style('text-anchor', 'middle');
-
-      svg.select('.xaxis .domain')
-        .attr('d', 'M{0},0V0H{1}V0'.format(-margin.left, fullWidth));
-
-      // Label
-      if (opts.label) {
-        svg.select('.xaxis').append('text')
-          .attr('class', 'label')
-          .attr('transform', h_getTranslate(0, 0))
-          .attr('y', margin.bottom - 7)
-          .attr('x', 0 -margin.left)
-          .attr('text-anchor', 'start')
-          .text(opts.label);
-      }
+  initialize: function() {
+    this._status = {
+      axes: this._initAxesModel()
     };
 
-    var getY = function(orient) {
-      var opts = orient === 'left' ? yaxis.left : yaxis.right;
+    _.each(this._status.axes, this._renderAxis, this);
+  },
 
-      var axis = d3.svg.axis()
-        .scale(yscale)
-        .orient('right')
-        .tickFormat(opts.tickFormat);
+  _renderAxis: function(model, orient) {
+    switch(orient) {
+      case 'bottom': this._renderBottom(model); break;
+      case 'left': this._renderLeft(model); break;
+      case 'right': this._renderRight(model); break;}
+    this._afterAxisChanges();
+  },
 
-      // Apply ticks [] if enabled
-      yaxis.ticks && axis.ticks.apply(axis, yaxis.ticks);
+  _renderBottom: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.scale.x)
+      .orient('bottom')
+      .tickSize(this.opts.height)
+      .tickFormat(this.opts.xaxis.bottom.tickFormat);
 
-      // Draw axis
-      svg.append('g')
-        .attr('class', 'yaxis ' + orient)
-        .attr('transform', h_getTranslate(orient === 'left' ? 0 : width + margin.right, 0))
-        .call(axis)
-        .selectAll('text')
-          .attr('x', orient === 'left' ? -margin.left : 0)
-          .attr('y', yaxis.textMarginTop)
-          .style('text-anchor', orient === 'left' ? yaxis.textAnchor : 'end');
+    model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks || []);
 
-      // Grid
-      svg.select('.yaxis')
-        .selectAll('line')
-          .attr('x1', yaxis.fullGrid ? -margin.left : 0)
-          .attr('x2', yaxis.fullGrid ? width + margin.right : width)
-          // add zeroline class
-          .each(function(d) {
-            if (d !== 0) {return;}
-            d3.select(this).attr('class', 'zeroline');
-          });
+    model.el = this.$svg.append('g')
+      .attr('class', 'xaxis bottom')
+      .call(model.axis);
 
-      // Label
-      if (opts.label) {
-        svg.select('.yaxis').append('text')
-          .attr('class', 'label')
-          .attr('transform', h_getTranslate(0, 0))
-          .attr('y', yaxis.textMarginTop - 20)
-          .attr('x', orient === 'left' ? -margin.left : width + margin.right)
-          .attr('text-anchor', orient === 'left' ? 'start' : 'end')
-          .text(opts.label);
-      }
+    model.el.append('rect')
+      .attr('class', 'baseline')
+      .attr('y', this.opts.height)
+      .attr('x', -this.opts.margin.left)
+      .attr('height', 1)
+      .attr('width', this.opts.fullWidth);
 
-      svg.select('.yaxis .domain').remove();
+    this._renderXLabel('bottom');
+  },
+
+  _renderLeft: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.scale.y)
+      .orient('left')
+      .tickSize(-this.opts.width)
+      .tickPadding(this.opts.margin.left)
+      .tickFormat(this.opts.yaxis.left.tickFormat);
+
+    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+
+    model.el = this.$svg.append('g')
+      .attr('class', 'yaxis left')
+      .call(model.axis);
+
+    this._renderYLabel('left');
+  },
+
+  _renderRight: function(model) {
+    model.axis = d3.svg.axis()
+      .scale(this.scale.y)
+      .orient('right')
+      .tickSize(this.opts.width)
+      .tickPadding(0) // defaults to 3
+      .tickFormat(this.opts.yaxis.right.tickFormat);
+
+    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
+
+    model.el = this.$svg.append('g')
+      .attr('class', 'yaxis right')
+      .call(model.axis);
+
+    this._renderYLabel('right');
+  },
+
+  /**
+   * Update given axis when the scales changes.
+   */
+  _updateAxis: function(model, orient) {
+    var scale = (orient === 'top' || orient === 'bottom') ?
+      this.scale.x : this.scale.y;
+
+    model.el.transition()
+      .duration(500)
+      .ease('linear')
+      .call(model.axis.scale(scale));
+
+    this._afterAxisChanges(model);
+  },
+
+  /**
+   * Set axes object in status model.
+   */
+  _initAxesModel: function() {
+    var self = this,
+        axes = {};
+
+    var axesEnabled = {
+      left: this.opts.yaxis.left.enabled,
+      right: this.opts.yaxis.right.enabled,
+      top: this.opts.xaxis.top.enabled,
+      bottom: this.opts.xaxis.bottom.enabled
     };
 
-    return {
-      drawX: function() {
-        xaxis.bottom.enabled && getX('bottom');
-        xaxis.top.enabled && getX('top');
-      },
+    _.each(axesEnabled, function(enabled, orient) {
+      if (!enabled) {return;}
+      axes[orient] = {};
+    });
 
-      drawY: function() {
-        yaxis.left.enabled && getY('left');
-        yaxis.right.enabled && getY('right');
-      }
-    };
+    return axes;
+  },
 
-}];
+  _renderXLabel: function(orient) {
+    if (!this.opts.xaxis[orient].label) {return;}
+    this.$svg.select('.xaxis.' + orient).append('text')
+      .attr('class', 'label')
+      .attr('transform', h_getTranslate(-this.opts.margin.left, this.opts.height))
+      .attr('y', 16)
+      .attr('x', 0)
+      .attr('text-anchor', 'start')
+      .text(this.opts.xaxis[orient].label);
+  },
+
+  _renderYLabel: function(orient) {
+    if (!this.opts.yaxis[orient].label) {return;}
+
+    this.$svg.select('.yaxis.' + orient).append('text')
+      .attr('class', 'label')
+      .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
+        this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop))
+      .attr('y', -20)
+      .attr('x', 0)
+      .attr('text-anchor', orient === 'left' ? 'start' : 'end')
+      .text(this.opts.yaxis[orient].label);
+  },
+
+  /**
+   * Stuff to do when the axes have been
+   * rendered or updated.
+   */
+  _afterAxisChanges: function(model) {
+    // remove domain
+    this.$svg.select('.yaxis .domain').remove();
+    this.$svg.select('.xaxis .domain').remove();
+
+    this.$svg.selectAll('.yaxis.left .tick text')
+      .style('text-anchor', 'start', 'important');
+
+    this.$svg.selectAll('.yaxis.right .tick text')
+      .style('text-anchor', 'end', 'important')
+      .attr('transform', h_getTranslate(this.opts.margin.right, this.opts.yaxis.textMarginTop));
+
+    if (this.opts.yaxis.textMarginTop) {
+      this.$svg.selectAll('.yaxis.left .tick text')
+        .attr('transform', h_getTranslate(0, this.opts.yaxis.textMarginTop));
+    }
+
+    this.$svg.selectAll('.xaxis.bottom .tick text')
+      .attr('transform', h_getTranslate(0,4));
+
+    // yaxis full grid
+    if (this.opts.yaxis.fullGrid) {
+      this.$svg.selectAll('.yaxis line')
+        .attr('transform', h_getTranslate(+this.opts.margin.left , 0))
+        .attr('x1', -this.opts.margin.left * 2);
+    }
+
+    // add zeroline
+    this.$svg.selectAll('.yaxis line').each(function(d,i) {
+      if (d !== 0) {return;}
+      d3.select(this).attr('class', 'zeroline');
+    });
+  },
+
+});

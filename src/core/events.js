@@ -1,11 +1,12 @@
 /**
- * Creates a events module for the supplied context.
- * 
- * @param {Context} context
+ * Creates a events module.
  */
-Charicharts.Events = function(context) {
+var charichartsEvents = function() {
+
+  var events = {};
+
   // Check for 'c_' cache for unit testing
-  var cache = context.c_ || {};
+  var cache = events.c_ || {};
 
   /**
    * Publish some data on a named topic.
@@ -14,13 +15,13 @@ Charicharts.Events = function(context) {
    * @param  {Array}  args  The data to publish. Each array item is converted
    *                        into an ordered arguments on the subscribed functions. 
    */
-  var trigger = function(topic, args) {
+  events.trigger = function trigger(topic, args) {
     var subs = cache[topic];
     var len = subs ? subs.length : 0;
 
     //can change loop or reverse array if the order matters
     while (len--) {
-      subs[len].apply(context, args || []);
+      subs[len].apply(events, args || []);
     }
   };
 
@@ -32,7 +33,7 @@ Charicharts.Events = function(context) {
    *                             subscribed channel, the callback will be called with the
    *                             published array as ordered arguments.
    */
-  var on = function(topic, callback) {
+  events.on = function on(topic, callback) {
     cache[topic] || (cache[topic] = []);
     cache[topic].push(callback);
     return [topic, callback]; // Array
@@ -44,7 +45,7 @@ Charicharts.Events = function(context) {
    * @param  {Array}    handle   The return value from a subscribe call.
    * @param  {Function} callback [description]
    */
-  var unbind = function(handle, callback) {
+  events.unbind = function unbind(handle, callback) {
     var subs = cache[callback ? handle : handle[0]];
     var len = subs ? subs.length : 0;
 
@@ -57,9 +58,5 @@ Charicharts.Events = function(context) {
     }
   };
 
-  return {
-    trigger: trigger,
-    on: on,
-    unbind: unbind
-  };
+  return events;
 };

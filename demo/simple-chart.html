@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body {
+    width: 800px;
+    height: 500px;
+    font-family: 'Helvetica', sans-serif;
+    font-size: 12px;
+  }
+  svg,
+  body {
+    background: #262626;
+  }
+  text {
+    fill: #999;
+  }
+  .serie-line {
+    fill: transparent;
+    stroke-width: 2px;
+  }
+  .dot {
+    fill: #262626;
+  }
+  .trail-line {
+    stroke: white;
+    shape-rendering: crispEdges;
+  }
+  .yaxis line,
+  .xaxis line {
+    stroke: #333;
+    shape-rendering: crispEdges;
+  }
+</style>
+<body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script src="charicharts.js"></script>
+<script>
+
+var color = d3.scale.category10()
+    random = d3.random.normal(0, 1),
+    data1 = getData(23)
+    data2 = getData(23);
+
+setNull(data1, 4, 6, 14, 15, 16);
+setNull(data2, 0, 1, 5, 7);
+
+var data = [{
+  id: 1004,
+  type: 'line',
+  values: data1,
+  interpolation: 'basis',
+  color: '#555'
+},{
+  id: 1005,
+  type: 'line',
+  values: data2,
+  dots: true,
+  interpolation: 'step',
+  color: color(0)
+}];
+
+var options = {
+  target: d3.select('body').node(),
+  margin: '40 60 25 60',
+  trail: {
+    enabled: true,
+    parseStep: function(x) {
+      return Math.round(x);
+    }
+  },
+  xaxis: {
+    scale: 'linear',
+    fit: true,
+  },
+  yaxis: {
+    fit: true,
+    textMarginTop: -10,
+    right: {
+      enabled: true
+    }
+  }
+};
+
+var chart = new Charicharts.Chart(options, data);
+
+chart.on('Trail/moved', function(data, x) {
+  // console.log(data, x);
+});
+
+// setInterval(function() {
+//   update(data1);
+//   update(data2);
+// }, 500);
+
+setTimeout(function() {
+  var data = [{
+    id: 1004,
+    type: 'line',
+    values: getData(23),
+    interpolation: 'basis',
+    color: '#333'
+  },{
+    id: 1005,
+    type: 'line',
+    values: getData(23),
+    dots: true,
+    interpolation: 'step',
+    color: color(0)
+  }];
+
+  console.log(chart);
+  chart.series.updateAll(data);
+
+  // chart.series.removeAll()
+  // chart.series[0].update(values)
+  // chart.series[0].remove()
+}, 1000);
+
+function update(data) {
+  var toNull = _.random(1, 10) <= 3;
+  data.push(randomItem(data[data.length-1].x + 1, toNull));
+  data.shift();
+  chart.series.update();
+}
+
+function randomItem(i, toNull) {
+  return {
+    x: i,
+    y: toNull ?  Math.abs(random()) : Math.abs(random()),
+  };
+}
+
+function getData(n) {
+  return d3.range(n).map(function(x) {
+    return randomItem(x);
+  });
+}
+
+function setNull(arr) {
+  for (var i = 1; i < arguments.length; i++) {
+    arr[arguments[i]].y = null
+  };
+}
+
+</script>
