@@ -1125,8 +1125,7 @@ var p_series = PClass.extend({
     });
 
     var area = d3.svg.area()
-      .x(function(d) { return self.scale.x(d.x); })
-      .interpolate('linear');
+      .x(function(d) { return self.scale.x(d.x); });
 
     if (series.stacking) {
       var stack = d3.layout.stack()
@@ -1152,13 +1151,12 @@ var p_series = PClass.extend({
 
     this.trigger('Scale/update', [{ y: extent }]);
 
-    this.$svg.selectAll('g.areas')
+    this.$series.selectAll('g')
+        .attr('class', 'area')
         .data(data)
       .enter()
-        .append('g')
-        .attr('class', 'area')
         .append('path')
-        .attr('d', function(d) { return area(d.values); })
+        .attr('d', function(d) { return area.interpolate(d.interpolation)(d.values); })
         .style('fill', function(d) { return d.color; })
         .style('opacity', function(d) { return d.areaOpacity; });
   },
