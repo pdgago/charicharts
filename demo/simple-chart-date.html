@@ -50,8 +50,8 @@ var color = d3.scale.category10(),
     data3 = getData(23),
     data4 = getData(23);
 
-setNull(data1, 4, 6, 14, 15, 16);
-setNull(data2, 0, 1, 5, 7);
+// setNull(data1, 4, 6, 14, 15, 16);
+// setNull(data2, 0, 1, 5, 7);
 
 var data = [
 // {
@@ -72,11 +72,18 @@ var data = [
 {
   type: 'bar',
   grouped: false, // by default bars are stacked, if not grouped
-  data: [{
-    id: 1006,
-    color: color(1),
-    values: data3
-  },{
+  data: [
+  // {
+  //   id: 1002,
+  //   color: color(3),
+  //   values: data2
+  // },
+  // {
+  //   id: 1006,
+  //   color: color(1),
+  //   values: data3
+  // },
+  {
     id: 1007,
     color: color(2),
     values: data4
