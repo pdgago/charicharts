@@ -117,7 +117,7 @@ var p_series = PClass.extend({
           .attr('class', 'serie-line')
           .attr('stroke', serie.color)
           .attr('type', 'line')
-          .style('opacity', serie.opacity || null)
+          .style('opacity', serie.opacity)
           .attr('active', 1);
 
     path.datum(serie.values);
@@ -196,6 +196,10 @@ var p_series = PClass.extend({
     var self = this,
         data = series.data;
 
+    // ID optional
+    _.each(series.data, function(serie) {
+      serie.id = serie.id || parseInt(_.uniqueId());
+    });
 
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); })
@@ -205,21 +209,11 @@ var p_series = PClass.extend({
       var stack = d3.layout.stack()
         .values(function(d) { return d.values; });
 
-      data = stack(_.map(series.data, function(serie, i) {
-        // ID optional
-        serie.id = serie.id || parseInt(_.uniqueId());
-
-        return {
-          name: serie.id,
-          color: serie.color,
-          values: serie.values
-        };
-      }));
+      data = stack(series.data);
 
       area
         .y0(function(d) { return self.scale.y(d.y0); })
         .y1(function(d) { return self.scale.y(d.y + d.y0); });
-        console.log(data);
     } else {
       _.each(series.data, this._renderLineSerie, this);
 
@@ -243,7 +237,7 @@ var p_series = PClass.extend({
         .append('path')
         .attr('d', function(d) { return area(d.values); })
         .style('fill', function(d) { return d.color; })
-        .style('opacity', function(d) { return d.opacity || 0.7; });
+        .style('opacity', function(d) { return d.areaOpacity; });
   },
 
   _renderConstantSerie: function(serie) {
