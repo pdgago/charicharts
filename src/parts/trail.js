@@ -27,15 +27,17 @@ var p_trail = PClass.extend({
     var trail = this.$svg.append('g')
       .attr('class', 'trail');
 
+    var markerHeight = 11;
+
     // Append marker definition
     var markerdef = this.$svg.append('svg:marker')
       .attr('id', 'trailArrow')
       .attr('viewBox','0 0 20 20')
-      .attr('refX','15')
-      .attr('refY','11')
+      .attr('refX','20')
+      .attr('refY',markerHeight)
       .attr('markerUnits','strokeWidth')
       .attr('markerWidth','15')
-      .attr('markerHeight','11')
+      .attr('markerHeight',markerHeight)
       .attr('orient','auto')
       .append('svg:path')
         .attr('class', 'trail-arrow')
@@ -61,12 +63,12 @@ var p_trail = PClass.extend({
 
     // Append slider zone
     this.sliderZone = this.$svg.append('g')
-      .attr('transform', h_getTranslate(0,0))
+      .attr('transform', h_getTranslate(0,-markerHeight))
       .attr('class', 'trail-slider-zone')
       .call(this.brush);
 
     this.sliderZone.select('.background')
-      .attr('height', this.opts.height)
+      .attr('height', this.opts.fullHeight)
       .attr('width', this.opts.width)
       .style('cursor', 'pointer');
 
@@ -121,7 +123,7 @@ var p_trail = PClass.extend({
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
     xvalue = this.opts.trail.parseStep(xvalue);
-    var x = Math.round(this.scale.x(xvalue) -1);
+    var x = Math.round(this.scale.x(xvalue));
     if (x === this._status.x) {return;} // Return if it's already selected
     var data = this._getDataFromValue(xvalue);
     this._status.x = x;
