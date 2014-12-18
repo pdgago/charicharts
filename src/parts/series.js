@@ -255,7 +255,7 @@ var p_series = PClass.extend({
 
     path = group.append('svg:line')
       .attr('id', 'serie-' + serie.id)
-      .attr('class', 'serie-line')
+      .attr('class', 'serie-constant')
       .attr('stroke', serie.color)
       .style('stroke-width', (serie.strokeWidth || 1) + 'px')
       .attr('type', 'line')
