@@ -190,7 +190,6 @@ var p_series = PClass.extend({
 
   /**
    * TODO return area path
-   * TODO Stacking false
    */
   _renderStackedAreaSerie: function(series) {
     var self = this,
