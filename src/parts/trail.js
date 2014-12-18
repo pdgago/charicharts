@@ -138,7 +138,7 @@ var p_trail = PClass.extend({
         if (!serie.values) {return;}
         return _.extend(serie.values[self.bisector(serie.values, xvalue)],
           {id: serie.id});
-      } else if (serie.type === 'bar') {
+      } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
             {id: d.id});

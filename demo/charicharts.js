@@ -1177,7 +1177,7 @@ var p_series = PClass.extend({
 
     path = group.append('svg:line')
       .attr('id', 'serie-' + serie.id)
-      .attr('class', 'serie-line')
+      .attr('class', 'serie-constant')
       .attr('stroke', serie.color)
       .style('stroke-width', (serie.strokeWidth || 1) + 'px')
       .attr('type', 'line')
@@ -1498,7 +1498,7 @@ var p_trail = PClass.extend({
         if (!serie.values) {return;}
         return _.extend(serie.values[self.bisector(serie.values, xvalue)],
           {id: serie.id});
-      } else if (serie.type === 'bar') {
+      } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
             {id: d.id});
