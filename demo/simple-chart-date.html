@@ -95,36 +95,36 @@ var options = {
   target: d3.select('body').node(),
   margin: '40 60 25 60',
   trail: {
-    enabled: true,
-    parseStep: function(date) {
-      date.setMinutes(0, 0, 0);
-      return date;
-    },
-    initXValue: function() {
-      return new Date(); // Initial position to current hour
-    }
+    // enabled: true,
+    // parseStep: function(date) {
+    //   date.setMinutes(0, 0, 0);
+    //   return date;
+    // },
+    // initXValue: function() {
+    //   return new Date(); // Initial position to current hour
+    // }
   },
   xaxis: {
-    scale: 'time',
-    fit: true,
-    bottom: {
-      label: 'Hours',
-      tickFormat: function(d) {
-        return d.getHours();
-      }
-    }
+    // scale: 'time',
+    // fit: true,
+    // bottom: {
+    //   label: 'Hours',
+    //   tickFormat: function(d) {
+    //     return d.getHours();
+    //   }
+    // }
   },
   yaxis: {
-    fit: false,
+    // fit: false,
     fullGrid: true,
     textMarginTop: -10,
     left: {
       label: 'Dollars'
     },
-    right: {
-      enabled: true,
-      label: 'Space'
-    }
+    // right: {
+    //   enabled: true,
+    //   label: 'Space'
+    // }
   }
 };
 

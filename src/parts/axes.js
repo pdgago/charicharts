@@ -23,7 +23,6 @@ var p_axes = PClass.extend({
     this._status = {
       axes: this._initAxesModel()
     };
-
     _.each(this._status.axes, this._renderAxis, this);
   },
 
@@ -36,18 +35,27 @@ var p_axes = PClass.extend({
   },
 
   _renderBottom: function(model) {
+    // Tipo de step viene definido por el minimo rango de las series
+    // intervalo es el que cambia segun el ancho del svg
+
+    // Comprobar que el rango es de dates.
+    var tickFormat = this.opts.xaxis.bottom.tickFormat; // devolver formato de date enmess, o lo que sea
+    var ticks = this.opts.xaxis.ticks || []; // va a ser depende del width del svg, del tamaño del tick, y del rango
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
-      .tickFormat(this.opts.xaxis.bottom.tickFormat);
+      .tickFormat(tickFormat);
+    model.axis.ticks.apply(model.axis, ticks);
 
-    model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks || []);
-
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'xaxis bottom')
       .call(model.axis);
 
+    // Append baseline
     model.el.append('rect')
       .attr('class', 'baseline')
       .attr('y', this.opts.height)
@@ -59,15 +67,19 @@ var p_axes = PClass.extend({
   },
 
   _renderLeft: function(model) {
+    var tickFormat = this.opts.yaxis.left.tickFormat;
+    var ticks = this.opts.yaxis.ticks || [];
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
-      .tickFormat(this.opts.yaxis.left.tickFormat);
+      .tickFormat(tickFormat);
+    model.axis.ticks.apply(model.axis, ticks);
 
-    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
-
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis left')
       .call(model.axis);
@@ -76,15 +88,19 @@ var p_axes = PClass.extend({
   },
 
   _renderRight: function(model) {
+    var tickFormat = this.opts.yaxis.right.tickFormat;
+    var ticks = this.opts.yaxis.ticks || [];
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
-      .tickFormat(this.opts.yaxis.right.tickFormat);
+      .tickFormat();
+    model.axis.ticks.apply(model.axis, ticks);
 
-    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
-
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis right')
       .call(model.axis);
@@ -190,6 +206,12 @@ var p_axes = PClass.extend({
       if (d !== 0) {return;}
       d3.select(this).attr('class', 'zeroline');
     });
-  },
+  }
 
 });
+
+  // var tickCharacters: {
+  //   year: 4,
+  //   month: 2,
+  //   hour: 2
+  // };

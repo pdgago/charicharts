@@ -39,3 +39,13 @@ function h_getAngle(x, y) {
 
   return angle;
 }
+
+/**
+ * Get diff ms from a date extent.
+ * 
+ * @param  {Array}   extent Date extent array
+ * @return {Integer} Returns difference in millisecons
+ */
+function h_getDateExtentDiff(extent) {
+  return extent[1].getTime() - extent[0].getTime();
+}
