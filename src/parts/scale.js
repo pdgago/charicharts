@@ -114,6 +114,11 @@ var p_scale = PClass.extend({
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
     }));
+
+    if (!this._dataFlattened.length) {
+      this.$svg.append('text')
+        .text('No data');
+    }
   }
 
 });

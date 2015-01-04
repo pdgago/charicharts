@@ -46,10 +46,10 @@
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(23),
-    data2 = getData(23),
-    data3 = getData(23),
-    data4 = getData(23),
+    data1 = [],//getData(23),
+    data2 = [],//getData(23),
+    data3 = [],//getData(23),
+    data4 = [],//getData(23),
     dataNulls1 = getData(23),
     dataNulls2 = getData(23);
 
@@ -112,7 +112,6 @@ var options = {
 };
 
 var chart = new Charicharts.Chart(options, data);
-
 // chart.on('Trail/moved', function(data, d) {
 //   console.log(data, d);
 // });

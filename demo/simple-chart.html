@@ -42,8 +42,8 @@ var color = d3.scale.category10()
     data1 = getData(23)
     data2 = getData(23);
 
-setNull(data1, 4, 6, 14, 15, 16);
-setNull(data2, 0, 1, 5, 7);
+// setNull(data1, 4, 6, 14, 15, 16);
+// setNull(data2, 0, 1, 5, 7);
 
 var data = [{
   id: 1004,
@@ -97,13 +97,13 @@ setTimeout(function() {
   var data = [{
     id: 1004,
     type: 'line',
-    values: getData(23),
+    values: data1,
     interpolation: 'basis',
-    color: '#333'
+    color: '#555'
   },{
     id: 1005,
     type: 'line',
-    values: getData(23),
+    values: data2,
     dots: true,
     interpolation: 'step',
     color: color(0)
