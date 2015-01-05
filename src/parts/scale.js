@@ -114,6 +114,17 @@ var p_scale = PClass.extend({
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
     }));
+
+    // No data message
+    if (!this._dataFlattened.length) {
+      this.$svg.append('text')
+        .attr('text-achor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('x', '40%')
+        .attr('y', '40%')
+        .attr('font-size', '18px')
+        .text(h_getLocale(this.opts.locale)['nodata']);
+    }
   }
 
 });

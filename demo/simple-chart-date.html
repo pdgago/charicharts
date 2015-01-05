@@ -45,10 +45,10 @@
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(23),
-    data2 = getData(23),
-    data3 = getData(23),
-    data4 = getData(23);
+    data1 = getData(0),
+    data2 = getData(0),
+    data3 = getData(0),
+    data4 = getData(0);
 
 // setNull(data1, 4, 6, 14, 15, 16);
 // setNull(data2, 0, 1, 5, 7);
@@ -61,14 +61,14 @@ var data = [
 //   interpolation: 'cardinal',
 //   color: '#555'
 // },
-// {
-//   id: 1005,
-//   type: 'line',
-//   values: data2,
-//   dots: true,
-//   interpolation: 'step',
-//   color: color(0)
-// },
+{
+  id: 1005,
+  type: 'line',
+  values: data2,
+  dots: true,
+  interpolation: 'step',
+  color: color(0)
+},
 {
   type: 'bar',
   grouped: false, // by default bars are stacked, if not grouped
@@ -95,36 +95,36 @@ var options = {
   target: d3.select('body').node(),
   margin: '40 60 25 60',
   trail: {
-    enabled: true,
-    parseStep: function(date) {
-      date.setMinutes(0, 0, 0);
-      return date;
-    },
-    initXValue: function() {
-      return new Date(); // Initial position to current hour
-    }
+    // enabled: true,
+    // parseStep: function(date) {
+    //   date.setMinutes(0, 0, 0);
+    //   return date;
+    // },
+    // initXValue: function() {
+    //   return new Date(); // Initial position to current hour
+    // }
   },
   xaxis: {
-    scale: 'time',
-    fit: true,
-    bottom: {
-      label: 'Hours',
-      tickFormat: function(d) {
-        return d.getHours();
-      }
-    }
+    // scale: 'time',
+    // fit: true,
+    // bottom: {
+    //   label: 'Hours',
+    //   tickFormat: function(d) {
+    //     return d.getHours();
+    //   }
+    // }
   },
   yaxis: {
-    fit: false,
+    // fit: false,
     fullGrid: true,
     textMarginTop: -10,
     left: {
       label: 'Dollars'
     },
-    right: {
-      enabled: true,
-      label: 'Space'
-    }
+    // right: {
+    //   enabled: true,
+    //   label: 'Space'
+    // }
   }
 };
 

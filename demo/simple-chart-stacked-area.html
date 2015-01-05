@@ -46,10 +46,10 @@
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(23),
-    data2 = getData(23),
-    data3 = getData(23),
-    data4 = getData(23),
+    data1 = [],//getData(23),
+    data2 = [],//getData(23),
+    data3 = [],//getData(23),
+    data4 = [],//getData(23),
     dataNulls1 = getData(23),
     dataNulls2 = getData(23);
 
@@ -59,12 +59,12 @@ setNull(dataNulls2, 0, 1, 5, 7);
 var data = [
 {
   type: 'area',
-  stacking: false,
+  stacking: true,
   data: [{
     type: 'line',
     values: data1,
     dots: false,
-    interpolation: 'basis',
+    interpolation: 'linear',
     color: color(0),
     opacity: 1,
     areaOpacity: 1
@@ -112,7 +112,6 @@ var options = {
 };
 
 var chart = new Charicharts.Chart(options, data);
-
 // chart.on('Trail/moved', function(data, d) {
 //   console.log(data, d);
 // });

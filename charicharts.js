@@ -14,7 +14,7 @@
 /* jshint ignore:end */
 /**
  * Get translate attribute from supplied width/height.
- * 
+ *
  * @param  {Integer} width
  * @param  {Integer} height
  */
@@ -52,6 +52,51 @@ function h_getAngle(x, y) {
   }
 
   return angle;
+}
+
+/**
+ * Get diff ms from a date extent.
+ *
+ * @param  {Array}   extent Date extent array
+ * @return {Integer} Returns difference in millisecons
+ */
+function h_getDateExtentDiff(extent) {
+  return extent[1].getTime() - extent[0].getTime();
+}
+
+function h_getLocale(locale) {
+  return ({
+    'en': {
+      'decimal': '.',
+      'thousands': ',',
+      'grouping': [3],
+      'currency': ['$', ''],
+      'dateTime': '%a %b %e %X %Y',
+      'date': '%m/%d/%Y',
+      'time': '%H:%M:%S',
+      'periods': ['AM', 'PM'],
+      'days': ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      'shortDays': ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      'months': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      'shortMonths': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      'nodata': ['No data available']
+    },
+    'es': {
+      'decimal': ',',
+      'thousands': '.',
+      'grouping': [3],
+      'currency': ['$', ''],
+      'dateTime': '%a %b %e %X %Y',
+      'date': '%m/%d/%Y',
+      'time': '%H:%M:%S',
+      'periods': ['AM', 'PM'],
+      'days': ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+      'shortDays': ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+      'months': ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+      'shortMonths': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+      'nodata': ['No hay datos disponibles']
+    }
+  })[locale || 'en'];
 }
 /* Simple JavaScript Inheritance
  * By John Resig http://ejohn.org/
@@ -140,7 +185,8 @@ var CClass = Class.extend({
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
       trigger: this.$scope.trigger,
-      unbind: this.$scope.unbind
+      unbind: this.$scope.unbind,
+      remove: _.bind(this.remove, this)
     });
   },
 
@@ -148,6 +194,11 @@ var CClass = Class.extend({
     for (var i = 0; i < this.modules.length; i++) {
       _.extend(this.$scope, new this.modules[i](this.$scope));
     }
+  },
+
+  remove: function() {
+    this.$scope.$svg.remove();
+    this.$scope.trigger('svg/removed');
   }
 
 });
@@ -276,7 +327,6 @@ var p_axes = PClass.extend({
     this._status = {
       axes: this._initAxesModel()
     };
-
     _.each(this._status.axes, this._renderAxis, this);
   },
 
@@ -288,19 +338,85 @@ var p_axes = PClass.extend({
     this._afterAxisChanges();
   },
 
+  _getDataResolution: function() {
+    var resolution;
+
+    var getRes = function(valuesList) {
+      var res;
+
+      for (var i = valuesList.length - 1; i >= 0; i--) {
+        var values = valuesList[i];
+        var maxIteration = values.length;
+        if (maxIteration > 24) {maxIteration = 24;}
+
+        for (var j = 1; j < maxIteration; j++) {
+          var resTmp = values[j].x - values[j-1].x;
+          if (!res || resTmp < res) {
+            res = resTmp;
+          }
+        }
+      }
+      return res;
+    };
+
+    _.each(this.data, function(d) {
+      var resTmp = getRes(d.values ?
+        [d.values] : _.pluck(d.data, 'values'));
+
+      if (!resolution || resTmp < resolution) {
+        resolution = resTmp;
+      }
+    });
+
+    return resolution/1000;
+  },
+
   _renderBottom: function(model) {
+    var localeFormatter = d3.locale(h_getLocale(this.opts.locale));
+    // The first predicate function that returns true will
+    // determine how the specified date is formatted.
+    // For more info in time formatting directives go to:
+    // https://github.com/mbostock/d3/wiki/Time-Formatting
+    var customTimeformats = [
+      // milliseconds for all other times, such as ".012"
+      ['.%L', function(d) { return d.getUTCMilliseconds(); }],
+      // for second boundaries, such as ":45"
+      [':%S', function(d) { return d.getUTCSeconds(); }],
+      // for minute boundaries, such as "01:23"
+      ['%I:%M', function(d) { return d.getUTCMinutes(); }],
+      // for hour boundaries, such as "01"
+      ['%I', function(d) { return d.getUTCHours(); }],
+      // for day boundaries, such as "Mon 7"
+      ['%a %d', function(d) { return d.getUTCDay() && d.getUTCDate() !== 1; }],
+      // for week boundaries, such as "Feb 06"
+      ['%b %d', function(d) { return d.getUTCDate() !== 1; }],
+      // for month boundaries, such as "February"
+      ['%B', function(d) { return d.getUTCMonth(); }],
+      // for year boundaries, such as "2011".
+      ['%Y', function() { return true; }]
+    ];
+    var timeFormats = this.opts.xaxis.bottom.tickFormat || customTimeformats;
+    var tickFormat = localeFormatter.timeFormat.utc.multi(timeFormats);
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
-      .tickFormat(this.opts.xaxis.bottom.tickFormat);
+      .tickFormat(tickFormat);
 
-    model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks || []);
+    if (this.opts.xaxis.bottom.ticks) {
+      var ticksDef = this.opts.xaxis.bottom.ticks;
+      // ticksDef example: ['days', 2]
+      model.axis.ticks.apply(model.axis, [d3.time[ticksDef[0]], ticksDef[1]]);
+    }
 
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'xaxis bottom')
       .call(model.axis);
 
+    // Append baseline
     model.el.append('rect')
       .attr('class', 'baseline')
       .attr('y', this.opts.height)
@@ -312,15 +428,19 @@ var p_axes = PClass.extend({
   },
 
   _renderLeft: function(model) {
+    var tickFormat = this.opts.yaxis.left.tickFormat;
+    var ticks = this.opts.yaxis.ticks || [];
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
-      .tickFormat(this.opts.yaxis.left.tickFormat);
+      .tickFormat(tickFormat);
+    model.axis.ticks.apply(model.axis, ticks);
 
-    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
-
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis left')
       .call(model.axis);
@@ -329,15 +449,19 @@ var p_axes = PClass.extend({
   },
 
   _renderRight: function(model) {
+    var tickFormat = this.opts.yaxis.right.tickFormat;
+    var ticks = this.opts.yaxis.ticks || [];
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
-      .tickFormat(this.opts.yaxis.right.tickFormat);
+      .tickFormat();
+    model.axis.ticks.apply(model.axis, ticks);
 
-    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
-
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis right')
       .call(model.axis);
@@ -443,9 +567,15 @@ var p_axes = PClass.extend({
       if (d !== 0) {return;}
       d3.select(this).attr('class', 'zeroline');
     });
-  },
+  }
 
 });
+
+  // var tickCharacters: {
+  //   year: 4,
+  //   month: 2,
+  //   hour: 2
+  // };
 
 /**
  * Percentage Bar
@@ -918,6 +1048,17 @@ var p_scale = PClass.extend({
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
     }));
+
+    // No data message
+    if (!this._dataFlattened.length) {
+      this.$svg.append('text')
+        .attr('text-achor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('x', '40%')
+        .attr('y', '40%')
+        .attr('font-size', '18px')
+        .text(h_getLocale(this.opts.locale)['nodata']);
+    }
   }
 
 });
@@ -1113,7 +1254,6 @@ var p_series = PClass.extend({
 
   /**
    * TODO return area path
-   * TODO Stacking false
    */
   _renderStackedAreaSerie: function(series) {
     var self = this,
@@ -1349,13 +1489,16 @@ var p_svg = PClass.extend({
   },
 
   drawSvg: function() {
-    return d3.select(this.opts.target)
+    var $svg = d3.select(this.opts.target)
       .append('svg')
         .attr('width', this.opts.fullWidth)
-        .attr('height', this.opts.fullHeight)
-      .append('g')
-        .attr('class', 'g-main')
-        .attr('transform', this.opts.gmainTranslate);
+        .attr('height', this.opts.fullHeight);
+
+    $svg.append('g')
+      .attr('class', 'g-main')
+      .attr('transform', this.opts.gmainTranslate);
+
+    return $svg;
   }
 
 });
@@ -1388,15 +1531,17 @@ var p_trail = PClass.extend({
     var trail = this.$svg.append('g')
       .attr('class', 'trail');
 
+    var markerHeight = 11;
+
     // Append marker definition
     var markerdef = this.$svg.append('svg:marker')
       .attr('id', 'trailArrow')
       .attr('viewBox','0 0 20 20')
-      .attr('refX','15')
-      .attr('refY','11')
+      .attr('refX','20')
+      .attr('refY',markerHeight)
       .attr('markerUnits','strokeWidth')
       .attr('markerWidth','15')
-      .attr('markerHeight','11')
+      .attr('markerHeight',markerHeight)
       .attr('orient','auto')
       .append('svg:path')
         .attr('class', 'trail-arrow')
@@ -1406,8 +1551,8 @@ var p_trail = PClass.extend({
     // Append trail line
     this.trailLine = trail.append('svg:line')
       .attr('class', 'trail-line')
-        .attr('x1', 0)
-        .attr('x2', 0)
+        .attr('x1', this.opts.width)
+        .attr('x2', this.opts.width)
         .attr('y1', 0)
         .attr('y2', this.opts.height)
         .attr('marker-start', 'url(#trailArrow)');
@@ -1422,12 +1567,12 @@ var p_trail = PClass.extend({
 
     // Append slider zone
     this.sliderZone = this.$svg.append('g')
-      .attr('transform', h_getTranslate(0,0))
+      .attr('transform', h_getTranslate(0,-markerHeight))
       .attr('class', 'trail-slider-zone')
       .call(this.brush);
 
     this.sliderZone.select('.background')
-      .attr('height', this.opts.height)
+      .attr('height', this.opts.fullHeight)
       .attr('width', this.opts.width)
       .style('cursor', 'pointer');
 
@@ -1482,7 +1627,7 @@ var p_trail = PClass.extend({
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
     xvalue = this.opts.trail.parseStep(xvalue);
-    var x = Math.round(this.scale.x(xvalue) -1);
+    var x = Math.round(this.scale.x(xvalue));
     if (x === this._status.x) {return;} // Return if it's already selected
     var data = this._getDataFromValue(xvalue);
     this._status.x = x;
@@ -1493,19 +1638,24 @@ var p_trail = PClass.extend({
 
   _getDataFromValue: function(xvalue) {
     var self = this;
-
-    return _.map(this.data, function(serie) {
+    var trailData = _.map(this.data, function(serie) {
+      var details = _.omit(serie, 'values', 'path');
+      var value;
       if (serie.type === 'line') {
-        if (!serie.values) {return;}
-        return _.extend(serie.values[self.bisector(serie.values, xvalue)],
-          {id: serie.id});
-      } else if (serie.type === 'bar' || serie.type === 'area') {
+        value = serie.values[self.bisector(serie.values, xvalue)];
+        if (!value) {
+          value = {x: null, y: null};
+        }
+        return _.extend({}, value, {id: serie.id}, details);
+      } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
-            {id: d.id});
+            {id: d.id}, details);
         });
       }
     });
+
+    return trailData;
   },
 
   /**
@@ -1537,6 +1687,7 @@ Charicharts.Chart = CClass.extend({
   },
 
   defaults: {
+    locale: 'en',
     margin: '0 0 0 0',
     trail: {
       enabled: false,
@@ -1555,16 +1706,34 @@ Charicharts.Chart = CClass.extend({
       top: {
         enabled: false,
         label: false,
-        tickFormat: function(d) {
-          return d;
-        }
+        tickFormat: null
       },
       bottom: {
         enabled: true,
         label: false,
-        tickFormat: function(d) {
-          return d;
-        }
+        ticks: null,
+        // TICKS EXAMPLE
+        // ['days', 2]
+        tickFormat: null
+        // TICKFORMAT EXAMPLE
+        // tickFormat: [
+        //   // milliseconds for all other times, such as ".012"
+        //   ['.%L', function(d) { return d.getUTCMilliseconds(); }],
+        //   // for second boundaries, such as ":45"
+        //   [':%S', function(d) { return d.getUTCSeconds(); }],
+        //   // for minute boundaries, such as "01:23"
+        //   ['%I:%M', function(d) { return d.getUTCMinutes(); }],
+        //   // for hour boundaries, such as "01"
+        //   ['%I', function(d) { return d.getUTCHours(); }],
+        //   // for day boundaries, such as "Mon 7"
+        //   ['%a %d', function(d) { return d.getUTCDay() && d.getUTCDate() !== 1; }],
+        //   // for week boundaries, such as "Feb 06"
+        //   ['%b %d', function(d) { return d.getUTCDate() !== 1; }],
+        //   // for month boundaries, such as "February"
+        //   ['%B', function(d) { return d.getUTCMonth(); }],
+        //   // for year boundaries, such as "2011".
+        //   ['%Y', function() { return true; }]
+        // ]
       }
     },
     // Yaxis Options.

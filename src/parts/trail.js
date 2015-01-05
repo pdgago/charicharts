@@ -27,15 +27,17 @@ var p_trail = PClass.extend({
     var trail = this.$svg.append('g')
       .attr('class', 'trail');
 
+    var markerHeight = 11;
+
     // Append marker definition
     var markerdef = this.$svg.append('svg:marker')
       .attr('id', 'trailArrow')
       .attr('viewBox','0 0 20 20')
-      .attr('refX','15')
-      .attr('refY','11')
+      .attr('refX','20')
+      .attr('refY',markerHeight)
       .attr('markerUnits','strokeWidth')
       .attr('markerWidth','15')
-      .attr('markerHeight','11')
+      .attr('markerHeight',markerHeight)
       .attr('orient','auto')
       .append('svg:path')
         .attr('class', 'trail-arrow')
@@ -45,8 +47,8 @@ var p_trail = PClass.extend({
     // Append trail line
     this.trailLine = trail.append('svg:line')
       .attr('class', 'trail-line')
-        .attr('x1', 0)
-        .attr('x2', 0)
+        .attr('x1', this.opts.width)
+        .attr('x2', this.opts.width)
         .attr('y1', 0)
         .attr('y2', this.opts.height)
         .attr('marker-start', 'url(#trailArrow)');
@@ -61,12 +63,12 @@ var p_trail = PClass.extend({
 
     // Append slider zone
     this.sliderZone = this.$svg.append('g')
-      .attr('transform', h_getTranslate(0,0))
+      .attr('transform', h_getTranslate(0,-markerHeight))
       .attr('class', 'trail-slider-zone')
       .call(this.brush);
 
     this.sliderZone.select('.background')
-      .attr('height', this.opts.height)
+      .attr('height', this.opts.fullHeight)
       .attr('width', this.opts.width)
       .style('cursor', 'pointer');
 
@@ -121,7 +123,7 @@ var p_trail = PClass.extend({
     // parse data (this way the user can filter by specific step)
     // eg. months, years, minutes
     xvalue = this.opts.trail.parseStep(xvalue);
-    var x = Math.round(this.scale.x(xvalue) -1);
+    var x = Math.round(this.scale.x(xvalue));
     if (x === this._status.x) {return;} // Return if it's already selected
     var data = this._getDataFromValue(xvalue);
     this._status.x = x;
@@ -132,19 +134,24 @@ var p_trail = PClass.extend({
 
   _getDataFromValue: function(xvalue) {
     var self = this;
-
-    return _.map(this.data, function(serie) {
+    var trailData = _.map(this.data, function(serie) {
+      var details = _.omit(serie, 'values', 'path');
+      var value;
       if (serie.type === 'line') {
-        if (!serie.values) {return;}
-        return _.extend(serie.values[self.bisector(serie.values, xvalue)],
-          {id: serie.id});
-      } else if (serie.type === 'bar' || serie.type === 'area') {
+        value = serie.values[self.bisector(serie.values, xvalue)];
+        if (!value) {
+          value = {x: null, y: null};
+        }
+        return _.extend({}, value, {id: serie.id}, details);
+      } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
-            {id: d.id});
+            {id: d.id}, details);
         });
       }
     });
+
+    return trailData;
   },
 
   /**

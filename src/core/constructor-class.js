@@ -18,7 +18,8 @@ var CClass = Class.extend({
     return _.extend(this.getInstanceProperties(), {
       on: this.$scope.on,
       trigger: this.$scope.trigger,
-      unbind: this.$scope.unbind
+      unbind: this.$scope.unbind,
+      remove: _.bind(this.remove, this)
     });
   },
 
@@ -26,6 +27,11 @@ var CClass = Class.extend({
     for (var i = 0; i < this.modules.length; i++) {
       _.extend(this.$scope, new this.modules[i](this.$scope));
     }
+  },
+
+  remove: function() {
+    this.$scope.$svg.remove();
+    this.$scope.trigger('svg/removed');
   }
 
 });

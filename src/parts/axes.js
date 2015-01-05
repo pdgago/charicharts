@@ -23,7 +23,6 @@ var p_axes = PClass.extend({
     this._status = {
       axes: this._initAxesModel()
     };
-
     _.each(this._status.axes, this._renderAxis, this);
   },
 
@@ -35,19 +34,85 @@ var p_axes = PClass.extend({
     this._afterAxisChanges();
   },
 
+  _getDataResolution: function() {
+    var resolution;
+
+    var getRes = function(valuesList) {
+      var res;
+
+      for (var i = valuesList.length - 1; i >= 0; i--) {
+        var values = valuesList[i];
+        var maxIteration = values.length;
+        if (maxIteration > 24) {maxIteration = 24;}
+
+        for (var j = 1; j < maxIteration; j++) {
+          var resTmp = values[j].x - values[j-1].x;
+          if (!res || resTmp < res) {
+            res = resTmp;
+          }
+        }
+      }
+      return res;
+    };
+
+    _.each(this.data, function(d) {
+      var resTmp = getRes(d.values ?
+        [d.values] : _.pluck(d.data, 'values'));
+
+      if (!resolution || resTmp < resolution) {
+        resolution = resTmp;
+      }
+    });
+
+    return resolution/1000;
+  },
+
   _renderBottom: function(model) {
+    var localeFormatter = d3.locale(h_getLocale(this.opts.locale));
+    // The first predicate function that returns true will
+    // determine how the specified date is formatted.
+    // For more info in time formatting directives go to:
+    // https://github.com/mbostock/d3/wiki/Time-Formatting
+    var customTimeformats = [
+      // milliseconds for all other times, such as ".012"
+      ['.%L', function(d) { return d.getUTCMilliseconds(); }],
+      // for second boundaries, such as ":45"
+      [':%S', function(d) { return d.getUTCSeconds(); }],
+      // for minute boundaries, such as "01:23"
+      ['%I:%M', function(d) { return d.getUTCMinutes(); }],
+      // for hour boundaries, such as "01"
+      ['%I', function(d) { return d.getUTCHours(); }],
+      // for day boundaries, such as "Mon 7"
+      ['%a %d', function(d) { return d.getUTCDay() && d.getUTCDate() !== 1; }],
+      // for week boundaries, such as "Feb 06"
+      ['%b %d', function(d) { return d.getUTCDate() !== 1; }],
+      // for month boundaries, such as "February"
+      ['%B', function(d) { return d.getUTCMonth(); }],
+      // for year boundaries, such as "2011".
+      ['%Y', function() { return true; }]
+    ];
+    var timeFormats = this.opts.xaxis.bottom.tickFormat || customTimeformats;
+    var tickFormat = localeFormatter.timeFormat.utc.multi(timeFormats);
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
-      .tickFormat(this.opts.xaxis.bottom.tickFormat);
+      .tickFormat(tickFormat);
 
-    model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks || []);
+    if (this.opts.xaxis.bottom.ticks) {
+      var ticksDef = this.opts.xaxis.bottom.ticks;
+      // ticksDef example: ['days', 2]
+      model.axis.ticks.apply(model.axis, [d3.time[ticksDef[0]], ticksDef[1]]);
+    }
 
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'xaxis bottom')
       .call(model.axis);
 
+    // Append baseline
     model.el.append('rect')
       .attr('class', 'baseline')
       .attr('y', this.opts.height)
@@ -59,15 +124,19 @@ var p_axes = PClass.extend({
   },
 
   _renderLeft: function(model) {
+    var tickFormat = this.opts.yaxis.left.tickFormat;
+    var ticks = this.opts.yaxis.ticks || [];
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('left')
       .tickSize(-this.opts.width)
       .tickPadding(this.opts.margin.left)
-      .tickFormat(this.opts.yaxis.left.tickFormat);
+      .tickFormat(tickFormat);
+    model.axis.ticks.apply(model.axis, ticks);
 
-    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
-
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis left')
       .call(model.axis);
@@ -76,15 +145,19 @@ var p_axes = PClass.extend({
   },
 
   _renderRight: function(model) {
+    var tickFormat = this.opts.yaxis.right.tickFormat;
+    var ticks = this.opts.yaxis.ticks || [];
+
+    // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
-      .tickFormat(this.opts.yaxis.right.tickFormat);
+      .tickFormat();
+    model.axis.ticks.apply(model.axis, ticks);
 
-    model.axis.ticks.apply(model.axis, this.opts.yaxis.ticks || []);
-
+    // Render axis
     model.el = this.$svg.append('g')
       .attr('class', 'yaxis right')
       .call(model.axis);
@@ -190,6 +263,12 @@ var p_axes = PClass.extend({
       if (d !== 0) {return;}
       d3.select(this).attr('class', 'zeroline');
     });
-  },
+  }
 
 });
+
+  // var tickCharacters: {
+  //   year: 4,
+  //   month: 2,
+  //   hour: 2
+  // };
