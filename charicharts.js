@@ -1551,8 +1551,8 @@ var p_trail = PClass.extend({
     // Append trail line
     this.trailLine = trail.append('svg:line')
       .attr('class', 'trail-line')
-        .attr('x1', 0)
-        .attr('x2', 0)
+        .attr('x1', this.opts.width)
+        .attr('x2', this.opts.width)
         .attr('y1', 0)
         .attr('y2', this.opts.height)
         .attr('marker-start', 'url(#trailArrow)');
@@ -1638,19 +1638,24 @@ var p_trail = PClass.extend({
 
   _getDataFromValue: function(xvalue) {
     var self = this;
-
-    return _.map(this.data, function(serie) {
+    var trailData = _.map(this.data, function(serie) {
+      var details = _.omit(serie, 'values', 'path');
+      var value;
       if (serie.type === 'line') {
-        if (!serie.values) {return;}
-        return _.extend(serie.values[self.bisector(serie.values, xvalue)],
-          {id: serie.id});
-      } else if (serie.type === 'bar' || serie.type === 'area') {
+        value = serie.values[self.bisector(serie.values, xvalue)];
+        if (!value) {
+          value = {x: null, y: null};
+        }
+        return _.extend({}, value, {id: serie.id}, details);
+      } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
-            {id: d.id});
+            {id: d.id}, details);
         });
       }
     });
+
+    return trailData;
   },
 
   /**
