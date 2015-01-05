@@ -395,20 +395,17 @@ var p_axes = PClass.extend({
       // for year boundaries, such as "2011".
       ['%Y', function() { return true; }]
     ];
-    var timeFormats = this.opts.xaxis.bottom.tickFormat || customTimeformats;
-    var tickFormat = localeFormatter.timeFormat.utc.multi(timeFormats);
+    var tickFormat = localeFormatter.timeFormat.utc.multi(customTimeformats);
 
     // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
       .tickSize(this.opts.height)
-      .tickFormat(tickFormat);
+      .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
 
-    if (this.opts.xaxis.bottom.ticks) {
-      var ticksDef = this.opts.xaxis.bottom.ticks;
-      // ticksDef example: ['days', 2]
-      model.axis.ticks.apply(model.axis, [d3.time[ticksDef[0]], ticksDef[1]]);
+    if (this.opts.xaxis.ticks) {
+      model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks);
     }
 
     // Render axis
@@ -458,7 +455,7 @@ var p_axes = PClass.extend({
       .orient('right')
       .tickSize(this.opts.width)
       .tickPadding(0) // defaults to 3
-      .tickFormat();
+      .tickFormat(tickFormat);
     model.axis.ticks.apply(model.axis, ticks);
 
     // Render axis
@@ -1489,16 +1486,13 @@ var p_svg = PClass.extend({
   },
 
   drawSvg: function() {
-    var $svg = d3.select(this.opts.target)
+    return d3.select(this.opts.target)
       .append('svg')
         .attr('width', this.opts.fullWidth)
-        .attr('height', this.opts.fullHeight);
-
-    $svg.append('g')
-      .attr('class', 'g-main')
-      .attr('transform', this.opts.gmainTranslate);
-
-    return $svg;
+        .attr('height', this.opts.fullHeight)
+      .append('g')
+        .attr('class', 'g-main')
+        .attr('transform', this.opts.gmainTranslate);
   }
 
 });
