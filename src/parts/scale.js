@@ -115,9 +115,15 @@ var p_scale = PClass.extend({
       }
     }));
 
+    // No data message
     if (!this._dataFlattened.length) {
       this.$svg.append('text')
-        .text('No data');
+        .attr('text-achor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('x', '40%')
+        .attr('y', '40%')
+        .attr('font-size', '18px')
+        .text(h_getLocale(this.opts.locale)['nodata']);
     }
   }
 
