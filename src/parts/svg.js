@@ -18,16 +18,13 @@ var p_svg = PClass.extend({
   },
 
   drawSvg: function() {
-    var $svg = d3.select(this.opts.target)
+    return d3.select(this.opts.target)
       .append('svg')
         .attr('width', this.opts.fullWidth)
-        .attr('height', this.opts.fullHeight);
-
-    $svg.append('g')
-      .attr('class', 'g-main')
-      .attr('transform', this.opts.gmainTranslate);
-
-    return $svg;
+        .attr('height', this.opts.fullHeight)
+      .append('g')
+        .attr('class', 'g-main')
+        .attr('transform', this.opts.gmainTranslate);
   }
 
 });
