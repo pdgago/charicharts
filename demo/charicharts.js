@@ -746,6 +746,7 @@ var p_pie_inner_arrow = PClass.extend({
   }],
 
   initialize: function() {
+    if (!this.pie) {return;}
     if (!this.opts.innerArrow) {return;}
     var self = this;
     this._drawArrow();
@@ -845,6 +846,17 @@ var p_pie = PClass.extend({
   }],
 
   initialize: function() {
+    var dataSum = d3.sum(this.data, function(d) {
+      return d.value;
+    });
+
+    // If the sum is 0, call onNoData callback
+    // and stop rendering...
+    if (dataSum <= 0) {
+      this.opts.onNoData();
+      return;
+    }
+
     // Pie layout
     this.pie = d3.layout.pie()
       .value(function(d) {return d.value;})

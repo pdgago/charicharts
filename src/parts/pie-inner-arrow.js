@@ -21,6 +21,7 @@ var p_pie_inner_arrow = PClass.extend({
   }],
 
   initialize: function() {
+    if (!this.pie) {return;}
     if (!this.opts.innerArrow) {return;}
     var self = this;
     this._drawArrow();
