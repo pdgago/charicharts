@@ -28,8 +28,17 @@ var p_pie_inner_arrow = PClass.extend({
 
     // Move arrow to first piece onload
     setTimeout(function() {
-      var d = self.pie.path.data()[0];
-      self.moveToId(d.data.id);
+      var data = self.pie.path.data();
+      var firstPiece;
+
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].value > 0) {
+          firstPiece = data[i];
+          break;
+        }
+      }
+
+      self.moveToId(firstPiece.data.id);
     }, 0);
 
     return {
@@ -78,10 +87,16 @@ var p_pie_inner_arrow = PClass.extend({
         angle = h_getAngle.apply(this, coords),
         rotation = angle * (180/Math.PI);
 
-    this.innerArrow
-      .transition()
-      .duration(200)
-      .attr('transform', 'translate(0) rotate('+ rotation +')');
+    if (d.value > 0) {
+      this.innerArrow
+        .attr('visibility', 'visible')
+        .transition()
+        .duration(200)
+        .attr('transform', 'translate(0) rotate('+ rotation +')');
+    } else {
+      this.innerArrow
+        .attr('visibility', 'hidden');
+    }
 
     this._current = d;
   },
