@@ -314,10 +314,9 @@ var p_series = PClass.extend({
    * Render bar serie. By default it renders bars stacked.
    */
   _renderBarSerie: function(serie) {
-    var self = this,
-        grouped = serie.grouped,
-        // TODO 12 not reasonable. how can we define it?
-        barWidth =  12/(!grouped ? serie.data.length : 1);
+    var self = this;
+    var grouped = serie.grouped;
+    var barWidth = Math.floor(this._getBarWidth(serie));
 
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
@@ -402,6 +401,35 @@ var p_series = PClass.extend({
     path.transition()
       .duration(200)
       .style('opacity', path.attr('active'));
+  },
+
+  /**
+   * For bar series, get the width of them.
+   * 
+   * @param  {Object}  serie
+   * @return {Integer} Bar width
+   */
+  _getBarWidth: function(serie) {
+    var maxBarWidth = 12, barWidth, serieLength;
+
+    // Stacked bar
+    if (serie.grouped) {
+      serieLength = d3.max(_.map(serie.data, function(d) {
+        return d.values.length;
+      }));
+
+      barWidth = (this.opts.width / serieLength) - 4;
+    // Side by side
+    } else {
+      barWidth = maxBarWidth/serie.data.length;
+    }
+
+    // Check the barWidth is not bigger than the maximun permited
+    if (barWidth > maxBarWidth) {
+      barWidth = maxBarWidth;
+    }
+
+    return barWidth;
   }
 
 });

@@ -23,5 +23,6 @@
   "sub": true,
 
   "browser": true,
-  "node": true
+  "node": true,
+  "debug": true
 }
