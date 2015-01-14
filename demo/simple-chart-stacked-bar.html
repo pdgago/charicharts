@@ -50,6 +50,8 @@ var color = d3.scale.category10(),
     data2 = getData(65),
     data3 = getData(65),
     data4 = getData(65),
+    data5 = getData(65),
+    data6 = getData(65),
     dataNulls1 = getData(65),
     dataNulls2 = getData(65);
 
@@ -70,6 +72,26 @@ var data = [
     type: 'bar',
     values: data2,
     color: color(1),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data3,
+    color: color(2),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data4,
+    color: color(3),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data5,
+    color: color(4),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data6,
+    color: color(5),
     areaOpacity: 0.5
   }],
 }
