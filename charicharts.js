@@ -1407,7 +1407,6 @@ var p_series = PClass.extend({
     var self = this;
     var grouped = serie.grouped;
     var barWidth = Math.floor(this._getBarWidth(serie));
-
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
 
