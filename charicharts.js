@@ -1027,9 +1027,11 @@ var p_scale = PClass.extend({
 
   _getExtent: function(position, fit, opt_minExtent) {
     var extent = d3.extent(this._dataFlattened, function(d) {
-      return d[position];
+      if (position === 'y') {
+        return d.y1 || d.y;
+      }
+      return d.x;
     });
-
 
     // Fix to min extent
     if (opt_minExtent) {
@@ -1439,6 +1441,12 @@ var p_series = PClass.extend({
       });
     }
 
+    // Force update the scale, because we changed y values for the stacked.
+    this.trigger('Scale/update', []);
+
+    // update the la scala, que trigereara un update del axis,
+    // pero la scala ahora no tiene que coger d.y, tiene que coger d.y1
+
     var bars = this.$series.selectAll('.serie-bar')
         .data(serie.data)
       .enter().append('g')
@@ -1507,7 +1515,7 @@ var p_series = PClass.extend({
         return d.values.length;
       }));
 
-      barWidth = (this.opts.width / serieLength) - 4;
+      barWidth = (this.opts.width / serieLength) - 3;
     // Side by side
     } else {
       barWidth = maxBarWidth/serie.data.length;
