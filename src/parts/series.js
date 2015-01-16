@@ -317,7 +317,6 @@ var p_series = PClass.extend({
     var self = this;
     var grouped = serie.grouped;
     var barWidth = Math.floor(this._getBarWidth(serie));
-
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
 
@@ -349,6 +348,12 @@ var p_series = PClass.extend({
         });
       });
     }
+
+    // Force update the scale, because we changed y values for the stacked.
+    this.trigger('Scale/update', []);
+
+    // update the la scala, que trigereara un update del axis,
+    // pero la scala ahora no tiene que coger d.y, tiene que coger d.y1
 
     var bars = this.$series.selectAll('.serie-bar')
         .data(serie.data)
@@ -418,7 +423,7 @@ var p_series = PClass.extend({
         return d.values.length;
       }));
 
-      barWidth = (this.opts.width / serieLength) - 4;
+      barWidth = (this.opts.width / serieLength) - 3;
     // Side by side
     } else {
       barWidth = maxBarWidth/serie.data.length;

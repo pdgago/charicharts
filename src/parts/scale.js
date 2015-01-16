@@ -67,9 +67,11 @@ var p_scale = PClass.extend({
 
   _getExtent: function(position, fit, opt_minExtent) {
     var extent = d3.extent(this._dataFlattened, function(d) {
-      return d[position];
+      if (position === 'y') {
+        return d.y1 || d.y;
+      }
+      return d.x;
     });
-
 
     // Fix to min extent
     if (opt_minExtent) {
