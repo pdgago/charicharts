@@ -410,8 +410,12 @@ var p_axes = PClass.extend({
 
     // Render axis
     model.el = this.$svg.append('g')
-      .attr('class', 'xaxis bottom')
-      .call(model.axis);
+        .attr('class', 'xaxis bottom')
+        .call(model.axis)
+      .selectAll('text')
+        .attr('y', 6)
+        .attr('x', 6)
+        .style('text-anchor', 'start');
 
     // Append baseline
     model.el.append('rect')
@@ -527,7 +531,17 @@ var p_axes = PClass.extend({
   },
 
   _renderYLabel: function(orient) {
-    if (!this.opts.yaxis[orient].label) {return;}
+    var label = this.opts.yaxis[orient].label;
+
+    if (!label) {
+      if (orient === 'left') {
+        label = this._$scope.scaleUnits.y;
+      } else if (orient === 'right') {
+        label = this._$scope.scaleUnits.y2;
+      }
+    }
+
+    if (!label) {return;}
 
     this.$svg.select('.yaxis.' + orient).append('text')
       .attr('class', 'label')
@@ -536,7 +550,7 @@ var p_axes = PClass.extend({
       .attr('y', -20)
       .attr('x', 0)
       .attr('text-anchor', orient === 'left' ? 'start' : 'end')
-      .text(this.opts.yaxis[orient].label);
+      .text(label);
   },
 
   /**
