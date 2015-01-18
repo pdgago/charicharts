@@ -73,12 +73,20 @@ var p_scale = PClass.extend({
   },
 
   _getExtent: function(position, fit, opt_minExtent) {
-    var extent = d3.extent(this._dataFlattened, function(d) {
-      if (position === 'y') {
+    var extent;
+    // x axes uses all data
+    if (position === 'x') {
+      var allData = _.flatten(_.values(this._dataFlattened));
+      extent = d3.extent(allData, function(d) {
+        return d.x;
+      });
+    // any y axes uses its own data
+    } else {
+      var unit = this._status.scaleUnits[position];
+      extent = d3.extent(this._dataFlattened[unit], function(d) {
         return d.y1 || d.y;
-      }
-      return d.x;
-    });
+      });
+    }
 
     // Fix to min extent
     if (opt_minExtent) {
@@ -108,31 +116,68 @@ var p_scale = PClass.extend({
    * Handy when we need to get the extent.
    */
   _setFlattenedData: function() {
-    var flattened = {};
+    var data = {};
+    var units = [];
 
     _.each(this.data, function(d) {
-    });
+      var values;
+      var unit = d.unit || 'default';
 
-    var data = _.flatten(_.map(this.data, function(d) {
       // Single value
       if (d.value) {
-        return [d.value];
+        values = [d.value];
       // More than one values array for the series
       } else if (d.data) {
-        return _.flatten(_.pluck(d.data, 'values'));
+        values = _.flatten(_.pluck(d.data, 'values'));
       // Single values array for the series
       } else if (d.values) {
-        return d.values;
+        values = d.values;
       // Error warn
       } else {
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
-    }));
 
-    this._dataFlattened;
+      if (values) {
+        if (!data[unit]) {
+          data[unit] = [];
+          // Ordered by order of definition.
+          units.push(unit);
+        }
+
+        data[unit].push(values);
+      }
+    });
+
+    var dataFlattened = {};
+    _.each(data, function(d,key) {
+      dataFlattened[key] = _.flatten(d);
+    });
+    // var data = _.flatten(_.map(this.data, function(d) {
+    //   // Single value
+    //   if (d.value) {
+    //     return [d.value];
+    //   // More than one values array for the series
+    //   } else if (d.data) {
+    //     return _.flatten(_.pluck(d.data, 'values'));
+    //   // Single values array for the series
+    //   } else if (d.values) {
+    //     return d.values;
+    //   // Error warn
+    //   } else {
+    //     console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
+    //   }
+    // }));
+
+    var firstUnit = units[0];
+    var secondUnit = units[1];
+    this._status.scaleUnits['y'] = firstUnit;
+    this._status.scaleUnits['y2'] = secondUnit;
+    this._dataFlattened = dataFlattened;
+    var dataAvailable = (dataFlattened[firstUnit] && dataFlattened[firstUnit].length>0) ||
+      (dataFlattened[secondUnit] && dataFlattened[secondUnit].length>0);
 
     // No data message
-    if (!this._dataFlattened.length) {
+    if (!dataAvailable) {
       this.$svg.append('text')
         .attr('text-achor', 'middle')
         .attr('alignment-baseline', 'middle')

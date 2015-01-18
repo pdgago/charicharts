@@ -49,7 +49,7 @@ var color = d3.scale.category10(),
 var data = [{
   id: 1005,
   type: 'line',
-  values: getData(40),
+  values: getData(40, 0, 100),
   dots: true,
   unit: 'Euros',
   interpolation: 'step',
@@ -57,7 +57,7 @@ var data = [{
 }, {
   id: 1006,
   type: 'line',
-  values: getData(40),
+  values: getData(40, 0, 9600),
   dots: false,
   unit: 'kW',
   interpolation: 'linear',
@@ -77,18 +77,18 @@ var options = {
 
 var chart = new Charicharts.Chart(options, data);
 
-function randomItem(i) {
+function randomItem(i, from, to) {
   var date = new Date();
   date.setHours(i, 0, 0);
   return {
     x: date,
-    y: _.random(-20, 80),
+    y: _.random(from, to)
   };
 }
 
-function getData(n) {
+function getData(n, from, to) {
   return d3.range(n).map(function(i) {
-    return randomItem(i);
+    return randomItem(i, from, to);
   });
 }
 
