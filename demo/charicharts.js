@@ -1325,8 +1325,21 @@ var p_series = PClass.extend({
       .enter()
         .append('path')
         .attr('d', function(d) { return area.interpolate(d.interpolation)(d.values); })
-        .style('fill', function(d) { return d.color; })
+        .style('fill', function(d) { return d.fill || d.color; })
         .style('opacity', function(d) { return d.areaOpacity; });
+
+    // this.$series.selectAll('g')
+    //     .data(data)
+    //   .enter()
+    //     .append('path')
+    //     .style('stroke', function(d) { return '#fff'; })
+    //     .style('stroke-opacity', 1)
+    //     .attr('d', function(d) {
+    //       return d3.svg.line()
+    //         .x(function(d) {return d.x;})
+    //         .y(function(d) {return d.y0;})
+    //         .interpolate(d.interpolation)(d.values);
+    //     });
   },
 
   _renderConstantSerie: function(serie) {
@@ -1502,7 +1515,7 @@ var p_series = PClass.extend({
 
   /**
    * For bar series, get the width of them.
-   * 
+   *
    * @param  {Object}  serie
    * @return {Integer} Bar width
    */
