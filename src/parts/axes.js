@@ -198,7 +198,7 @@ var p_axes = PClass.extend({
 
     var axesEnabled = {
       left: this.opts.yaxis.left.enabled,
-      right: this.opts.yaxis.right.enabled,
+      right: !!this.scale.y2,
       top: this.opts.xaxis.top.enabled,
       bottom: this.opts.xaxis.bottom.enabled
     };
