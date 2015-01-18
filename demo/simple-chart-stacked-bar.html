@@ -46,14 +46,14 @@
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(65),
-    data2 = getData(65),
-    data3 = getData(65),
-    data4 = getData(65),
-    data5 = getData(65),
-    data6 = getData(65),
-    dataNulls1 = getData(65),
-    dataNulls2 = getData(65);
+    data1 = getData(5),
+    data2 = getData(5),
+    data3 = getData(5),
+    data4 = getData(5),
+    data5 = getData(5),
+    data6 = getData(5),
+    dataNulls1 = getData(175),
+    dataNulls2 = getData(175);
 
 setNull(dataNulls1, 4, 6, 14, 15, 16);
 setNull(dataNulls2, 0, 1, 5, 7);
@@ -114,9 +114,9 @@ var options = {
     scale: 'time',
     fit: true,
     bottom: {
-      tickFormat: function(d) {
-        return d.getHours();
-      }
+      // tickFormat: function(d) {
+      //   return d.getHours();
+      // }
     }
   },
   yaxis: {

@@ -344,6 +344,7 @@ var p_series = PClass.extend({
 
             d.y0 = (stacks[d.x] || 0);
             d.y1 = d.y0 + d.y;
+            d.w = -barWidth/2;
             stacks[d.x] = d.y1;
         });
       });
@@ -428,7 +429,7 @@ var p_series = PClass.extend({
    * @return {Integer} Bar width
    */
   _getBarWidth: function(serie) {
-    var maxBarWidth = 12, barWidth, serieLength;
+    var maxBarWidth = 13, barWidth, serieLength;
 
     // Stacked bar
     if (serie.grouped) {
