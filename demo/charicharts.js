@@ -1728,18 +1728,18 @@ var p_trail = PClass.extend({
   _getDataFromValue: function(xvalue) {
     var self = this;
     var trailData = _.map(this.data, function(serie) {
-      var details = _.omit(serie, 'values', 'path');
       var value;
+
       if (serie.type === 'line') {
         value = serie.values[self.bisector(serie.values, xvalue)];
         if (!value) {
           value = {x: null, y: null};
         }
-        return _.extend({}, value, {id: serie.id}, details);
+        return _.extend({}, value, {id: serie.id}, _.omit(serie, 'values', 'path'));
       } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
-            {id: d.id}, details);
+            {id: d.id}, _.omit(d, 'values'));
         });
       }
     });
