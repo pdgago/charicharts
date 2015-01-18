@@ -997,13 +997,19 @@ var p_scale = PClass.extend({
       // Current scale
       scale: {
         x: null,
-        y: null
+        y: null,
+        y2: null
+      },
+      scaleUnits: {
+        y: null,
+        y2: null
       }
     };
 
     this._updateScales();
     return {
-      scale: this._status.scale
+      scale: this._status.scale,
+      scaleUnits: this._status.scaleUnits
     };
   },
 
@@ -1012,12 +1018,13 @@ var p_scale = PClass.extend({
     this._setFlattenedData();
     this._status.scale.x = this._updateScale('x', opt_minExtent.x);
     this._status.scale.y = this._updateScale('y', opt_minExtent.y);
+    this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
   },
 
   _updateScale: function(position, opt_minExtent) {
-    var opts = this.opts[position + 'axis'],
-        domain = this._getExtent(position, opts.fit, opt_minExtent),
-        range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
+    var opts = this.opts[position.replace(/\d/, '') + 'axis'];
+    var domain = this._getExtent(position, opts.fit, opt_minExtent);
+    var range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
     return this._d3Scales[opts.scale]()
       .domain(domain)
@@ -1035,8 +1042,8 @@ var p_scale = PClass.extend({
 
     // Fix to min extent
     if (opt_minExtent) {
-      var min = d3.min([extent[0], opt_minExtent[0]]),
-          max = d3.max([extent[1], opt_minExtent[1]]);
+      var min = d3.min([extent[0], opt_minExtent[0]]);
+      var max = d3.max([extent[1], opt_minExtent[1]]);
 
       extent = [min, max];
     }
@@ -1061,7 +1068,12 @@ var p_scale = PClass.extend({
    * Handy when we need to get the extent.
    */
   _setFlattenedData: function() {
-    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
+    var flattened = {};
+
+    _.each(this.data, function(d) {
+    });
+
+    var data = _.flatten(_.map(this.data, function(d) {
       // Single value
       if (d.value) {
         return [d.value];
@@ -1076,6 +1088,8 @@ var p_scale = PClass.extend({
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
     }));
+
+    this._dataFlattened;
 
     // No data message
     if (!this._dataFlattened.length) {
@@ -1529,15 +1543,19 @@ var p_series = PClass.extend({
         return d.values.length;
       }));
 
-      barWidth = (this.opts.width / serieLength) - 3;
+      barWidth = (this.opts.width / serieLength) - 2;
     // Side by side
     } else {
       barWidth = maxBarWidth/serie.data.length;
     }
 
-    // Check the barWidth is not bigger than the maximun permited
-    if (barWidth > maxBarWidth) {
-      barWidth = maxBarWidth;
+    // // Check the barWidth is not bigger than the maximun permited
+    // if (barWidth > maxBarWidth) {
+    //   barWidth = maxBarWidth;
+    // }
+    // 
+    if (barWidth < 1) {
+      barWidth = 1;
     }
 
     return barWidth;

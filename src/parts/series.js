@@ -437,15 +437,19 @@ var p_series = PClass.extend({
         return d.values.length;
       }));
 
-      barWidth = (this.opts.width / serieLength) - 3;
+      barWidth = (this.opts.width / serieLength) - 2;
     // Side by side
     } else {
       barWidth = maxBarWidth/serie.data.length;
     }
 
-    // Check the barWidth is not bigger than the maximun permited
-    if (barWidth > maxBarWidth) {
-      barWidth = maxBarWidth;
+    // // Check the barWidth is not bigger than the maximun permited
+    // if (barWidth > maxBarWidth) {
+    //   barWidth = maxBarWidth;
+    // }
+    // 
+    if (barWidth < 1) {
+      barWidth = 1;
     }
 
     return barWidth;
