@@ -46,10 +46,10 @@
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = [],//getData(23),
-    data2 = [],//getData(23),
-    data3 = [],//getData(23),
-    data4 = [],//getData(23),
+    data1 = getData(23),
+    data2 = getData(23),
+    data3 = getData(23),
+    data4 = getData(23),
     dataNulls1 = getData(23),
     dataNulls2 = getData(23);
 
@@ -65,17 +65,21 @@ var data = [
     values: data1,
     dots: false,
     interpolation: 'linear',
-    color: color(0),
+    color: '#fff',
+    fill: '#000',
     opacity: 1,
     areaOpacity: 1
-  },{
-    type: 'line',
-    values: data2,
-    dots: false,
-    interpolation: 'linear',
-    color: color(1),
-    areaOpacity: 0.5
-  }],
+  },
+  // {
+  //   type: 'line',
+  //   values: data2,
+  //   dots: false,
+  //   interpolation: 'linear',
+  //   color: color(2),
+  //   fill: color(3),
+  //   areaOpacity: 0.5
+  // }
+  ],
 }
 ];
 

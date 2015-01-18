@@ -144,14 +144,25 @@ var p_axes = PClass.extend({
   _renderRight: function(model) {
     var tickFormat = this.opts.yaxis.right.tickFormat;
     var ticks = this.opts.yaxis.ticks || [];
+    var self = this;
+    var y2domain = self.scale.y2.domain();
 
     // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('right')
-      .tickSize(this.opts.width)
+      .tickSize(this.opts.width, 10)
       .tickPadding(0) // defaults to 3
-      .tickFormat(tickFormat);
+      .tickFormat(function(d) {
+        var px = self.scale.y(d);
+        var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
+        if (tickFormat) {
+          return tickFormat(value);
+        }
+        else {
+          return value;
+        }
+      });
     model.axis.ticks.apply(model.axis, ticks);
 
     // Render axis

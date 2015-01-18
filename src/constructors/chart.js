@@ -76,13 +76,15 @@ Charicharts.Chart = CClass.extend({
       left: {
         enabled: true,
         label: false,
+        width: 10,
         tickFormat: function(d) {
           return d;
         }
       },
       right: {
-        enabled: false,
+        enabled: true,
         label: false,
+        width: 10,
         tickFormat: function(d) {
           return d;
         }
