@@ -466,7 +466,7 @@ var p_axes = PClass.extend({
         if (self.scale.y2) {
           var px = self.scale.y(d);
           var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
-          return value
+          return value;
         }
         return tickFormat(d);
       });
@@ -1082,6 +1082,11 @@ var p_scale = PClass.extend({
       var max = d3.max([extent[1], opt_minExtent[1]]);
 
       extent = [min, max];
+    }
+
+    if (extent[0] === extent[1]) {
+      extent[0] = extent[0] * 0.9;
+      extent[1] = extent[1] * 1.1;
     }
 
     if (fit) {return extent;}
