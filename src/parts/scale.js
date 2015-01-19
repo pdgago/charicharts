@@ -98,6 +98,11 @@ var p_scale = PClass.extend({
       extent = [min, max];
     }
 
+    if (extent[0] === extent[1]) {
+      extent[0] = extent[0] * 0.9;
+      extent[1] = extent[1] * 1.1;
+    }
+
     if (fit) {return extent;}
 
     // Positive scale

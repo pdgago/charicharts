@@ -49,12 +49,14 @@ var color = d3.scale.category10(),
 var data = [{
   id: 1005,
   type: 'line',
-  values: getData(40, 0, 100),
+  values: getData(40, 100, 100),
   dots: true,
   unit: 'Euros',
   interpolation: 'step',
   color: '#444'
-}, {
+}];
+
+/*{
   id: 1006,
   type: 'line',
   values: getData(40, 0, 9600),
@@ -62,7 +64,8 @@ var data = [{
   unit: 'kW',
   interpolation: 'linear',
   color: color(1)
-}];
+}
+*/
 
 setNull(data[0].values, 4, 6, 14, 15, 16);
 
