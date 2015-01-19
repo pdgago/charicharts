@@ -401,7 +401,7 @@ var p_axes = PClass.extend({
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
-      .tickSize(this.opts.height)
+      .tickSize(14, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
 
     if (this.opts.xaxis.ticks) {
@@ -410,13 +410,19 @@ var p_axes = PClass.extend({
 
     // Render axis
     model.el = this.$svg.append('g')
-      .attr('class', 'xaxis bottom')
-      .call(model.axis);
+        .attr('class', 'xaxis bottom')
+        .attr('transform', 'translate(0,'+(this.opts.height+1)+')')
+        .call(model.axis);
+
+    model.el.selectAll('text')
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // Append baseline
     model.el.append('rect')
       .attr('class', 'baseline')
-      .attr('y', this.opts.height)
+      .attr('y', -1)
       .attr('x', -this.opts.margin.left)
       .attr('height', 1)
       .attr('width', this.opts.fullWidth);
@@ -449,7 +455,6 @@ var p_axes = PClass.extend({
     var tickFormat = this.opts.yaxis.right.tickFormat;
     var ticks = this.opts.yaxis.ticks || [];
     var self = this;
-    var y2domain = self.scale.y2.domain();
 
     // Generate axis
     model.axis = d3.svg.axis()
@@ -458,14 +463,12 @@ var p_axes = PClass.extend({
       .tickSize(this.opts.width, 10)
       .tickPadding(0) // defaults to 3
       .tickFormat(function(d) {
-        var px = self.scale.y(d);
-        var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
-        if (tickFormat) {
-          return tickFormat(value);
+        if (self.scale.y2) {
+          var px = self.scale.y(d);
+          var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
+          return value
         }
-        else {
-          return value;
-        }
+        return tickFormat(d);
       });
     model.axis.ticks.apply(model.axis, ticks);
 
@@ -502,7 +505,7 @@ var p_axes = PClass.extend({
 
     var axesEnabled = {
       left: this.opts.yaxis.left.enabled,
-      right: !!this.scale.y2,
+      right: this.opts.yaxis.right.enabled || !!this.scale.y2,
       top: this.opts.xaxis.top.enabled,
       bottom: this.opts.xaxis.bottom.enabled
     };
@@ -527,16 +530,25 @@ var p_axes = PClass.extend({
   },
 
   _renderYLabel: function(orient) {
-    if (!this.opts.yaxis[orient].label) {return;}
+    var label;
+    var scaleUnits = this._$scope.scaleUnits.y;
+
+    if (orient === 'left') {
+      scaleUnits = (scaleUnits === 'default') ? false : scaleUnits;
+      label = scaleUnits || this.opts.yaxis[orient].label;
+    } else if (orient === 'right') {
+      label = this._$scope.scaleUnits.y2 || this.opts.yaxis[orient].label;
+    }
+    if (!label || label === 'default') {return;}
 
     this.$svg.select('.yaxis.' + orient).append('text')
       .attr('class', 'label')
       .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
         this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop))
-      .attr('y', -20)
+      .attr('y', -10)
       .attr('x', 0)
       .attr('text-anchor', orient === 'left' ? 'start' : 'end')
-      .text(this.opts.yaxis[orient].label);
+      .text(label);
   },
 
   /**
@@ -561,7 +573,10 @@ var p_axes = PClass.extend({
     }
 
     this.$svg.selectAll('.xaxis.bottom .tick text')
-      .attr('transform', h_getTranslate(0,4));
+      .attr('transform', h_getTranslate(0,4))
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {
@@ -1094,21 +1109,26 @@ var p_scale = PClass.extend({
 
     _.each(this.data, function(d) {
       var values;
-      var unit = d.unit || 'default';
+      var unit;
 
       // Single value
       if (d.value) {
+        unit = d.unit;
         values = [d.value];
       // More than one values array for the series
       } else if (d.data) {
+        unit = d.data[0].unit;
         values = _.flatten(_.pluck(d.data, 'values'));
       // Single values array for the series
       } else if (d.values) {
+        unit = d.unit;
         values = d.values;
       // Error warn
       } else {
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
+
+      if (!unit) {unit='default';}
 
       if (values) {
         if (!data[unit]) {
@@ -1361,12 +1381,11 @@ var p_series = PClass.extend({
     // Let use the scale of any serie
     var yScale;
 
-
     // ID optional
-    _.each(series.data, function(serie) {
-      serie.id = serie.id || parseInt(_.uniqueId());
-      yScale = self._getYScale(serie);
-    });
+    // _.each(series.data, function(serie) {
+    //   serie.id = serie.id || parseInt(_.uniqueId());
+    //   yScale = self._getYScale(serie);
+    // });
 
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); });
@@ -1394,6 +1413,12 @@ var p_series = PClass.extend({
     });
 
     this.trigger('Scale/update', [{ y: extent }]);
+
+    // ID optional
+    _.each(series.data, function(serie) {
+      serie.id = serie.id || parseInt(_.uniqueId());
+      yScale = self._getYScale(serie);
+    });
 
     this.$series.selectAll('g')
         .attr('class', 'area')
@@ -1577,7 +1602,7 @@ var p_series = PClass.extend({
   },
 
   _getYScale: function(serie) {
-    return this._$scope.scaleUnits['y'] === serie.unit ?
+    return !serie.unit || this._$scope.scaleUnits['y'] === serie.unit ?
       this.scale.y : this.scale.y2;
   },
 
@@ -1915,7 +1940,7 @@ Charicharts.Chart = CClass.extend({
         }
       },
       right: {
-        enabled: true,
+        enabled: false,
         label: false,
         width: 10,
         tickFormat: function(d) {

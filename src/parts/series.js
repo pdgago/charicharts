@@ -197,12 +197,11 @@ var p_series = PClass.extend({
     // Let use the scale of any serie
     var yScale;
 
-
     // ID optional
-    _.each(series.data, function(serie) {
-      serie.id = serie.id || parseInt(_.uniqueId());
-      yScale = self._getYScale(serie);
-    });
+    // _.each(series.data, function(serie) {
+    //   serie.id = serie.id || parseInt(_.uniqueId());
+    //   yScale = self._getYScale(serie);
+    // });
 
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); });
@@ -230,6 +229,12 @@ var p_series = PClass.extend({
     });
 
     this.trigger('Scale/update', [{ y: extent }]);
+
+    // ID optional
+    _.each(series.data, function(serie) {
+      serie.id = serie.id || parseInt(_.uniqueId());
+      yScale = self._getYScale(serie);
+    });
 
     this.$series.selectAll('g')
         .attr('class', 'area')
@@ -413,7 +418,7 @@ var p_series = PClass.extend({
   },
 
   _getYScale: function(serie) {
-    return this._$scope.scaleUnits['y'] === serie.unit ?
+    return !serie.unit || this._$scope.scaleUnits['y'] === serie.unit ?
       this.scale.y : this.scale.y2;
   },
 
