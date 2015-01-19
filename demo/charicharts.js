@@ -1041,9 +1041,7 @@ var p_scale = PClass.extend({
     this._setFlattenedData();
     this._status.scale.x = this._updateScale('x', opt_minExtent.x);
     this._status.scale.y = this._updateScale('y', opt_minExtent.y);
-    if (this._status.scaleUnits.y2) {
-      this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
-    }
+    this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
   },
 
   _updateScale: function(position, opt_minExtent) {
@@ -1106,21 +1104,26 @@ var p_scale = PClass.extend({
 
     _.each(this.data, function(d) {
       var values;
-      var unit = d.unit || 'default';
+      var unit;
 
       // Single value
       if (d.value) {
+        unit = d.unit;
         values = [d.value];
       // More than one values array for the series
       } else if (d.data) {
+        unit = d.data[0].unit;
         values = _.flatten(_.pluck(d.data, 'values'));
       // Single values array for the series
       } else if (d.values) {
+        unit = d.unit;
         values = d.values;
       // Error warn
       } else {
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
+
+      if (!unit) {unit='default';}
 
       if (values) {
         if (!data[unit]) {
@@ -1373,12 +1376,11 @@ var p_series = PClass.extend({
     // Let use the scale of any serie
     var yScale;
 
-
     // ID optional
-    _.each(series.data, function(serie) {
-      serie.id = serie.id || parseInt(_.uniqueId());
-      yScale = self._getYScale(serie);
-    });
+    // _.each(series.data, function(serie) {
+    //   serie.id = serie.id || parseInt(_.uniqueId());
+    //   yScale = self._getYScale(serie);
+    // });
 
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); });
@@ -1406,6 +1408,12 @@ var p_series = PClass.extend({
     });
 
     this.trigger('Scale/update', [{ y: extent }]);
+
+    // ID optional
+    _.each(series.data, function(serie) {
+      serie.id = serie.id || parseInt(_.uniqueId());
+      yScale = self._getYScale(serie);
+    });
 
     this.$series.selectAll('g')
         .attr('class', 'area')
@@ -1589,7 +1597,7 @@ var p_series = PClass.extend({
   },
 
   _getYScale: function(serie) {
-    return this._$scope.scaleUnits['y'] === serie.unit ?
+    return !serie.unit || this._$scope.scaleUnits['y'] === serie.unit ?
       this.scale.y : this.scale.y2;
   },
 
