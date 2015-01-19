@@ -401,7 +401,7 @@ var p_axes = PClass.extend({
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
-      .tickSize(this.opts.height)
+      .tickSize(14, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
 
     if (this.opts.xaxis.ticks) {
@@ -411,16 +411,18 @@ var p_axes = PClass.extend({
     // Render axis
     model.el = this.$svg.append('g')
         .attr('class', 'xaxis bottom')
-        .call(model.axis)
-      .selectAll('text')
-        .attr('y', 6)
-        .attr('x', 6)
-        .style('text-anchor', 'start');
+        .attr('transform', 'translate(0,'+(this.opts.height+1)+')')
+        .call(model.axis);
+
+    model.el.selectAll('text')
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // Append baseline
     model.el.append('rect')
       .attr('class', 'baseline')
-      .attr('y', this.opts.height)
+      .attr('y', -1)
       .attr('x', -this.opts.margin.left)
       .attr('height', 1)
       .attr('width', this.opts.fullWidth);
