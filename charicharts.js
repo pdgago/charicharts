@@ -1045,7 +1045,9 @@ var p_scale = PClass.extend({
     this._setFlattenedData();
     this._status.scale.x = this._updateScale('x', opt_minExtent.x);
     this._status.scale.y = this._updateScale('y', opt_minExtent.y);
-    this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
+    if (this._status.scaleUnits.y2) {
+      this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
+    }
   },
 
   _updateScale: function(position, opt_minExtent) {
