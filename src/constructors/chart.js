@@ -82,7 +82,7 @@ Charicharts.Chart = CClass.extend({
         }
       },
       right: {
-        enabled: true,
+        enabled: false,
         label: false,
         width: 10,
         tickFormat: function(d) {

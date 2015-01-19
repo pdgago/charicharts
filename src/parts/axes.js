@@ -151,7 +151,6 @@ var p_axes = PClass.extend({
     var tickFormat = this.opts.yaxis.right.tickFormat;
     var ticks = this.opts.yaxis.ticks || [];
     var self = this;
-    var y2domain = self.scale.y2.domain();
 
     // Generate axis
     model.axis = d3.svg.axis()
@@ -160,14 +159,12 @@ var p_axes = PClass.extend({
       .tickSize(this.opts.width, 10)
       .tickPadding(0) // defaults to 3
       .tickFormat(function(d) {
-        var px = self.scale.y(d);
-        var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
-        if (tickFormat) {
-          return tickFormat(value);
+        if (self.scale.y2) {
+          var px = self.scale.y(d);
+          var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
+          return value
         }
-        else {
-          return value;
-        }
+        return tickFormat(d);
       });
     model.axis.ticks.apply(model.axis, ticks);
 
@@ -204,7 +201,7 @@ var p_axes = PClass.extend({
 
     var axesEnabled = {
       left: this.opts.yaxis.left.enabled,
-      right: !!this.scale.y2,
+      right: this.opts.yaxis.right.enabled || !!this.scale.y2,
       top: this.opts.xaxis.top.enabled,
       bottom: this.opts.xaxis.bottom.enabled
     };
@@ -230,8 +227,11 @@ var p_axes = PClass.extend({
 
   _renderYLabel: function(orient) {
     var label;
+    var scaleUnits = this._$scope.scaleUnits.y;
+
     if (orient === 'left') {
-      label = this._$scope.scaleUnits.y || this.opts.yaxis[orient].label;
+      scaleUnits = (scaleUnits === 'default') ? false : scaleUnits;
+      label = scaleUnits || this.opts.yaxis[orient].label;
     } else if (orient === 'right') {
       label = this._$scope.scaleUnits.y2 || this.opts.yaxis[orient].label;
     }
@@ -269,7 +269,10 @@ var p_axes = PClass.extend({
     }
 
     this.$svg.selectAll('.xaxis.bottom .tick text')
-      .attr('transform', h_getTranslate(0,4));
+      .attr('transform', h_getTranslate(0,4))
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {
