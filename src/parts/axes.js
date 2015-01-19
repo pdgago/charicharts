@@ -229,23 +229,19 @@ var p_axes = PClass.extend({
   },
 
   _renderYLabel: function(orient) {
-    var label = this.opts.yaxis[orient].label;
-
-    if (!label) {
-      if (orient === 'left') {
-        label = this._$scope.scaleUnits.y;
-      } else if (orient === 'right') {
-        label = this._$scope.scaleUnits.y2;
-      }
+    var label;
+    if (orient === 'left') {
+      label = this._$scope.scaleUnits.y || this.opts.yaxis[orient].label;
+    } else if (orient === 'right') {
+      label = this._$scope.scaleUnits.y2 || this.opts.yaxis[orient].label;
     }
-
-    if (!label) {return;}
+    if (!label || label === 'default') {return;}
 
     this.$svg.select('.yaxis.' + orient).append('text')
       .attr('class', 'label')
       .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
         this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop))
-      .attr('y', -20)
+      .attr('y', -10)
       .attr('x', 0)
       .attr('text-anchor', orient === 'left' ? 'start' : 'end')
       .text(label);
