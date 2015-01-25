@@ -65,48 +65,48 @@ var data = [
     interpolation: 'step',
     color: color(0)
   },
-  // {
-  //   id: 785,
-  //   type: 'constant',
-  //   color: color(2),
-  //   strokeWidth: 3,
-  //   label: {
-  //     text: 'Now',
-  //     offset: {
-  //       // x: -2,
-  //       y: '-55%'
-  //     }
-  //   },
-  //   cteAxis: 'x',
-  //   value: new Date()
-  // },
-  // {
-  //   type: 'constant',
-  //   color: color(3),
-  //   strokeWidth: 3,
-  //   label: {
-  //     text: 'One hour ago',
-  //     offset: {
-  //       // x: -2,
-  //       y: '-55%'
-  //     }
-  //   },
-  //   cteAxis: 'x',
-  //   value: new Date() - (1000 * 60 * 60)
-  // },
-  // {
-  //   type: 'constant',
-  //   color: color(4),
-  //   strokeWidth: 3,
-  //   label: {
-  //     text: 'Constant x',
-  //     offset: {
-  //       x: 5
-  //     }
-  //   },
-  //   cteAxis: 'y',
-  //   value: _.random(-40, 40)
-  // }
+  {
+    id: 785,
+    type: 'constant',
+    color: color(2),
+    strokeWidth: 3,
+    label: {
+      text: 'Now',
+      offset: {
+        // x: -2,
+        y: '-55%'
+      }
+    },
+    cteAxis: 'x',
+    value: new Date()
+  },
+  {
+    type: 'constant',
+    color: color(3),
+    strokeWidth: 3,
+    label: {
+      text: 'One hour ago',
+      offset: {
+        // x: -2,
+        y: '-55%'
+      }
+    },
+    cteAxis: 'x',
+    value: new Date() - (1000 * 60 * 60)
+  },
+  {
+    type: 'constant',
+    color: color(4),
+    strokeWidth: 3,
+    label: {
+      text: 'Constant x',
+      offset: {
+        x: 5
+      }
+    },
+    cteAxis: 'y',
+    value: _.random(-40, 40)
+  }
 ];
 
 var options = {
@@ -132,7 +132,7 @@ var options = {
     }
   },
   yaxis: {
-    fit: true,
+    fit: false,
     fullGrid: true,
     textMarginTop: -10,
     right: {
@@ -152,7 +152,7 @@ function randomItem(i) {
   date.setHours(i, 0, 0);
   return {
     x: date,
-    y: _.random(1, 1000),
+    y: _.random(-80, 80),
   };
 }
 
