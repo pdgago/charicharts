@@ -94,13 +94,23 @@ var p_scale = PClass.extend({
     if (opt_minExtent) {
       var min = d3.min([extent[0], opt_minExtent[0]]);
       var max = d3.max([extent[1], opt_minExtent[1]]);
-
       extent = [min, max];
     }
 
-    if (extent[0] === extent[1]) {
-      extent[0] = extent[0] * 0.9;
-      extent[1] = extent[1] * 1.1;
+    if (position === 'y') {
+      // padding min extent
+      if (extent[0] >= 0) {
+        extent[0] = extent[0] * 0.95;
+      } else {
+        extent[0] = extent[0] * 1.05;
+      }
+
+      // padding max extent
+      if (extent[1] >= 0) {
+        extent[1] = extent[1] * 1.05;
+      } else {
+        extent[1] = extent[1] * 0.95;
+      }
     }
 
     if (fit) {return extent;}
