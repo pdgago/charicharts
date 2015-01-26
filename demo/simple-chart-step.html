@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body {
+    width: 800px;
+    height: 500px;
+    font-family: 'Helvetica', sans-serif;
+    font-size: 12px;
+  }
+  svg,
+  body {
+    background: #262626;
+  }
+  text {
+    fill: #999;
+  }
+  .serie-line {
+    fill: transparent;
+    stroke-width: 2px;
+  }
+  .dot {
+    fill: #262626;
+  }
+  .trail-line {
+    stroke: white;
+    shape-rendering: crispEdges;
+  }
+  .yaxis line,
+  .xaxis line {
+    stroke: #333;
+    shape-rendering: crispEdges;
+  }
+  .yaxis .zeroline {
+    stroke: #666;
+  }
+  .trail-arrow {
+    fill: #fff;
+  }
+</style>
+<title>Simple chart - Constant value</title>
+<body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script src="charicharts.js"></script>
+<script>
+
+var color = d3.scale.category10(),
+    random = d3.random.normal(0, 1),
+    data1 = getData(5);
+
+console.log('data1', data1);
+
+// setNull(dataNulls1, 4, 6, 14, 15, 16);
+// setNull(dataNulls2, 0, 1, 5, 7);
+
+var data = [
+  {
+    id: 1005,
+    type: 'line',
+    values: data1,
+    dots: true,
+    interpolation: 'step-after',
+    color: color(0)
+  }
+];
+
+var options = {
+  target: d3.select('body').node(),
+  margin: '40 60 25 60',
+  trail: {
+    enabled: true,
+    // parseStep: function(date) {
+    //   date.setMinutes(0, 0, 0);
+    //   return date;
+    // },
+    initXValue: function() {
+      return new Date(); // Initial position to current hour
+    }
+  },
+  xaxis: {
+    scale: 'time',
+    fit: true,
+    bottom: {
+      // tickFormat: function(d) {
+      //   return d.getHours();
+      // }
+    }
+  },
+  yaxis: {
+    fit: false,
+    fullGrid: true,
+    textMarginTop: -10,
+    right: {
+      enabled: true
+    }
+  }
+};
+
+var chart = new Charicharts.Chart(options, data);
+
+// chart.on('Trail/moved', function(data, d) {
+//   console.log(data, d);
+// });
+
+function randomItem(i) {
+  var date = new Date();
+  date.setHours(i, 0, 0);
+  return {
+    x: date,
+    y: _.random(-80, 80),
+  };
+}
+
+function getData(n) {
+  return d3.range(n).map(function(i) {
+    return randomItem(i);
+  });
+}
+
+function setNull(arr) {
+  for (var i = 1; i < arguments.length; i++) {
+    if (arr[arguments[i]]) {
+      arr[arguments[i]].y = null
+    }
+  };
+}
+
+</script>
