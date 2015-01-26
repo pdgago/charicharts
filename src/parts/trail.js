@@ -138,7 +138,10 @@ var p_trail = PClass.extend({
       var value;
 
       if (serie.type === 'line') {
-        value = serie.values[self.bisector(serie.values, xvalue)];
+        var index = self.bisector(serie.values, xvalue) - 1;
+        if (index < 0) {index=0;}
+
+        value = serie.values[index];
         if (!value) {
           value = {x: null, y: null};
         }
