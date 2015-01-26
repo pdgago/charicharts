@@ -79,9 +79,9 @@ var p_axes = PClass.extend({
       // for second boundaries, such as ":45"
       [':%S', function(d) { return d.getSeconds(); }],
       // for minute boundaries, such as "01:23"
-      ['%I:%M', function(d) { return d.getMinutes(); }],
+      ['%H:%M', function(d) { return d.getMinutes(); }],
       // for hour boundaries, such as "01"
-      ['%I', function(d) { return d.getHours(); }],
+      ['%H', function(d) { return d.getHours(); }],
       // for day boundaries, such as "Mon 7"
       ['%a %d', function(d) { return d.getDay() && d.getDate() !== 1; }],
       // for week boundaries, such as "Feb 06"
