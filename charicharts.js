@@ -379,23 +379,23 @@ var p_axes = PClass.extend({
     // https://github.com/mbostock/d3/wiki/Time-Formatting
     var customTimeformats = [
       // milliseconds for all other times, such as ".012"
-      ['.%L', function(d) { return d.getUTCMilliseconds(); }],
+      ['.%L', function(d) { return d.getMilliseconds(); }],
       // for second boundaries, such as ":45"
-      [':%S', function(d) { return d.getUTCSeconds(); }],
+      [':%S', function(d) { return d.getSeconds(); }],
       // for minute boundaries, such as "01:23"
-      ['%I:%M', function(d) { return d.getUTCMinutes(); }],
+      ['%I:%M', function(d) { return d.getMinutes(); }],
       // for hour boundaries, such as "01"
-      ['%I', function(d) { return d.getUTCHours(); }],
+      ['%I', function(d) { return d.getHours(); }],
       // for day boundaries, such as "Mon 7"
-      ['%a %d', function(d) { return d.getUTCDay() && d.getUTCDate() !== 1; }],
+      ['%a %d', function(d) { return d.getDay() && d.getDate() !== 1; }],
       // for week boundaries, such as "Feb 06"
-      ['%b %d', function(d) { return d.getUTCDate() !== 1; }],
+      ['%b %d', function(d) { return d.getDate() !== 1; }],
       // for month boundaries, such as "February"
-      ['%B', function(d) { return d.getUTCMonth(); }],
+      ['%B', function(d) { return d.getMonth(); }],
       // for year boundaries, such as "2011".
       ['%Y', function() { return true; }]
     ];
-    var tickFormat = localeFormatter.timeFormat.utc.multi(customTimeformats);
+    var tickFormat = localeFormatter.timeFormat.multi(customTimeformats);
 
     // Generate axis
     model.axis = d3.svg.axis()
