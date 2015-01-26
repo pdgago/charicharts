@@ -75,29 +75,29 @@ var p_axes = PClass.extend({
     // https://github.com/mbostock/d3/wiki/Time-Formatting
     var customTimeformats = [
       // milliseconds for all other times, such as ".012"
-      ['.%L', function(d) { return d.getUTCMilliseconds(); }],
+      ['.%L', function(d) { return d.getMilliseconds(); }],
       // for second boundaries, such as ":45"
-      [':%S', function(d) { return d.getUTCSeconds(); }],
+      [':%S', function(d) { return d.getSeconds(); }],
       // for minute boundaries, such as "01:23"
-      ['%I:%M', function(d) { return d.getUTCMinutes(); }],
+      ['%I:%M', function(d) { return d.getMinutes(); }],
       // for hour boundaries, such as "01"
-      ['%I', function(d) { return d.getUTCHours(); }],
+      ['%I', function(d) { return d.getHours(); }],
       // for day boundaries, such as "Mon 7"
-      ['%a %d', function(d) { return d.getUTCDay() && d.getUTCDate() !== 1; }],
+      ['%a %d', function(d) { return d.getDay() && d.getDate() !== 1; }],
       // for week boundaries, such as "Feb 06"
-      ['%b %d', function(d) { return d.getUTCDate() !== 1; }],
+      ['%b %d', function(d) { return d.getDate() !== 1; }],
       // for month boundaries, such as "February"
-      ['%B', function(d) { return d.getUTCMonth(); }],
+      ['%B', function(d) { return d.getMonth(); }],
       // for year boundaries, such as "2011".
       ['%Y', function() { return true; }]
     ];
-    var tickFormat = localeFormatter.timeFormat.utc.multi(customTimeformats);
+    var tickFormat = localeFormatter.timeFormat.multi(customTimeformats);
 
     // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
-      .tickSize(this.opts.height)
+      .tickSize(14, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
 
     if (this.opts.xaxis.ticks) {
@@ -106,13 +106,19 @@ var p_axes = PClass.extend({
 
     // Render axis
     model.el = this.$svg.append('g')
-      .attr('class', 'xaxis bottom')
-      .call(model.axis);
+        .attr('class', 'xaxis bottom')
+        .attr('transform', 'translate(0,'+(this.opts.height+1)+')')
+        .call(model.axis);
+
+    model.el.selectAll('text')
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // Append baseline
     model.el.append('rect')
       .attr('class', 'baseline')
-      .attr('y', this.opts.height)
+      .attr('y', -1)
       .attr('x', -this.opts.margin.left)
       .attr('height', 1)
       .attr('width', this.opts.fullWidth);
@@ -144,14 +150,22 @@ var p_axes = PClass.extend({
   _renderRight: function(model) {
     var tickFormat = this.opts.yaxis.right.tickFormat;
     var ticks = this.opts.yaxis.ticks || [];
+    var self = this;
 
     // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('right')
-      .tickSize(this.opts.width)
+      .tickSize(this.opts.width, 10)
       .tickPadding(0) // defaults to 3
-      .tickFormat(tickFormat);
+      .tickFormat(function(d) {
+        if (self.scale.y2) {
+          var px = self.scale.y(d);
+          var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
+          return value;
+        }
+        return tickFormat(d);
+      });
     model.axis.ticks.apply(model.axis, ticks);
 
     // Render axis
@@ -187,7 +201,7 @@ var p_axes = PClass.extend({
 
     var axesEnabled = {
       left: this.opts.yaxis.left.enabled,
-      right: this.opts.yaxis.right.enabled,
+      right: this.opts.yaxis.right.enabled || !!this.scale.y2,
       top: this.opts.xaxis.top.enabled,
       bottom: this.opts.xaxis.bottom.enabled
     };
@@ -212,16 +226,25 @@ var p_axes = PClass.extend({
   },
 
   _renderYLabel: function(orient) {
-    if (!this.opts.yaxis[orient].label) {return;}
+    var label;
+    var scaleUnits = this._$scope.scaleUnits.y;
+
+    if (orient === 'left') {
+      scaleUnits = (scaleUnits === 'default') ? false : scaleUnits;
+      label = scaleUnits || this.opts.yaxis[orient].label;
+    } else if (orient === 'right') {
+      label = this._$scope.scaleUnits.y2 || this.opts.yaxis[orient].label;
+    }
+    if (!label || label === 'default') {return;}
 
     this.$svg.select('.yaxis.' + orient).append('text')
       .attr('class', 'label')
       .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
         this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop))
-      .attr('y', -20)
+      .attr('y', -10)
       .attr('x', 0)
       .attr('text-anchor', orient === 'left' ? 'start' : 'end')
-      .text(this.opts.yaxis[orient].label);
+      .text(label);
   },
 
   /**
@@ -246,7 +269,10 @@ var p_axes = PClass.extend({
     }
 
     this.$svg.selectAll('.xaxis.bottom .tick text')
-      .attr('transform', h_getTranslate(0,4));
+      .attr('transform', h_getTranslate(0,4))
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {

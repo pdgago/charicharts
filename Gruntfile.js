@@ -20,16 +20,6 @@ module.exports = function(grunt) {
       ]
     },
 
-    concurrent: {
-      options: {
-        logConcurrentOutput: true
-      },
-      server: [
-      ],
-      dist: [
-      ]
-    },
-
     bower: {
       install: {
         options: {
@@ -44,7 +34,7 @@ module.exports = function(grunt) {
       },
       scripts: {
         files: '<%= jshint.files %>',
-        tasks: ['jshint', 'build']
+        tasks: ['build', 'jshint']
       }
     },
 
@@ -75,12 +65,20 @@ module.exports = function(grunt) {
         src: 'charicharts.js',
         dest: 'demo/'
       }
+    },
+
+    shell: {
+      options: {
+        stderr: false
+      },
+      server: {
+        command: 'http-server demo/'
+      }
     }
 
   });
 
   grunt.registerTask('build', [
-    'concurrent:dist',
     'concat',
     'uglify',
     'copy:demo'
@@ -89,8 +87,12 @@ module.exports = function(grunt) {
 
   grunt.registerTask('run', [
     'bower',
-    'concurrent:server',
+    'build',
     'watch'
+  ]);
+
+  grunt.registerTask('s', [
+    'shell:server'
   ]);
 
   grunt.registerTask('default', 'run');

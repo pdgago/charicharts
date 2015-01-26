@@ -46,40 +46,54 @@
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(23),
-    data2 = getData(23),
-    data3 = getData(23),
-    data4 = getData(23),
-    dataNulls1 = getData(23),
-    dataNulls2 = getData(23);
+    data1 = getData(5),
+    data2 = getData(5),
+    data3 = getData(5),
+    data4 = getData(5),
+    data5 = getData(5),
+    data6 = getData(5),
+    dataNulls1 = getData(175),
+    dataNulls2 = getData(175);
 
 setNull(dataNulls1, 4, 6, 14, 15, 16);
 setNull(dataNulls2, 0, 1, 5, 7);
 
 var data = [
 {
-  type: 'area',
-  stacking: true,
+  type: 'bar',
+  grouped: true,
   data: [{
-    type: 'line',
+    type: 'bar',
     values: data1,
-    dots: false,
-    interpolation: 'linear',
-    color: '#fff',
-    fill: '#000',
+    color: color(0),
     opacity: 1,
     areaOpacity: 1
-  },
-  // {
-  //   type: 'line',
-  //   values: data2,
-  //   dots: false,
-  //   interpolation: 'linear',
-  //   color: color(2),
-  //   fill: color(3),
-  //   areaOpacity: 0.5
-  // }
-  ],
+  },{
+    type: 'bar',
+    values: data2,
+    color: color(1),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data3,
+    color: color(2),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data4,
+    color: color(3),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data5,
+    color: color(4),
+    areaOpacity: 0.5
+  },{
+    type: 'bar',
+    values: data6,
+    color: color(5),
+    areaOpacity: 0.5
+  }],
 }
 ];
 
@@ -100,9 +114,9 @@ var options = {
     scale: 'time',
     fit: true,
     bottom: {
-      tickFormat: function(d) {
-        return d.getHours();
-      }
+      // tickFormat: function(d) {
+      //   return d.getHours();
+      // }
     }
   },
   yaxis: {

@@ -14,19 +14,21 @@ var p_pie = PClass.extend({
 
   initialize: function() {
     var dataSum = d3.sum(this.data, function(d) {
-      return d.value;
+      return d.value >= 0 ? d.value : 0;
     });
 
     // If the sum is 0, call onNoData callback
     // and stop rendering...
     if (dataSum <= 0) {
-      this.opts.onNoData();
+      this.opts.onNoData && this.opts.onNoData();
       return;
     }
 
     // Pie layout
     this.pie = d3.layout.pie()
-      .value(function(d) {return d.value;})
+      .value(function(d) {
+        return d.value >= 0 ? d.value : 0;
+      })
       .sort(null);
 
     // Pie arc

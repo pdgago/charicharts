@@ -109,8 +109,7 @@ var p_series = PClass.extend({
   _renderLineSerie: function(serie) {
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
-
-    var line = this._getLineFunc(),
+    var line = this._getLineFunc(serie),
         path = this.$series.append('path')
           // .datum(serie.values)
           .attr('id', 'serie-' + serie.id)
@@ -158,6 +157,7 @@ var p_series = PClass.extend({
    */
   _renderAreaRangeSerie: function(serie) {
     var self = this;
+    var yScale = this._getYScale(serie);
 
     // Render the two lines
     this._renderLineSerie({
@@ -175,8 +175,8 @@ var p_series = PClass.extend({
     // Draw an area between one and the other Y
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); })
-      .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
-      .y1(function(d) { return self.scale.y(d.y); });
+      .y0(function(d, i) { return yScale(serie.data[1].values[i].y); })
+      .y1(function(d) { return yScale(d.y); });
 
     serie.path = this.$series.append('path')
       .datum(serie.data[0].values)
@@ -192,13 +192,16 @@ var p_series = PClass.extend({
    * TODO return area path
    */
   _renderStackedAreaSerie: function(series) {
-    var self = this,
-        data = series.data;
+    var self = this;
+    var data = series.data;
+    // Let use the scale of any serie
+    var yScale;
 
     // ID optional
-    _.each(series.data, function(serie) {
-      serie.id = serie.id || parseInt(_.uniqueId());
-    });
+    // _.each(series.data, function(serie) {
+    //   serie.id = serie.id || parseInt(_.uniqueId());
+    //   yScale = self._getYScale(serie);
+    // });
 
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); });
@@ -210,14 +213,14 @@ var p_series = PClass.extend({
       data = stack(series.data);
 
       area
-        .y0(function(d) { return self.scale.y(d.y0); })
-        .y1(function(d) { return self.scale.y(d.y + d.y0); });
+        .y0(function(d) { return yScale(d.y0); })
+        .y1(function(d) { return yScale(d.y + d.y0); });
     } else {
       _.each(series.data, this._renderLineSerie, this);
 
       area
-        .y0(function(d) { return self.scale.y(0); })
-        .y1(function(d) { return self.scale.y(d.y); });
+        .y0(function(d) { return yScale(0); })
+        .y1(function(d) { return yScale(d.y); });
     }
 
     // Fit to new scale
@@ -227,22 +230,43 @@ var p_series = PClass.extend({
 
     this.trigger('Scale/update', [{ y: extent }]);
 
+    // ID optional
+    _.each(series.data, function(serie) {
+      serie.id = serie.id || parseInt(_.uniqueId());
+      yScale = self._getYScale(serie);
+    });
+
     this.$series.selectAll('g')
         .attr('class', 'area')
         .data(data)
       .enter()
         .append('path')
         .attr('d', function(d) { return area.interpolate(d.interpolation)(d.values); })
-        .style('fill', function(d) { return d.color; })
+        .style('fill', function(d) { return d.fill || d.color; })
         .style('opacity', function(d) { return d.areaOpacity; });
+
+    // this.$series.selectAll('g')
+    //     .data(data)
+    //   .enter()
+    //     .append('path')
+    //     .style('stroke', function(d) { return '#fff'; })
+    //     .style('stroke-opacity', 1)
+    //     .attr('d', function(d) {
+    //       return d3.svg.line()
+    //         .x(function(d) {return d.x;})
+    //         .y(function(d) {return d.y0;})
+    //         .interpolate(d.interpolation)(d.values);
+    //     });
   },
 
   _renderConstantSerie: function(serie) {
-    var self = this,
-        data = {
+    var self = this;
+    var data = {
           label: serie.label
-        },
-        path, group;
+        };
+    var path;
+    var group;
+    var yScale = this._getYScale(serie);
 
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
@@ -266,10 +290,10 @@ var p_series = PClass.extend({
         return d.x ? self.scale.x(d.x) : self.scale.x.range()[1];
       })
       .attr('y1', function(d) {
-        return d.y ? self.scale.y(d.y) : self.scale.y.range()[0];
+        return d.y ? yScale(d.y) : yScale.range()[0];
       })
       .attr('y2', function(d) {
-        return d.y ? self.scale.y(d.y) : self.scale.y.range()[1];
+        return d.y ? yScale(d.y) : yScale.range()[1];
       });
 
     // Line label
@@ -277,7 +301,7 @@ var p_series = PClass.extend({
       group.append('text')
         .attr('transform', function(d) {
           var x = serie.cteAxis === 'x' ? self.scale.x(d.x) : self.scale.x.range()[0],
-              y = serie.cteAxis === 'y' ? self.scale.y(d.y) : self.scale.y.range()[0];
+              y = serie.cteAxis === 'y' ? yScale(d.y) : yScale.range()[0];
 
           // Don't step onto the line
           if (serie.cteAxis === 'x') {
@@ -314,10 +338,10 @@ var p_series = PClass.extend({
    * Render bar serie. By default it renders bars stacked.
    */
   _renderBarSerie: function(serie) {
-    var self = this,
-        grouped = serie.grouped,
-        // TODO 12 not reasonable. how can we define it?
-        barWidth =  12/(!grouped ? serie.data.length : 1);
+    var self = this;
+    var grouped = serie.grouped;
+    var barWidth = Math.floor(this._getBarWidth(serie));
+    var yScale = this._getYScale(serie);
 
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
@@ -333,6 +357,7 @@ var p_series = PClass.extend({
 
             d.y0 = (stacks[d.x] || 0);
             d.y1 = d.y0 + d.y;
+            d.w = -barWidth/2;
             stacks[d.x] = d.y1;
         });
       });
@@ -351,6 +376,12 @@ var p_series = PClass.extend({
       });
     }
 
+    // Force update the scale, because we changed y values for the stacked.
+    this.trigger('Scale/update', []);
+
+    // update the la scala, que trigereara un update del axis,
+    // pero la scala ahora no tiene que coger d.y, tiene que coger d.y1
+
     var bars = this.$series.selectAll('.serie-bar')
         .data(serie.data)
       .enter().append('g')
@@ -366,22 +397,29 @@ var p_series = PClass.extend({
           return self.scale.x(d.x) + (d.w || 0);
         })
         .attr('y', function(d) {
-          return self.scale.y(d.y0 < d.y1 ? d.y1 : d.y0);
+          return yScale(d.y0 < d.y1 ? d.y1 : d.y0);
         })
         .attr('width', barWidth)
         .attr('height', function(d) {
-          return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
+          return yScale(Math.abs(d.y0)) - yScale(Math.abs(d.y1));
         });
 
       return bars;
   },
 
-  _getLineFunc: function() {
+  _getLineFunc: function(serie) {
     var self = this;
+    var yScale = this._getYScale(serie);
+
     return d3.svg.line()
       .defined(function(d) {return !!d.y;})
       .x(function(d) {return self.scale.x(d.x);})
-      .y(function(d) {return self.scale.y(d.y);});
+      .y(function(d) {return yScale(d.y);});
+  },
+
+  _getYScale: function(serie) {
+    return !serie.unit || this._$scope.scaleUnits['y'] === serie.unit ?
+      this.scale.y : this.scale.y2;
   },
 
   /**
@@ -402,6 +440,39 @@ var p_series = PClass.extend({
     path.transition()
       .duration(200)
       .style('opacity', path.attr('active'));
+  },
+
+  /**
+   * For bar series, get the width of them.
+   *
+   * @param  {Object}  serie
+   * @return {Integer} Bar width
+   */
+  _getBarWidth: function(serie) {
+    var maxBarWidth = 13, barWidth, serieLength;
+
+    // Stacked bar
+    if (serie.grouped) {
+      serieLength = d3.max(_.map(serie.data, function(d) {
+        return d.values.length;
+      }));
+
+      barWidth = (this.opts.width / serieLength) - 2;
+    // Side by side
+    } else {
+      barWidth = maxBarWidth/serie.data.length;
+    }
+
+    // // Check the barWidth is not bigger than the maximun permited
+    // if (barWidth > maxBarWidth) {
+    //   barWidth = maxBarWidth;
+    // }
+    //
+    if (barWidth < 1) {
+      barWidth = 1;
+    }
+
+    return barWidth;
   }
 
 });

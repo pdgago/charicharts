@@ -379,29 +379,29 @@ var p_axes = PClass.extend({
     // https://github.com/mbostock/d3/wiki/Time-Formatting
     var customTimeformats = [
       // milliseconds for all other times, such as ".012"
-      ['.%L', function(d) { return d.getUTCMilliseconds(); }],
+      ['.%L', function(d) { return d.getMilliseconds(); }],
       // for second boundaries, such as ":45"
-      [':%S', function(d) { return d.getUTCSeconds(); }],
+      [':%S', function(d) { return d.getSeconds(); }],
       // for minute boundaries, such as "01:23"
-      ['%I:%M', function(d) { return d.getUTCMinutes(); }],
+      ['%I:%M', function(d) { return d.getMinutes(); }],
       // for hour boundaries, such as "01"
-      ['%I', function(d) { return d.getUTCHours(); }],
+      ['%I', function(d) { return d.getHours(); }],
       // for day boundaries, such as "Mon 7"
-      ['%a %d', function(d) { return d.getUTCDay() && d.getUTCDate() !== 1; }],
+      ['%a %d', function(d) { return d.getDay() && d.getDate() !== 1; }],
       // for week boundaries, such as "Feb 06"
-      ['%b %d', function(d) { return d.getUTCDate() !== 1; }],
+      ['%b %d', function(d) { return d.getDate() !== 1; }],
       // for month boundaries, such as "February"
-      ['%B', function(d) { return d.getUTCMonth(); }],
+      ['%B', function(d) { return d.getMonth(); }],
       // for year boundaries, such as "2011".
       ['%Y', function() { return true; }]
     ];
-    var tickFormat = localeFormatter.timeFormat.utc.multi(customTimeformats);
+    var tickFormat = localeFormatter.timeFormat.multi(customTimeformats);
 
     // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
-      .tickSize(this.opts.height)
+      .tickSize(14, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
 
     if (this.opts.xaxis.ticks) {
@@ -410,13 +410,19 @@ var p_axes = PClass.extend({
 
     // Render axis
     model.el = this.$svg.append('g')
-      .attr('class', 'xaxis bottom')
-      .call(model.axis);
+        .attr('class', 'xaxis bottom')
+        .attr('transform', 'translate(0,'+(this.opts.height+1)+')')
+        .call(model.axis);
+
+    model.el.selectAll('text')
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // Append baseline
     model.el.append('rect')
       .attr('class', 'baseline')
-      .attr('y', this.opts.height)
+      .attr('y', -1)
       .attr('x', -this.opts.margin.left)
       .attr('height', 1)
       .attr('width', this.opts.fullWidth);
@@ -448,14 +454,22 @@ var p_axes = PClass.extend({
   _renderRight: function(model) {
     var tickFormat = this.opts.yaxis.right.tickFormat;
     var ticks = this.opts.yaxis.ticks || [];
+    var self = this;
 
     // Generate axis
     model.axis = d3.svg.axis()
       .scale(this.scale.y)
       .orient('right')
-      .tickSize(this.opts.width)
+      .tickSize(this.opts.width, 10)
       .tickPadding(0) // defaults to 3
-      .tickFormat(tickFormat);
+      .tickFormat(function(d) {
+        if (self.scale.y2) {
+          var px = self.scale.y(d);
+          var value = Math.round(self.scale.y2.invert(px)).toLocaleString();
+          return value;
+        }
+        return tickFormat(d);
+      });
     model.axis.ticks.apply(model.axis, ticks);
 
     // Render axis
@@ -491,7 +505,7 @@ var p_axes = PClass.extend({
 
     var axesEnabled = {
       left: this.opts.yaxis.left.enabled,
-      right: this.opts.yaxis.right.enabled,
+      right: this.opts.yaxis.right.enabled || !!this.scale.y2,
       top: this.opts.xaxis.top.enabled,
       bottom: this.opts.xaxis.bottom.enabled
     };
@@ -516,16 +530,25 @@ var p_axes = PClass.extend({
   },
 
   _renderYLabel: function(orient) {
-    if (!this.opts.yaxis[orient].label) {return;}
+    var label;
+    var scaleUnits = this._$scope.scaleUnits.y;
+
+    if (orient === 'left') {
+      scaleUnits = (scaleUnits === 'default') ? false : scaleUnits;
+      label = scaleUnits || this.opts.yaxis[orient].label;
+    } else if (orient === 'right') {
+      label = this._$scope.scaleUnits.y2 || this.opts.yaxis[orient].label;
+    }
+    if (!label || label === 'default') {return;}
 
     this.$svg.select('.yaxis.' + orient).append('text')
       .attr('class', 'label')
       .attr('transform', h_getTranslate(orient === 'left' ? -this.opts.margin.left :
         this.opts.width + this.opts.margin.right, this.opts.yaxis.textMarginTop))
-      .attr('y', -20)
+      .attr('y', -10)
       .attr('x', 0)
       .attr('text-anchor', orient === 'left' ? 'start' : 'end')
-      .text(this.opts.yaxis[orient].label);
+      .text(label);
   },
 
   /**
@@ -550,7 +573,10 @@ var p_axes = PClass.extend({
     }
 
     this.$svg.selectAll('.xaxis.bottom .tick text')
-      .attr('transform', h_getTranslate(0,4));
+      .attr('transform', h_getTranslate(0,4))
+      .attr('y', 0)
+      .attr('x', 6)
+      .style('text-anchor', 'start');
 
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {
@@ -753,8 +779,17 @@ var p_pie_inner_arrow = PClass.extend({
 
     // Move arrow to first piece onload
     setTimeout(function() {
-      var d = self.pie.path.data()[0];
-      self.moveToId(d.data.id);
+      var data = self.pie.path.data();
+      var firstPiece;
+
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].value > 0) {
+          firstPiece = data[i];
+          break;
+        }
+      }
+
+      self.moveToId(firstPiece.data.id);
     }, 0);
 
     return {
@@ -803,10 +838,16 @@ var p_pie_inner_arrow = PClass.extend({
         angle = h_getAngle.apply(this, coords),
         rotation = angle * (180/Math.PI);
 
-    this.innerArrow
-      .transition()
-      .duration(200)
-      .attr('transform', 'translate(0) rotate('+ rotation +')');
+    if (d.value > 0) {
+      this.innerArrow
+        .attr('visibility', 'visible')
+        .transition()
+        .duration(200)
+        .attr('transform', 'translate(0) rotate('+ rotation +')');
+    } else {
+      this.innerArrow
+        .attr('visibility', 'hidden');
+    }
 
     this._current = d;
   },
@@ -847,19 +888,21 @@ var p_pie = PClass.extend({
 
   initialize: function() {
     var dataSum = d3.sum(this.data, function(d) {
-      return d.value;
+      return d.value >= 0 ? d.value : 0;
     });
 
     // If the sum is 0, call onNoData callback
     // and stop rendering...
     if (dataSum <= 0) {
-      this.opts.onNoData();
+      this.opts.onNoData && this.opts.onNoData();
       return;
     }
 
     // Pie layout
     this.pie = d3.layout.pie()
-      .value(function(d) {return d.value;})
+      .value(function(d) {
+        return d.value >= 0 ? d.value : 0;
+      })
       .sort(null);
 
     // Pie arc
@@ -980,13 +1023,19 @@ var p_scale = PClass.extend({
       // Current scale
       scale: {
         x: null,
-        y: null
+        y: null,
+        y2: null
+      },
+      scaleUnits: {
+        y: null,
+        y2: null
       }
     };
 
     this._updateScales();
     return {
-      scale: this._status.scale
+      scale: this._status.scale,
+      scaleUnits: this._status.scaleUnits
     };
   },
 
@@ -995,12 +1044,15 @@ var p_scale = PClass.extend({
     this._setFlattenedData();
     this._status.scale.x = this._updateScale('x', opt_minExtent.x);
     this._status.scale.y = this._updateScale('y', opt_minExtent.y);
+    if (this._status.scaleUnits.y2) {
+      this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
+    }
   },
 
   _updateScale: function(position, opt_minExtent) {
-    var opts = this.opts[position + 'axis'],
-        domain = this._getExtent(position, opts.fit, opt_minExtent),
-        range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
+    var opts = this.opts[position.replace(/\d/, '') + 'axis'];
+    var domain = this._getExtent(position, opts.fit, opt_minExtent);
+    var range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
     return this._d3Scales[opts.scale]()
       .domain(domain)
@@ -1009,17 +1061,42 @@ var p_scale = PClass.extend({
   },
 
   _getExtent: function(position, fit, opt_minExtent) {
-    var extent = d3.extent(this._dataFlattened, function(d) {
-      return d[position];
-    });
-
+    var extent;
+    // x axes uses all data
+    if (position === 'x') {
+      var allData = _.flatten(_.values(this._dataFlattened));
+      extent = d3.extent(allData, function(d) {
+        return d.x;
+      });
+    // any y axes uses its own data
+    } else {
+      var unit = this._status.scaleUnits[position];
+      extent = d3.extent(this._dataFlattened[unit], function(d) {
+        return d.y1 || d.y;
+      });
+    }
 
     // Fix to min extent
     if (opt_minExtent) {
-      var min = d3.min([extent[0], opt_minExtent[0]]),
-          max = d3.max([extent[1], opt_minExtent[1]]);
-
+      var min = d3.min([extent[0], opt_minExtent[0]]);
+      var max = d3.max([extent[1], opt_minExtent[1]]);
       extent = [min, max];
+    }
+
+    if (position === 'y') {
+      // padding min extent
+      if (extent[0] >= 0) {
+        extent[0] = extent[0] * 0.95;
+      } else {
+        extent[0] = extent[0] * 1.05;
+      }
+
+      // padding max extent
+      if (extent[1] >= 0) {
+        extent[1] = extent[1] * 1.05;
+      } else {
+        extent[1] = extent[1] * 0.95;
+      }
     }
 
     if (fit) {return extent;}
@@ -1042,24 +1119,73 @@ var p_scale = PClass.extend({
    * Handy when we need to get the extent.
    */
   _setFlattenedData: function() {
-    this._dataFlattened = _.flatten(_.map(this.data, function(d) {
+    var data = {};
+    var units = [];
+
+    _.each(this.data, function(d) {
+      var values;
+      var unit;
+
       // Single value
       if (d.value) {
-        return [d.value];
+        unit = d.unit;
+        values = [d.value];
       // More than one values array for the series
       } else if (d.data) {
-        return _.flatten(_.pluck(d.data, 'values'));
+        unit = d.data[0].unit;
+        values = _.flatten(_.pluck(d.data, 'values'));
       // Single values array for the series
       } else if (d.values) {
-        return d.values;
+        unit = d.unit;
+        values = d.values;
       // Error warn
       } else {
         console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
       }
-    }));
+
+      if (!unit) {unit='default';}
+
+      if (values) {
+        if (!data[unit]) {
+          data[unit] = [];
+          // Ordered by order of definition.
+          units.push(unit);
+        }
+
+        data[unit].push(values);
+      }
+    });
+
+    var dataFlattened = {};
+    _.each(data, function(d,key) {
+      dataFlattened[key] = _.flatten(d);
+    });
+    // var data = _.flatten(_.map(this.data, function(d) {
+    //   // Single value
+    //   if (d.value) {
+    //     return [d.value];
+    //   // More than one values array for the series
+    //   } else if (d.data) {
+    //     return _.flatten(_.pluck(d.data, 'values'));
+    //   // Single values array for the series
+    //   } else if (d.values) {
+    //     return d.values;
+    //   // Error warn
+    //   } else {
+    //     console.warn('No present values on series provided.\n_setFlattenedData@scales.js');
+    //   }
+    // }));
+
+    var firstUnit = units[0];
+    var secondUnit = units[1];
+    this._status.scaleUnits['y'] = firstUnit;
+    this._status.scaleUnits['y2'] = secondUnit;
+    this._dataFlattened = dataFlattened;
+    var dataAvailable = (dataFlattened[firstUnit] && dataFlattened[firstUnit].length>0) ||
+      (dataFlattened[secondUnit] && dataFlattened[secondUnit].length>0);
 
     // No data message
-    if (!this._dataFlattened.length) {
+    if (!dataAvailable) {
       this.$svg.append('text')
         .attr('text-achor', 'middle')
         .attr('alignment-baseline', 'middle')
@@ -1182,8 +1308,7 @@ var p_series = PClass.extend({
   _renderLineSerie: function(serie) {
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
-
-    var line = this._getLineFunc(),
+    var line = this._getLineFunc(serie),
         path = this.$series.append('path')
           // .datum(serie.values)
           .attr('id', 'serie-' + serie.id)
@@ -1231,6 +1356,7 @@ var p_series = PClass.extend({
    */
   _renderAreaRangeSerie: function(serie) {
     var self = this;
+    var yScale = this._getYScale(serie);
 
     // Render the two lines
     this._renderLineSerie({
@@ -1248,8 +1374,8 @@ var p_series = PClass.extend({
     // Draw an area between one and the other Y
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); })
-      .y0(function(d, i) { return self.scale.y(serie.data[1].values[i].y); })
-      .y1(function(d) { return self.scale.y(d.y); });
+      .y0(function(d, i) { return yScale(serie.data[1].values[i].y); })
+      .y1(function(d) { return yScale(d.y); });
 
     serie.path = this.$series.append('path')
       .datum(serie.data[0].values)
@@ -1265,13 +1391,16 @@ var p_series = PClass.extend({
    * TODO return area path
    */
   _renderStackedAreaSerie: function(series) {
-    var self = this,
-        data = series.data;
+    var self = this;
+    var data = series.data;
+    // Let use the scale of any serie
+    var yScale;
 
     // ID optional
-    _.each(series.data, function(serie) {
-      serie.id = serie.id || parseInt(_.uniqueId());
-    });
+    // _.each(series.data, function(serie) {
+    //   serie.id = serie.id || parseInt(_.uniqueId());
+    //   yScale = self._getYScale(serie);
+    // });
 
     var area = d3.svg.area()
       .x(function(d) { return self.scale.x(d.x); });
@@ -1283,14 +1412,14 @@ var p_series = PClass.extend({
       data = stack(series.data);
 
       area
-        .y0(function(d) { return self.scale.y(d.y0); })
-        .y1(function(d) { return self.scale.y(d.y + d.y0); });
+        .y0(function(d) { return yScale(d.y0); })
+        .y1(function(d) { return yScale(d.y + d.y0); });
     } else {
       _.each(series.data, this._renderLineSerie, this);
 
       area
-        .y0(function(d) { return self.scale.y(0); })
-        .y1(function(d) { return self.scale.y(d.y); });
+        .y0(function(d) { return yScale(0); })
+        .y1(function(d) { return yScale(d.y); });
     }
 
     // Fit to new scale
@@ -1300,22 +1429,43 @@ var p_series = PClass.extend({
 
     this.trigger('Scale/update', [{ y: extent }]);
 
+    // ID optional
+    _.each(series.data, function(serie) {
+      serie.id = serie.id || parseInt(_.uniqueId());
+      yScale = self._getYScale(serie);
+    });
+
     this.$series.selectAll('g')
         .attr('class', 'area')
         .data(data)
       .enter()
         .append('path')
         .attr('d', function(d) { return area.interpolate(d.interpolation)(d.values); })
-        .style('fill', function(d) { return d.color; })
+        .style('fill', function(d) { return d.fill || d.color; })
         .style('opacity', function(d) { return d.areaOpacity; });
+
+    // this.$series.selectAll('g')
+    //     .data(data)
+    //   .enter()
+    //     .append('path')
+    //     .style('stroke', function(d) { return '#fff'; })
+    //     .style('stroke-opacity', 1)
+    //     .attr('d', function(d) {
+    //       return d3.svg.line()
+    //         .x(function(d) {return d.x;})
+    //         .y(function(d) {return d.y0;})
+    //         .interpolate(d.interpolation)(d.values);
+    //     });
   },
 
   _renderConstantSerie: function(serie) {
-    var self = this,
-        data = {
+    var self = this;
+    var data = {
           label: serie.label
-        },
-        path, group;
+        };
+    var path;
+    var group;
+    var yScale = this._getYScale(serie);
 
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
@@ -1339,10 +1489,10 @@ var p_series = PClass.extend({
         return d.x ? self.scale.x(d.x) : self.scale.x.range()[1];
       })
       .attr('y1', function(d) {
-        return d.y ? self.scale.y(d.y) : self.scale.y.range()[0];
+        return d.y ? yScale(d.y) : yScale.range()[0];
       })
       .attr('y2', function(d) {
-        return d.y ? self.scale.y(d.y) : self.scale.y.range()[1];
+        return d.y ? yScale(d.y) : yScale.range()[1];
       });
 
     // Line label
@@ -1350,7 +1500,7 @@ var p_series = PClass.extend({
       group.append('text')
         .attr('transform', function(d) {
           var x = serie.cteAxis === 'x' ? self.scale.x(d.x) : self.scale.x.range()[0],
-              y = serie.cteAxis === 'y' ? self.scale.y(d.y) : self.scale.y.range()[0];
+              y = serie.cteAxis === 'y' ? yScale(d.y) : yScale.range()[0];
 
           // Don't step onto the line
           if (serie.cteAxis === 'x') {
@@ -1387,10 +1537,10 @@ var p_series = PClass.extend({
    * Render bar serie. By default it renders bars stacked.
    */
   _renderBarSerie: function(serie) {
-    var self = this,
-        grouped = serie.grouped,
-        // TODO 12 not reasonable. how can we define it?
-        barWidth =  12/(!grouped ? serie.data.length : 1);
+    var self = this;
+    var grouped = serie.grouped;
+    var barWidth = Math.floor(this._getBarWidth(serie));
+    var yScale = this._getYScale(serie);
 
     // ID optional
     serie.id = serie.id || parseInt(_.uniqueId());
@@ -1406,6 +1556,7 @@ var p_series = PClass.extend({
 
             d.y0 = (stacks[d.x] || 0);
             d.y1 = d.y0 + d.y;
+            d.w = -barWidth/2;
             stacks[d.x] = d.y1;
         });
       });
@@ -1424,6 +1575,12 @@ var p_series = PClass.extend({
       });
     }
 
+    // Force update the scale, because we changed y values for the stacked.
+    this.trigger('Scale/update', []);
+
+    // update the la scala, que trigereara un update del axis,
+    // pero la scala ahora no tiene que coger d.y, tiene que coger d.y1
+
     var bars = this.$series.selectAll('.serie-bar')
         .data(serie.data)
       .enter().append('g')
@@ -1439,22 +1596,29 @@ var p_series = PClass.extend({
           return self.scale.x(d.x) + (d.w || 0);
         })
         .attr('y', function(d) {
-          return self.scale.y(d.y0 < d.y1 ? d.y1 : d.y0);
+          return yScale(d.y0 < d.y1 ? d.y1 : d.y0);
         })
         .attr('width', barWidth)
         .attr('height', function(d) {
-          return self.scale.y(Math.abs(d.y0)) - self.scale.y(Math.abs(d.y1));
+          return yScale(Math.abs(d.y0)) - yScale(Math.abs(d.y1));
         });
 
       return bars;
   },
 
-  _getLineFunc: function() {
+  _getLineFunc: function(serie) {
     var self = this;
+    var yScale = this._getYScale(serie);
+
     return d3.svg.line()
       .defined(function(d) {return !!d.y;})
       .x(function(d) {return self.scale.x(d.x);})
-      .y(function(d) {return self.scale.y(d.y);});
+      .y(function(d) {return yScale(d.y);});
+  },
+
+  _getYScale: function(serie) {
+    return !serie.unit || this._$scope.scaleUnits['y'] === serie.unit ?
+      this.scale.y : this.scale.y2;
   },
 
   /**
@@ -1475,6 +1639,39 @@ var p_series = PClass.extend({
     path.transition()
       .duration(200)
       .style('opacity', path.attr('active'));
+  },
+
+  /**
+   * For bar series, get the width of them.
+   *
+   * @param  {Object}  serie
+   * @return {Integer} Bar width
+   */
+  _getBarWidth: function(serie) {
+    var maxBarWidth = 13, barWidth, serieLength;
+
+    // Stacked bar
+    if (serie.grouped) {
+      serieLength = d3.max(_.map(serie.data, function(d) {
+        return d.values.length;
+      }));
+
+      barWidth = (this.opts.width / serieLength) - 2;
+    // Side by side
+    } else {
+      barWidth = maxBarWidth/serie.data.length;
+    }
+
+    // // Check the barWidth is not bigger than the maximun permited
+    // if (barWidth > maxBarWidth) {
+    //   barWidth = maxBarWidth;
+    // }
+    //
+    if (barWidth < 1) {
+      barWidth = 1;
+    }
+
+    return barWidth;
   }
 
 });
@@ -1645,18 +1842,18 @@ var p_trail = PClass.extend({
   _getDataFromValue: function(xvalue) {
     var self = this;
     var trailData = _.map(this.data, function(serie) {
-      var details = _.omit(serie, 'values', 'path');
       var value;
+
       if (serie.type === 'line') {
         value = serie.values[self.bisector(serie.values, xvalue)];
         if (!value) {
           value = {x: null, y: null};
         }
-        return _.extend({}, value, {id: serie.id}, details);
+        return _.extend({}, value, {id: serie.id}, _.omit(serie, 'values', 'path'));
       } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
           return _.extend(d.values[self.bisector(d.values, xvalue)],
-            {id: d.id}, details);
+            {id: d.id}, _.omit(d, 'values'));
         });
       }
     });
@@ -1752,6 +1949,7 @@ Charicharts.Chart = CClass.extend({
       left: {
         enabled: true,
         label: false,
+        width: 10,
         tickFormat: function(d) {
           return d;
         }
@@ -1759,6 +1957,7 @@ Charicharts.Chart = CClass.extend({
       right: {
         enabled: false,
         label: false,
+        width: 10,
         tickFormat: function(d) {
           return d;
         }
