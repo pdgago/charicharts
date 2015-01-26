@@ -110,10 +110,16 @@ var p_axes = PClass.extend({
         .attr('transform', 'translate(0,'+(this.opts.height+1)+')')
         .call(model.axis);
 
-    model.el.selectAll('text')
-      .attr('y', 0)
-      .attr('x', 6)
-      .style('text-anchor', 'start');
+    if (this.opts.xaxis.bottom.tickLines) {
+      model.el.selectAll('text')
+        .attr('y', 0)
+        .attr('x', 6)
+        .style('text-anchor', 'start');
+    } else {
+      model.el.selectAll('text')
+        .attr('y', 4);
+      model.el.selectAll('line').remove();
+    }
 
     // Append baseline
     model.el.append('rect')
@@ -268,11 +274,17 @@ var p_axes = PClass.extend({
         .attr('transform', h_getTranslate(0, this.opts.yaxis.textMarginTop));
     }
 
-    this.$svg.selectAll('.xaxis.bottom .tick text')
-      .attr('transform', h_getTranslate(0,4))
-      .attr('y', 0)
-      .attr('x', 6)
-      .style('text-anchor', 'start');
+    if (this.opts.xaxis.bottom.tickLines) {
+      this.$svg.selectAll('.xaxis.bottom .tick text')
+        .attr('transform', h_getTranslate(0,4))
+        .attr('y', 0)
+        .attr('x', 6)
+        .style('text-anchor', 'start');
+    } else {
+      this.$svg.selectAll('.xaxis.bottom .tick text')
+        .attr('y', 4);
+      this.$svg.selectAll('.xaxis.bottom .tick line').remove();
+    }
 
     // yaxis full grid
     if (this.opts.yaxis.fullGrid) {

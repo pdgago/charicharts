@@ -41,6 +41,7 @@ Charicharts.Chart = CClass.extend({
       bottom: {
         enabled: true,
         label: false,
+        tickLines: false,
         ticks: null,
         // TICKS EXAMPLE
         // ['days', 2]
