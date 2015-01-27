@@ -1452,6 +1452,10 @@ var p_series = PClass.extend({
         .data(data)
       .enter()
         .append('path')
+        .attr('id', function(d) {
+          return 'area-' + d.id;
+        })
+        .attr('active', 1)
         .attr('d', function(d) { return area.interpolate(d.interpolation)(d.values); })
         .style('fill', function(d) { return d.fill || d.color; })
         .style('opacity', function(d) { return d.areaOpacity; });
@@ -1644,13 +1648,21 @@ var p_series = PClass.extend({
    */
   toggleSerie: function(id) {
     var path = this.$svg.select('#serie-' + id);
-    if (path.empty()) {return;}
-    var active = Number(path.attr('active')) ? 0 : 1;
-    path.attr('active', active);
+    var area = this.$svg.select('#area-' + id);
 
-    path.transition()
-      .duration(200)
-      .style('opacity', path.attr('active'));
+    if (!area.empty()) {
+      area.attr('active', Number(area.attr('active')) ? 0 : 1);
+      area.transition()
+        .duration(200)
+        .style('opacity', area.attr('active'));
+    }
+
+    if (!path.empty()) {
+      path.attr('active', Number(path.attr('active')) ? 0 : 1);
+      path.transition()
+        .duration(200)
+        .style('opacity', path.attr('active'));
+    }
   },
 
   /**
