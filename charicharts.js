@@ -1425,7 +1425,9 @@ var p_series = PClass.extend({
 
       area
         .y0(function(d) { return yScale(d.y0); })
-        .y1(function(d) { return yScale(d.y + d.y0); });
+        .y1(function(d) {
+          return yScale(d.y + d.y0);
+        });
     } else {
       _.each(series.data, this._renderLineSerie, this);
 
@@ -1451,7 +1453,7 @@ var p_series = PClass.extend({
         .attr('class', 'area')
         .data(data)
       .enter()
-        .append('path')
+        .insert('path', ':first-child')
         .attr('id', function(d) {
           return 'area-' + d.id;
         })
