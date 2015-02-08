@@ -97,7 +97,7 @@ var p_axes = PClass.extend({
     model.axis = d3.svg.axis()
       .scale(this.scale.x)
       .orient('bottom')
-      .tickSize(14, 0)
+      .tickSize(this.opts.xaxis.bottom.tickLines ? 14 : 5, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
 
     if (this.opts.xaxis.ticks) {
@@ -117,8 +117,7 @@ var p_axes = PClass.extend({
         .style('text-anchor', 'start');
     } else {
       model.el.selectAll('text')
-        .attr('y', 4);
-      model.el.selectAll('line').remove();
+        .attr('y', 9);
     }
 
     // Append baseline
@@ -224,7 +223,7 @@ var p_axes = PClass.extend({
     if (!this.opts.xaxis[orient].label) {return;}
     this.$svg.select('.xaxis.' + orient).append('text')
       .attr('class', 'label')
-      .attr('transform', h_getTranslate(-this.opts.margin.left, this.opts.height))
+      .attr('transform', h_getTranslate(-this.opts.margin.left, -4))
       .attr('y', 16)
       .attr('x', 0)
       .attr('text-anchor', 'start')
@@ -282,8 +281,7 @@ var p_axes = PClass.extend({
         .style('text-anchor', 'start');
     } else {
       this.$svg.selectAll('.xaxis.bottom .tick text')
-        .attr('y', 4);
-      this.$svg.selectAll('.xaxis.bottom .tick line').remove();
+        .attr('y', 9);
     }
 
     // yaxis full grid

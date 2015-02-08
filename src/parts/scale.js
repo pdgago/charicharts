@@ -97,23 +97,25 @@ var p_scale = PClass.extend({
       extent = [min, max];
     }
 
-    if (position === 'y') {
-      // padding min extent
-      if (extent[0] >= 0) {
-        extent[0] = extent[0] * 0.95;
-      } else {
-        extent[0] = extent[0] * 1.05;
-      }
+    // add padding to extent
+    var extDiff = extent[1] - extent[0];
+    var valDiff = extDiff * 0.05;
 
-      // padding max extent
-      if (extent[1] >= 0) {
-        extent[1] = extent[1] * 1.05;
-      } else {
-        extent[1] = extent[1] * 0.95;
-      }
+    if (extDiff <= 0) {
+      valDiff = 1;
     }
 
-    if (fit) {return extent;}
+    if (position === 'y' && fit) {
+      extent[0] = extent[0] - valDiff;
+      extent[1] = extent[1] + valDiff;
+    }
+
+    // if is fit, return the extent as it is
+    if (fit) {
+      return extent;
+    } else if (extent[0] >= 0) {
+      return [0, extent[1]];
+    }
 
     // Positive scale
     if (extent[0] >= 0) {
