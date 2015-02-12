@@ -1,7 +1,7 @@
 /* jshint ignore:start */
 !function(context) {
   // 'use strict';
-  var Charicharts = {version: "0.0.0"};
+  var Charicharts = {version: "1.3.9"};
   if (!String.prototype.format) {
     String.prototype.format = function() {
       var args = arguments;
