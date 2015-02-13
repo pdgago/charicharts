@@ -278,6 +278,7 @@ var p_series = PClass.extend({
     serie.id = serie.id || parseInt(_.uniqueId());
 
     data[serie.cteAxis] = serie.value;
+    if(!serie.value) {return;}
 
     group = this.$series.append('g')
       .datum(data);
