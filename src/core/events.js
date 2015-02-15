@@ -10,10 +10,10 @@ var charichartsEvents = function() {
 
   /**
    * Publish some data on a named topic.
-   * 
+   *
    * @param  {String} topic The channel to publish on
    * @param  {Array}  args  The data to publish. Each array item is converted
-   *                        into an ordered arguments on the subscribed functions. 
+   *                        into an ordered arguments on the subscribed functions.
    */
   events.trigger = function trigger(topic, args) {
     var subs = cache[topic];
@@ -27,9 +27,9 @@ var charichartsEvents = function() {
 
   /**
    * Register a callback on a named topic.
-   * 
+   *
    * @param  {String}   topic    The channel to subscribe to
-   * @param  {Function} callback The handler event. Anytime something is publish'ed on a 
+   * @param  {Function} callback The handler event. Anytime something is publish'ed on a
    *                             subscribed channel, the callback will be called with the
    *                             published array as ordered arguments.
    */
@@ -41,7 +41,7 @@ var charichartsEvents = function() {
 
   /**
    * Disconnect a subscribed function for a topic.
-   *  
+   *
    * @param  {Array}    handle   The return value from a subscribe call.
    * @param  {Function} callback [description]
    */
