@@ -65,7 +65,8 @@ var p_scale = PClass.extend({
 
   _updateScale: function(position, opt_minExtent) {
     var opts = this.opts[position.replace(/\d/, '') + 'axis'];
-    var domain = this._getExtent(position, opts.fit, opt_minExtent);
+    var domain = this.opts[position+'axis'].domain ? this.opts.xaxis.domain : 
+      this._getExtent(position, opts.fit, opt_minExtent);
     var range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
     return this._d3Scales[opts.scale]()
