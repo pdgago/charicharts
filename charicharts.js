@@ -1,7 +1,7 @@
 /* jshint ignore:start */
 !function(context) {
   // 'use strict';
-  var Charicharts = {version: "0.0.0"};
+  var Charicharts = {version: "1.3.9"};
   if (!String.prototype.format) {
     String.prototype.format = function() {
       var args = arguments;
@@ -12,6 +12,7 @@
   }
 
 /* jshint ignore:end */
+
 /**
  * Get translate attribute from supplied width/height.
  *
@@ -214,10 +215,10 @@ var charichartsEvents = function() {
 
   /**
    * Publish some data on a named topic.
-   * 
+   *
    * @param  {String} topic The channel to publish on
    * @param  {Array}  args  The data to publish. Each array item is converted
-   *                        into an ordered arguments on the subscribed functions. 
+   *                        into an ordered arguments on the subscribed functions.
    */
   events.trigger = function trigger(topic, args) {
     var subs = cache[topic];
@@ -231,9 +232,9 @@ var charichartsEvents = function() {
 
   /**
    * Register a callback on a named topic.
-   * 
+   *
    * @param  {String}   topic    The channel to subscribe to
-   * @param  {Function} callback The handler event. Anytime something is publish'ed on a 
+   * @param  {Function} callback The handler event. Anytime something is publish'ed on a
    *                             subscribed channel, the callback will be called with the
    *                             published array as ordered arguments.
    */
@@ -245,7 +246,7 @@ var charichartsEvents = function() {
 
   /**
    * Disconnect a subscribed function for a topic.
-   *  
+   *
    * @param  {Array}    handle   The return value from a subscribe call.
    * @param  {Function} callback [description]
    */
@@ -264,6 +265,7 @@ var charichartsEvents = function() {
 
   return events;
 };
+
 /**
  * Part Class. All charicharts parts extends this Class.
  */
@@ -759,6 +761,7 @@ var p_percentage_bar = PClass.extend({
   }
 
 });
+
 /**
  * Pie Inner Arrow
  * ---------------
@@ -1489,6 +1492,7 @@ var p_series = PClass.extend({
     serie.id = serie.id || parseInt(_.uniqueId());
 
     data[serie.cteAxis] = serie.value;
+    if(!serie.value) {return;}
 
     group = this.$series.append('g')
       .datum(data);
