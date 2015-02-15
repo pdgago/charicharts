@@ -885,6 +885,7 @@ var p_pie_inner_arrow = PClass.extend({
   }
 
 });
+
 /**
  * Pie Module
  * ----------
@@ -1886,8 +1887,9 @@ var p_trail = PClass.extend({
         return _.extend({}, value, {id: serie.id}, _.omit(serie, 'values', 'path'));
       } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
-          return _.extend(d.values[self.bisector(d.values, xvalue)],
-            {id: d.id}, _.omit(d, 'values'));
+          var values = d.values[self.bisector(d.values, xvalue)];
+          if (!values) {values = {x: null, y: null};}
+          return _.extend(values, {id: d.id}, _.omit(d, 'values'));
         });
       }
     });
