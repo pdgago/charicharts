@@ -1064,7 +1064,8 @@ var p_scale = PClass.extend({
 
   _updateScale: function(position, opt_minExtent) {
     var opts = this.opts[position.replace(/\d/, '') + 'axis'];
-    var domain = this._getExtent(position, opts.fit, opt_minExtent);
+    var domain = this.opts[position+'axis'].domain ? this.opts.xaxis.domain : 
+      this._getExtent(position, opts.fit, opt_minExtent);
     var range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
     return this._d3Scales[opts.scale]()
@@ -1875,7 +1876,7 @@ var p_trail = PClass.extend({
       var value;
 
       if (serie.type === 'line') {
-        var index = self.bisector(serie.values, xvalue) - 1;
+        var index = self.bisector(serie.values, xvalue);
         if (index < 0) {index=0;}
 
         value = serie.values[index];
@@ -1904,6 +1905,7 @@ var p_trail = PClass.extend({
   }
 
 });
+
 Charicharts.Chart = CClass.extend({
 
   modules: [
@@ -1939,6 +1941,7 @@ Charicharts.Chart = CClass.extend({
       scale: 'time',
       fit: true,
       ticks: false,
+      domain: null,
       top: {
         enabled: false,
         label: false,
