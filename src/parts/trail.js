@@ -59,7 +59,7 @@ var p_trail = PClass.extend({
 
     this.bisector = d3.bisector(function(d) {
       return d.x;
-    }).left;
+    }).right;
 
     // Append slider zone
     this.sliderZone = this.$svg.append('g')
@@ -138,13 +138,16 @@ var p_trail = PClass.extend({
       var value;
 
       if (serie.type === 'line') {
-        var index = self.bisector(serie.values, xvalue);
-        if (index < 0) {index=0;}
+        var indexAfter = self.bisector(serie.values, xvalue);
 
-        value = serie.values[index];
-        if (!value) {
+        if (serie.values.length === indexAfter) {
           value = {x: null, y: null};
+        } else {
+          var index = indexAfter - 1;
+          if (index < 0) {index=0;}
+          value = serie.values[index];
         }
+        if (!value) {value = {x: null, y: null};}
         return _.extend({}, value, {id: serie.id}, _.omit(serie, 'values', 'path'));
       } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
