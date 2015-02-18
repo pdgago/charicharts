@@ -2001,7 +2001,8 @@ Charicharts.Chart = CClass.extend({
           return d;
         }
       }
-    }
+    },
+    y2axis: {}
   },
 
   parseOptions: function(options) {
