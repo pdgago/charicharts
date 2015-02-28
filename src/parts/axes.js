@@ -99,9 +99,49 @@ var p_axes = PClass.extend({
       .orient('bottom')
       .tickSize(this.opts.xaxis.bottom.tickLines ? 14 : 5, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
+    
+    var domain = this.scale.x.domain();
+    var diff = (domain[1].getTime() - domain[0].getTime())/1000;
+    var step = steptmp = diff/6;
 
-    if (this.opts.xaxis.ticks) {
-      model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks);
+    var years = Math.floor(steptmp/31536000);
+    var months = Math.floor(steptmp/2628000);
+    var days = Math.floor(steptmp/86400);
+    var hours = Math.floor(steptmp/3600)%24;
+    var minutes = Math.floor(steptmp/60)%60;
+    var seconds = steptmp % 60;
+
+    var ticks = this.opts.xaxis.ticks;
+    var time;
+    var amount;
+
+    if (!ticks) {
+      if (years >= 1) {
+        time = 'year';
+        amount = (years - years%2) || 1;
+      } else if (months >= 1) {
+        time = 'months';
+        amount = (months - months%2) || 1;
+      } else if (days >= 1) {
+        time = 'days';
+        amount = (days - days%2) || 1;
+      } else if (hours >= 1) {
+        time = 'hours';
+        amount = (hours - hours%2) || 1;
+      } else if (minutes >= 1) {
+        time = 'minutes';
+        amount = (minutes - minutes%2);
+        amount = amount + 30/2 - (amount+30/2) % 30;
+        if (amount === 0) {amount = 30;}
+      } else if (seconds >= 1) {
+        time = 'seconds';
+        amount = 60;
+      }
+    }
+    if (amount === 0) {amount=1;}
+
+    if (time) {
+      model.axis.ticks.apply(model.axis, [d3.time[time], amount]);
     }
 
     // Render axis
