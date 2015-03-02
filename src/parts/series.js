@@ -21,6 +21,7 @@ var p_series = PClass.extend({
     // before rendering the series, we need to group the bars ones.
     // those are going to be rendered together so they can be
     // stacked or grouped.
+    this._addFakeLastValue();
     _.each(this.data, this._renderSerie, this);
 
     return {
@@ -34,6 +35,58 @@ var p_series = PClass.extend({
         toggle: _.bind(this.toggleSerie, this)
       }
     };
+  },
+
+  _addFakeLastValue: function() {
+    _.each(this.data, function(d) {
+      // Only lines are affected
+      if (d.type !== 'line') {return;}
+      var valuesList = d.values ? [d.values] : _.pluck(d.data, 'values');
+      var res = d.interpolation.match('step') ? this._getDataResolution(valuesList) : 1;
+      // Not possible not get resolution.
+      if (!res) {return;}
+
+      // Add a fake last value with +res
+      _.each(valuesList, function(values) {
+        if (values.length) {
+          var last = values[values.length -1];
+          if (last && last.x) {
+            var newX;
+            if (last.x instanceof Date) {
+              newX = new Date(last.x.getTime() + res);
+            } else if (_.isNumber(last.x)) {
+              newX = last.x + res;
+            }
+
+            if (newX) {
+              var fake = {
+                y: last.y,
+                x: newX,
+                fake: true
+              }
+              values.push(fake);
+            }
+          }
+        }
+      });
+    }, this);
+  },
+
+  _getDataResolution: function(valuesList) {
+    var res;
+    for (var i = valuesList.length - 1; i >= 0; i--) {
+      var values = valuesList[i];
+      var maxIteration = values.length;
+      if (maxIteration > 24) {maxIteration = 24;}
+
+      for (var j = 1; j < maxIteration; j++) {
+        var resTmp = values[j].x - values[j-1].x;
+        if (!res || resTmp < res) {
+          res = resTmp;
+        }
+      }
+    }
+    return res ? res : null;
   },
 
   /**
