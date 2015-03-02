@@ -39,10 +39,25 @@ var p_series = PClass.extend({
 
   _addFakeLastValue: function() {
     _.each(this.data, function(d) {
-      // Only lines are affected
-      if (d.type !== 'line') {return;}
+      // Only lines and areas are affected
+      if (d.type !== 'line' && d.type !== 'area') {return;}
+
+      // Get interpolation
+      var interpolation;
+      if (d.interpolation) {
+        interpolation = d.interpolation;
+      } else if (d.data) {
+        var interpolations = _.pluck(d.data, 'interpolation');
+        if (interpolations) {interpolation = _.uniq(interpolations)[0];}
+      }
+
+      // Not possible not get interpolation.
+      if (!interpolation) {return;}
+
       var valuesList = d.values ? [d.values] : _.pluck(d.data, 'values');
-      var res = d.interpolation.match('step') ? this._getDataResolution(valuesList) : 1;
+      var res = interpolation.match('step') ? this._getDataResolution(valuesList) : 1;
+
+
       // Not possible not get resolution.
       if (!res) {return;}
 
@@ -63,7 +78,7 @@ var p_series = PClass.extend({
                 y: last.y,
                 x: newX,
                 fake: true
-              }
+              };
               values.push(fake);
             }
           }

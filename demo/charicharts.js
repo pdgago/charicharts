@@ -405,9 +405,49 @@ var p_axes = PClass.extend({
       .orient('bottom')
       .tickSize(this.opts.xaxis.bottom.tickLines ? 14 : 5, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
+    
+    var domain = this.scale.x.domain();
+    var diff = (domain[1].getTime() - domain[0].getTime())/1000;
+    var step = steptmp = diff/6;
 
-    if (this.opts.xaxis.ticks) {
-      model.axis.ticks.apply(model.axis, this.opts.xaxis.ticks);
+    var years = Math.floor(steptmp/31536000);
+    var months = Math.floor(steptmp/2628000);
+    var days = Math.floor(steptmp/86400);
+    var hours = Math.floor(steptmp/3600)%24;
+    var minutes = Math.floor(steptmp/60)%60;
+    var seconds = steptmp % 60;
+
+    var ticks = this.opts.xaxis.ticks;
+    var time;
+    var amount;
+
+    if (!ticks) {
+      if (years >= 1) {
+        time = 'year';
+        amount = (years - years%2) || 1;
+      } else if (months >= 1) {
+        time = 'months';
+        amount = (months - months%2) || 1;
+      } else if (days >= 1) {
+        time = 'days';
+        amount = (days - days%2) || 1;
+      } else if (hours >= 1) {
+        time = 'hours';
+        amount = (hours - hours%2) || 1;
+      } else if (minutes >= 1) {
+        time = 'minutes';
+        amount = (minutes - minutes%2);
+        amount = amount + 30/2 - (amount+30/2) % 30;
+        if (amount === 0) {amount = 30;}
+      } else if (seconds >= 1) {
+        time = 'seconds';
+        amount = 60;
+      }
+    }
+    if (amount === 0) {amount=1;}
+
+    if (time) {
+      model.axis.ticks.apply(model.axis, [d3.time[time], amount]);
     }
 
     // Render axis
@@ -1237,6 +1277,7 @@ var p_series = PClass.extend({
     // before rendering the series, we need to group the bars ones.
     // those are going to be rendered together so they can be
     // stacked or grouped.
+    this._addFakeLastValue();
     _.each(this.data, this._renderSerie, this);
 
     return {
@@ -1250,6 +1291,73 @@ var p_series = PClass.extend({
         toggle: _.bind(this.toggleSerie, this)
       }
     };
+  },
+
+  _addFakeLastValue: function() {
+    _.each(this.data, function(d) {
+      // Only lines and areas are affected
+      if (d.type !== 'line' && d.type !== 'area') {return;}
+
+      // Get interpolation
+      var interpolation;
+      if (d.interpolation) {
+        interpolation = d.interpolation;
+      } else if (d.data) {
+        var interpolations = _.pluck(d.data, 'interpolation');
+        if (interpolations) {interpolation = _.uniq(interpolations)[0];}
+      }
+
+      // Not possible not get interpolation.
+      if (!interpolation) {return;}
+
+      var valuesList = d.values ? [d.values] : _.pluck(d.data, 'values');
+      var res = interpolation.match('step') ? this._getDataResolution(valuesList) : 1;
+
+
+      // Not possible not get resolution.
+      if (!res) {return;}
+
+      // Add a fake last value with +res
+      _.each(valuesList, function(values) {
+        if (values.length) {
+          var last = values[values.length -1];
+          if (last && last.x) {
+            var newX;
+            if (last.x instanceof Date) {
+              newX = new Date(last.x.getTime() + res);
+            } else if (_.isNumber(last.x)) {
+              newX = last.x + res;
+            }
+
+            if (newX) {
+              var fake = {
+                y: last.y,
+                x: newX,
+                fake: true
+              };
+              values.push(fake);
+            }
+          }
+        }
+      });
+    }, this);
+  },
+
+  _getDataResolution: function(valuesList) {
+    var res;
+    for (var i = valuesList.length - 1; i >= 0; i--) {
+      var values = valuesList[i];
+      var maxIteration = values.length;
+      if (maxIteration > 24) {maxIteration = 24;}
+
+      for (var j = 1; j < maxIteration; j++) {
+        var resTmp = values[j].x - values[j-1].x;
+        if (!res || resTmp < res) {
+          res = resTmp;
+        }
+      }
+    }
+    return res ? res : null;
   },
 
   /**
@@ -1798,7 +1906,7 @@ var p_trail = PClass.extend({
 
     this.bisector = d3.bisector(function(d) {
       return d.x;
-    }).left;
+    }).right;
 
     // Append slider zone
     this.sliderZone = this.$svg.append('g')
@@ -1877,13 +1985,16 @@ var p_trail = PClass.extend({
       var value;
 
       if (serie.type === 'line') {
-        var index = self.bisector(serie.values, xvalue);
-        if (index < 0) {index=0;}
+        var indexAfter = self.bisector(serie.values, xvalue);
 
-        value = serie.values[index];
-        if (!value) {
+        if (serie.values.length === indexAfter) {
           value = {x: null, y: null};
+        } else {
+          var index = indexAfter - 1;
+          if (index < 0) {index=0;}
+          value = serie.values[index];
         }
+        if (!value) {value = {x: null, y: null};}
         return _.extend({}, value, {id: serie.id}, _.omit(serie, 'values', 'path'));
       } else if (serie.type === 'bar' || serie.type === 'area') {
         return _.map(serie.data, function(d) {
