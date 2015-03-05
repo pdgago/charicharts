@@ -23,5 +23,6 @@
     "Gruntfile.js"
   ],
   "dependencies": {
+    "moment": "~2.9.0"
   }
 }

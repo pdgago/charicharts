@@ -281,7 +281,9 @@ var p_series = PClass.extend({
       data = stack(series.data);
 
       area
-        .y0(function(d) { return yScale(d.y0); })
+        .y0(function(d) {
+            return yScale(d.y0);
+        })
         .y1(function(d) {
           return yScale(d.y + d.y0);
         });
@@ -294,11 +296,24 @@ var p_series = PClass.extend({
     }
 
     // Fit to new scale
-    var extent = d3.extent(series.data[series.data.length - 1].values, function(d) {
+    var t = new Date().getTime();
+    var allvalues = _.flatten(_.map(series.data, function(d) {
+      return d.values;
+    }));
+    var min = d3.min(allvalues, function(d) {
+      return d.y0;
+    });
+    var max = d3.max(allvalues, function(d) {
       return d.y0 + d.y;
     });
+    var extent = [min, max];
 
-    this.trigger('Scale/update', [{ y: extent }]);
+    this.trigger('Scale/update', [{
+      y: {
+        extent: extent,
+        min: false
+      }
+    }]);
 
     // ID optional
     _.each(series.data, function(serie) {

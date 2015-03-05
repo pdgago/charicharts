@@ -136,7 +136,7 @@ var p_axes = PClass.extend({
         if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
 
         return realDate.toDate();
-      }
+      };
 
       _.each(_.range(start, end+step, step), function(t, i) {
         var epoch = t * 1000;

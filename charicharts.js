@@ -405,49 +405,57 @@ var p_axes = PClass.extend({
       .orient('bottom')
       .tickSize(this.opts.xaxis.bottom.tickLines ? 14 : 5, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
-    
-    var domain = this.scale.x.domain();
-    var diff = (domain[1].getTime() - domain[0].getTime())/1000;
-    var step = steptmp = diff/6;
-
-    var years = Math.floor(steptmp/31536000);
-    var months = Math.floor(steptmp/2628000);
-    var days = Math.floor(steptmp/86400);
-    var hours = Math.floor(steptmp/3600)%24;
-    var minutes = Math.floor(steptmp/60)%60;
-    var seconds = steptmp % 60;
 
     var ticks = this.opts.xaxis.ticks;
-    var time;
-    var amount;
 
-    if (!ticks) {
-      if (years >= 1) {
-        time = 'year';
-        amount = (years - years%2) || 1;
-      } else if (months >= 1) {
-        time = 'months';
-        amount = (months - months%2) || 1;
-      } else if (days >= 1) {
-        time = 'days';
-        amount = (days - days%2) || 1;
-      } else if (hours >= 1) {
-        time = 'hours';
-        amount = (hours - hours%2) || 1;
-      } else if (minutes >= 1) {
-        time = 'minutes';
-        amount = (minutes - minutes%2);
-        amount = amount + 30/2 - (amount+30/2) % 30;
-        if (amount === 0) {amount = 30;}
-      } else if (seconds >= 1) {
-        time = 'seconds';
-        amount = 60;
-      }
-    }
-    if (amount === 0) {amount=1;}
+    if (ticks) {
+      model.axis.ticks.apply(model.axis, ticks);
+    } else {
+      var domain = this.scale.x.domain();
+      var start = domain[0].getTime()/1000;
+      var end = domain[1].getTime()/1000;
+      var diff = end - start;
+      var step = diff/7;
+      // console.log('step', step/60/60/24, 'dias')
 
-    if (time) {
-      model.axis.ticks.apply(model.axis, [d3.time[time], amount]);
+      var tickValues = [];
+      var accdiff = 0;
+
+      var nearest = function(epoch) {
+        var realDate = moment(epoch);
+
+        d = moment(epoch).startOf('year');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+        d = moment(epoch).startOf('month');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+        d = moment(epoch).startOf('quarter');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+        d = moment(epoch).startOf('week');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+        d = moment(epoch).startOf('day');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+        d = moment(epoch).startOf('hour');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+        d = moment(epoch).startOf('minute');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+        d = moment(epoch).startOf('second');
+        if (Math.abs(d.diff(realDate, 'seconds')) <= step/2) {accdiff += realDate.diff(d,'miliseconds'); return d.toDate();}
+
+        return realDate.toDate();
+      };
+
+      _.each(_.range(start, end+step, step), function(t, i) {
+        var epoch = t * 1000;
+        // console.log(new Date(epoch))
+        // epoch -= accdiff;
+        var n = nearest(epoch);
+        // console.log('con diff', new Date(epoch), 'nearest', n)
+        // console.log(accdiff/1000/60/60/24, 'dias')
+        tickValues.push(n);
+      });
+
+      // console.log('tickValues',tickValues.length, tickValues)
+      model.axis.tickValues(tickValues);
     }
 
     // Render axis
@@ -1065,8 +1073,8 @@ var p_scale = PClass.extend({
       this.trigger('Scale/updated', []);
     },
 
-    'Scale/update': function(opt_minExtent) {
-      this._updateScales(opt_minExtent);
+    'Scale/update': function(options) {
+      this._updateScales(options);
       this.trigger('Scale/updated', []);
     }
 
@@ -1086,27 +1094,30 @@ var p_scale = PClass.extend({
       }
     };
 
+    this.dataAvailable = true;
+
     this._updateScales();
     return {
       scale: this._status.scale,
-      scaleUnits: this._status.scaleUnits
+      scaleUnits: this._status.scaleUnits,
+      dataAvailable: this.dataAvailable
     };
   },
 
-  _updateScales: function(opt_minExtent) {
-    opt_minExtent = opt_minExtent || {};
+  _updateScales: function(options) {
+    options = options || {};
     this._setFlattenedData();
-    this._status.scale.x = this._updateScale('x', opt_minExtent.x);
-    this._status.scale.y = this._updateScale('y', opt_minExtent.y);
+    this._status.scale.x = this._updateScale('x', options);
+    this._status.scale.y = this._updateScale('y', options);
     if (this._status.scaleUnits.y2) {
-      this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
+      this._status.scale.y2 = this._updateScale('y2', options);
     }
   },
 
-  _updateScale: function(position, opt_minExtent) {
+  _updateScale: function(position, options) {
     var opts = this.opts[position.replace(/\d/, '') + 'axis'];
-    var domain = this.opts[position+'axis'].domain ? this.opts.xaxis.domain : 
-      this._getExtent(position, opts.fit, opt_minExtent);
+    var domain = this.opts[position+'axis'].domain ? this.opts.xaxis.domain :
+      this._getExtent(position, opts.fit, options);
     var range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
     return this._d3Scales[opts.scale]()
@@ -1115,7 +1126,8 @@ var p_scale = PClass.extend({
       // .nice(); // Extends the domain so that it starts and ends on nice round values.
   },
 
-  _getExtent: function(position, fit, opt_minExtent) {
+  _getExtent: function(position, fit, options) {
+    options = options || {};
     var extent;
     // x axes uses all data
     if (position === 'x') {
@@ -1132,9 +1144,10 @@ var p_scale = PClass.extend({
     }
 
     // Fix to min extent
-    if (opt_minExtent) {
-      var min = d3.min([extent[0], opt_minExtent[0]]);
-      var max = d3.max([extent[1], opt_minExtent[1]]);
+    var opt = options[position];
+    if (opt && opt.extent) {
+      var min = opt.min ? d3.min([extent[0], opt.extent[0]]) : opt.extent[0];
+      var max = opt.min ? d3.max([extent[1], opt.extent[1]]) : opt.extent[1];
       extent = [min, max];
     }
 
@@ -1145,6 +1158,8 @@ var p_scale = PClass.extend({
     if (extDiff <= 0) {
       valDiff = 1;
     }
+
+    if (opt && !opt.min) {return extent;}
 
     if (position === 'y' && fit) {
       extent[0] = extent[0] - valDiff;
@@ -1245,11 +1260,16 @@ var p_scale = PClass.extend({
     if (!dataAvailable) {
       this.$svg.append('text')
         .attr('text-achor', 'middle')
-        .attr('alignment-baseline', 'middle')
-        .attr('x', '40%')
-        .attr('y', '40%')
+        // .attr('alignment-baseline', 'middle')
+        .attr('x', this.opts.width/2 - 10)
+        .attr('y', this.opts.height/2 - 8)
+        .attr('text-anchor', 'middle')
+        .style('fill', '#777')
         .attr('font-size', '18px')
         .text(h_getLocale(this.opts.locale)['nodata']);
+        this.dataAvailable = false;
+
+      this.$svg.node().parentNode.style.background = '#f7f7f7';
     }
   }
 
@@ -1537,7 +1557,9 @@ var p_series = PClass.extend({
       data = stack(series.data);
 
       area
-        .y0(function(d) { return yScale(d.y0); })
+        .y0(function(d) {
+            return yScale(d.y0);
+        })
         .y1(function(d) {
           return yScale(d.y + d.y0);
         });
@@ -1550,11 +1572,24 @@ var p_series = PClass.extend({
     }
 
     // Fit to new scale
-    var extent = d3.extent(series.data[series.data.length - 1].values, function(d) {
+    var t = new Date().getTime();
+    var allvalues = _.flatten(_.map(series.data, function(d) {
+      return d.values;
+    }));
+    var min = d3.min(allvalues, function(d) {
+      return d.y0;
+    });
+    var max = d3.max(allvalues, function(d) {
       return d.y0 + d.y;
     });
+    var extent = [min, max];
 
-    this.trigger('Scale/update', [{ y: extent }]);
+    this.trigger('Scale/update', [{
+      y: {
+        extent: extent,
+        min: false
+      }
+    }]);
 
     // ID optional
     _.each(series.data, function(serie) {

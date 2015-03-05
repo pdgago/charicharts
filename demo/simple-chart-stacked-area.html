@@ -41,23 +41,32 @@
 <body>
 <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore.js"></script>
 <script src="http://d3js.org/d3.v3.js"></script>
+<script src="/bower_components/moment/moment.js"></script>
 <script src="charicharts.js"></script>
 <script>
 
 var color = d3.scale.category10(),
     random = d3.random.normal(0, 1),
-    data1 = getData(5),
-    data2 = getData(5),
-    data3 = getData(5),
-    data4 = getData(5),
+    data1 = getData(3),
+    data2 = getData(3),
+    data3 = getData(3),
+    data4 = getData(3),
     dataNulls1 = getData(23),
     dataNulls2 = getData(23);
 
-setNull(dataNulls1, 4, 6, 14, 15, 16);
-setNull(dataNulls2, 0, 1, 5, 7);
+// setNull(dataNulls1, 4, 6, 14, 15, 16);
+// setNull(dataNulls2, 0, 1, 5, 7);
 
-console.log('data1',data1);
-console.log('data2',data2);
+setTimeout(function() {
+  console.log('data1');
+  _.each(data1, function(d) {
+    console.log(d.x, 'y', d.y, 'y0', d.y0, 'y2', d.y2);
+  })
+  console.log('data2');
+  _.each(data2, function(d) {
+    console.log(d.x, 'y', d.y, 'y0', d.y0, 'y1', d.y1);
+  })
+},50)
 
 var data = [
 {
@@ -80,6 +89,15 @@ var data = [
     interpolation: 'linear',
     color: color(2),
     fill: color(3),
+    areaOpacity: 0.5
+  },
+  {
+    type: 'line',
+    values: data3,
+    dots: false,
+    interpolation: 'linear',
+    color: color(1),
+    fill: color(2),
     areaOpacity: 0.5
   }
   ],

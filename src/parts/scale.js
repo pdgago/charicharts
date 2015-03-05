@@ -25,8 +25,8 @@ var p_scale = PClass.extend({
       this.trigger('Scale/updated', []);
     },
 
-    'Scale/update': function(opt_minExtent) {
-      this._updateScales(opt_minExtent);
+    'Scale/update': function(options) {
+      this._updateScales(options);
       this.trigger('Scale/updated', []);
     }
 
@@ -46,27 +46,30 @@ var p_scale = PClass.extend({
       }
     };
 
+    this.dataAvailable = true;
+
     this._updateScales();
     return {
       scale: this._status.scale,
-      scaleUnits: this._status.scaleUnits
+      scaleUnits: this._status.scaleUnits,
+      dataAvailable: this.dataAvailable
     };
   },
 
-  _updateScales: function(opt_minExtent) {
-    opt_minExtent = opt_minExtent || {};
+  _updateScales: function(options) {
+    options = options || {};
     this._setFlattenedData();
-    this._status.scale.x = this._updateScale('x', opt_minExtent.x);
-    this._status.scale.y = this._updateScale('y', opt_minExtent.y);
+    this._status.scale.x = this._updateScale('x', options);
+    this._status.scale.y = this._updateScale('y', options);
     if (this._status.scaleUnits.y2) {
-      this._status.scale.y2 = this._updateScale('y2', opt_minExtent.y2);
+      this._status.scale.y2 = this._updateScale('y2', options);
     }
   },
 
-  _updateScale: function(position, opt_minExtent) {
+  _updateScale: function(position, options) {
     var opts = this.opts[position.replace(/\d/, '') + 'axis'];
-    var domain = this.opts[position+'axis'].domain ? this.opts.xaxis.domain : 
-      this._getExtent(position, opts.fit, opt_minExtent);
+    var domain = this.opts[position+'axis'].domain ? this.opts.xaxis.domain :
+      this._getExtent(position, opts.fit, options);
     var range = position === 'x' ? [0, this.opts.width] : [this.opts.height, 0];
 
     return this._d3Scales[opts.scale]()
@@ -75,7 +78,8 @@ var p_scale = PClass.extend({
       // .nice(); // Extends the domain so that it starts and ends on nice round values.
   },
 
-  _getExtent: function(position, fit, opt_minExtent) {
+  _getExtent: function(position, fit, options) {
+    options = options || {};
     var extent;
     // x axes uses all data
     if (position === 'x') {
@@ -92,9 +96,10 @@ var p_scale = PClass.extend({
     }
 
     // Fix to min extent
-    if (opt_minExtent) {
-      var min = d3.min([extent[0], opt_minExtent[0]]);
-      var max = d3.max([extent[1], opt_minExtent[1]]);
+    var opt = options[position];
+    if (opt && opt.extent) {
+      var min = opt.min ? d3.min([extent[0], opt.extent[0]]) : opt.extent[0];
+      var max = opt.min ? d3.max([extent[1], opt.extent[1]]) : opt.extent[1];
       extent = [min, max];
     }
 
@@ -105,6 +110,8 @@ var p_scale = PClass.extend({
     if (extDiff <= 0) {
       valDiff = 1;
     }
+
+    if (opt && !opt.min) {return extent;}
 
     if (position === 'y' && fit) {
       extent[0] = extent[0] - valDiff;
@@ -205,11 +212,16 @@ var p_scale = PClass.extend({
     if (!dataAvailable) {
       this.$svg.append('text')
         .attr('text-achor', 'middle')
-        .attr('alignment-baseline', 'middle')
-        .attr('x', '40%')
-        .attr('y', '40%')
+        // .attr('alignment-baseline', 'middle')
+        .attr('x', this.opts.width/2 - 10)
+        .attr('y', this.opts.height/2 - 8)
+        .attr('text-anchor', 'middle')
+        .style('fill', '#777')
         .attr('font-size', '18px')
         .text(h_getLocale(this.opts.locale)['nodata']);
+        this.dataAvailable = false;
+
+      this.$svg.node().parentNode.style.background = '#f7f7f7';
     }
   }
 
