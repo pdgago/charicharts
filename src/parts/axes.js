@@ -99,49 +99,87 @@ var p_axes = PClass.extend({
       .orient('bottom')
       .tickSize(this.opts.xaxis.bottom.tickLines ? 14 : 5, 0)
       .tickFormat(this.opts.xaxis.bottom.tickFormat || tickFormat);
-    
-    var domain = this.scale.x.domain();
-    var diff = (domain[1].getTime() - domain[0].getTime())/1000;
-    var step = steptmp = diff/6;
-
-    var years = Math.floor(steptmp/31536000);
-    var months = Math.floor(steptmp/2628000);
-    var days = Math.floor(steptmp/86400);
-    var hours = Math.floor(steptmp/3600)%24;
-    var minutes = Math.floor(steptmp/60)%60;
-    var seconds = steptmp % 60;
-
     var ticks = this.opts.xaxis.ticks;
-    var time;
-    var amount;
 
-    if (!ticks) {
-      if (years >= 1) {
-        time = 'year';
-        amount = (years - years%2) || 1;
-      } else if (months >= 1) {
-        time = 'months';
-        amount = (months - months%2) || 1;
-      } else if (days >= 1) {
-        time = 'days';
-        amount = (days - days%2) || 1;
-      } else if (hours >= 1) {
-        time = 'hours';
-        amount = (hours - hours%2) || 1;
-      } else if (minutes >= 1) {
-        time = 'minutes';
-        amount = (minutes - minutes%2);
-        amount = amount + 30/2 - (amount+30/2) % 30;
-        if (amount === 0) {amount = 30;}
-      } else if (seconds >= 1) {
-        time = 'seconds';
-        amount = 60;
+    if (ticks) {
+      model.axis.ticks.apply(model.axis, ticks);
+    } else {
+      var domain = this.scale.x.domain();
+      var start = domain[0].getTime();
+      var end = domain[1].getTime();
+      var diff = end - start;
+      var minPxStep = 100;
+      var width = this.opts.fullWidth;
+      var maxValues = Math.ceil(width/minPxStep)+1;
+      var tickValues = [];
+      var ranges = ['year', 'month', 'day', 'hour', 'minutes'];
+
+      var startDate = moment(start);
+      var endDate = moment(end);
+
+      var fillRange = function (start, min, max, range, numValues) {
+        var diff = max.diff(min, range);
+        var step = Math.ceil(diff/(numValues+1));
+        var inserted = 0;
+
+        if (step === 0) {return;}
+
+        while (inserted < numValues &&
+          (start.isSame(min) || start.isSame(max) || (start.startOf(range).add(step, range).isBetween(min, max))) &&
+          tickValues.length < maxValues) {
+          var time = start.toDate().getTime();
+          if (tickValues.indexOf(time) === -1) {
+            tickValues.push(time);
+            inserted++;
+          }
+          // start.add(step, range);
+        }
+        return inserted;
+      };
+
+      var min = startDate.clone();
+      var max = endDate.clone();
+
+      for (var j in ranges) {
+        if (_.isString(ranges[j]) && !tickValues.length) {
+          fillRange(startDate.clone(), min, max, ranges[j], maxValues);
+        }
       }
-    }
-    if (amount === 0) {amount=1;}
 
-    if (time) {
-      model.axis.ticks.apply(model.axis, [d3.time[time], amount]);
+      var tickValuesCloned = tickValues.slice();
+      var numIntervals = tickValues.length;
+      var intervalWidth = width/numIntervals;
+      var maxValuesRemaining = Math.floor((maxValues - numIntervals)/numIntervals);
+
+      for (var i = 0; i < numIntervals; i++) {
+        var minA = moment(tickValuesCloned[i]);
+        var minB;
+        var inserted = 0;
+        var maxValuesPerIntervalPx;
+        var maxValuesPerInterval;
+
+        if (tickValuesCloned[i+1]) {
+          minB = moment(tickValuesCloned[i+1]);
+          maxValuesPerIntervalPx = Math.floor(intervalWidth/minPxStep);
+        } else {
+          minB = max;
+          var stepsize = this.scale.x(new Date(tickValuesCloned[i])) - this.scale.x(new Date(tickValuesCloned[i-1]));
+          var lastIntervalWidth = ((minB.toDate().getTime() - minA.toDate().getTime()) * stepsize) / (tickValuesCloned[i] - tickValuesCloned[i-1]);
+          maxValuesPerIntervalPx = Math.floor(lastIntervalWidth/minPxStep);
+        }
+        maxValuesPerInterval = d3.min([maxValuesRemaining, maxValuesPerIntervalPx]);
+
+        for (var k in ranges) {
+          if (_.isString(ranges[k]) && !inserted) {
+            inserted = fillRange(minA.clone(), minA, minB, ranges[k], maxValuesPerInterval);
+          }
+        }
+      }
+
+      tickValues.sort(function(a, b){return a-b;});
+      tickValues = _.map(tickValues, function(a) {return new Date(a);});
+
+      model.axis.tickValues(tickValues);
     }
 
     // Render axis
